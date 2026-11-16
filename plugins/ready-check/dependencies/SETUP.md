@@ -58,6 +58,7 @@ User settings live in `<data root>/settings.json`, project overrides in `ai/read
 | `install` | `ask` (default), `auto`, `never` | user |
 | `captureTasks` | `true` (default), `false` | user, project |
 | `remind` | `true` (default), `false` | user, project |
+| `artifactLanguage` | `English` (default) or another language name, for example `Ukrainian`; language of reports, QA plans and handoffs (PR drafts and the report's key lines stay English) | user, project |
 | `profile`, `runner`, `application` | confirmed project type | project |
 
 ## Coding rules

@@ -1,5 +1,9 @@
 Ready Check is enabled in this client.
 
+Write Ready Check files (reports, QA plans and handoffs) in {language}; keep chat replies in the user's language.
+These stay in English everywhere: the report's `task_id:`, `Round:` and `Verdict:` lines, finding labels and IDs,
+PR drafts and contributed changes.
+
 After completing a task that changes this project, before the final handoff, ask once in the user's
 language whether to validate the task with Ready Check. Offer all checks, static/lint checks,
 code review and security, Playwright QA, a combination, or none.
@@ -21,7 +25,7 @@ When the user asks to retest after a fix ("retest", "check again", "re-run the c
 Check report with its next round through the `check` skill.
 When the user says a checked task was returned or review found a problem ("the task was returned", "lead sent it
 back", "review found a bug", "QA returned the task", "record feedback"), ask whether to record it as Ready Check
-feedback, then follow the `feedback` skill.
+feedback, then follow the `feedback` skill. Do not investigate or fix the reported problem until the user asks.
 When the user asks about their Ready Check history ("show my Ready Check stats", "how did my recent tasks go",
 "what are my typical mistakes", "reflect on recent tasks", "analyze my last tasks"), ask whether to show the Ready
 Check overview of the last 10 tasks, then follow the `reflect` skill.

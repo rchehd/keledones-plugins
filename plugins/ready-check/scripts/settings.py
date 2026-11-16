@@ -10,7 +10,7 @@ import logs
 from dependency_support import PLUGIN, data_root
 from project import BASE, ensure_excluded, toplevel, write_json
 
-DEFAULTS = {"browser": "ask", "install": "ask", "captureTasks": True, "remind": True}
+DEFAULTS = {"browser": "ask", "install": "ask", "captureTasks": True, "remind": True, "artifactLanguage": "English"}
 CHOICES = {"browser": {"ask", "visible", "background"}, "install": {"ask", "auto", "never"},
            "runner": {"local", "ddev", "compose"}}
 BOOLEAN = {"captureTasks", "remind"}
@@ -37,6 +37,9 @@ def valid(key, value):
     if key == "profile":
         return (isinstance(value, str) and re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", value) is not None and
                 (PLUGIN / "profiles" / value / "profile.json").is_file())
+
+    if key == "artifactLanguage":
+        return isinstance(value, str) and re.fullmatch(r"[A-Za-z][A-Za-z -]{1,39}", value) is not None
 
     if key == "application":
         path = PurePosixPath(value) if isinstance(value, str) else None

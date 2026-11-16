@@ -6,9 +6,10 @@ description: Plan risk-based browser QA from the task's requirements with standa
 # QA
 
 Continue `check` in the current chat with its report, complete RC list, any selected review matrix,
-application, selected profile, selected checks, and static JSON or partial scope evidence. Write in the user's
-language. Verify behavior through the application; code inspection or a successful browser command alone is not
-a scenario pass. Techniques, oracles and investigation steps are in [test design](references/test-design.md).
+application, selected profile, selected checks, and static JSON or partial scope evidence. Talk in the user's
+language; write the plan and results into the report in the Ready Check file language. Verify behavior through
+the application; code inspection or a successful browser command alone is not a scenario pass. Techniques,
+oracles and investigation steps are in [test design](references/test-design.md).
 
 ## Talking to the user
 

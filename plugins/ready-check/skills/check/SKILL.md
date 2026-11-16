@@ -5,9 +5,10 @@ description: Check whether a task is ready to push through profile-based static 
 
 # Ready Check
 
-Verify a task in the current harness. Respond and write the report in the user's language; write the PR
-title and summary in English. One invocation continues through preparation, statics, review, QA, and the
-final result, pausing for missing answers, QA-plan approval or fixes when needed. Follow
+Verify a task in the current harness. Respond in the user's language; write the report in the Ready Check file
+language from the session context (English unless the user chose another); write the PR title and summary in
+English. One invocation continues through preparation, statics, review, QA, and the final result, pausing
+for missing answers, QA-plan approval or fixes when needed. Follow
 [check selection](references/check-selection.md): record full or selected stages, reuse the user's choice,
 and keep unselected stages NOT_SELECTED. Only a full successful run can establish readiness to push.
 

@@ -1,6 +1,6 @@
 # Optional QA handoff draft
 
-Use this only when a QA handoff is requested. Write in the user's language unless they specify another.
+Use this only when a QA handoff is requested. Write in the Ready Check file language from the session context unless the user asks for another.
 Draw from the same current Ready Check report; do not invent a ticket system's mandatory fields or claim
 that any organization has approved this format. Keep authentication links, credentials, and private local paths out
 of text intended for a ticket. Save locally for human review; do not send it.

@@ -1,6 +1,7 @@
 # Ready Check report template
 
-Write the report in the user's language, with the PR draft in English. Replace bracketed fields with known facts or an explicit unknown;
+Write the report in the Ready Check file language from the session context (English unless the user chose another),
+with the PR draft in English. Replace bracketed fields with known facts or an explicit unknown;
 keep unresolved preparation items open. Maintain the same report as answers arrive.
 
 ```markdown
@@ -10,7 +11,7 @@ task_id: [Slug of the task title plus the date of the first run, from the report
 Round: [1 for the first run; increment after each fix or retest]
 Verdict: [INCOMPLETE, BLOCKED, PARTIAL CHECK COMPLETE, or READY TO PUSH only for a full successful run]
 
-<!-- The three lines above stay in English; the rest of the report uses the user's language. -->
+<!-- The three lines above stay in English; the rest of the report uses the Ready Check file language. -->
 
 Reason: [Open questions, confirmed findings, missing prerequisites, or current verified coverage]
 Report: [Absolute report path]

@@ -151,7 +151,16 @@ def first_run(top, client, values, status):
 
     fallback = "; in Claude Code the user can run it by typing ! followed by the command" if client == "claude" else ""
     return template("first-run.md", question=question(found, values, status, confirmed), fallback=fallback,
-                    yes=command(top, "yes", found), no=command(top, "no", found))
+                    yes=command(top, "yes", found), no=command(top, "no", found), language=language_note(values))
+
+
+def language_note(values):
+    if "artifactLanguage" in settings.read(settings.user_path()):
+        return ""
+
+    config = f"{quote(sys.executable)} {quote(PLUGIN / 'scripts/ready-check.py')} config set artifactLanguage"
+    return (f"In the same question add one line: Ready Check writes its reports and other files in {values['artifactLanguage']}; "
+            f"another language can be chosen. If the user names one, run `{config} \"<language in English>\"`.\n\n")
 
 
 def session_start(client, payload):
@@ -160,7 +169,8 @@ def session_start(client, payload):
     hook_state.prune()
     status = browser_status()
     rules_command = f"{quote(sys.executable)} {quote(PLUGIN / 'scripts/ready-check.py')} rules add"
-    parts = [template("session-rule.md", check=CHECK[client], rules=rules_command), status_line(status, client)]
+    parts = [template("session-rule.md", check=CHECK[client], rules=rules_command, language=values["artifactLanguage"]),
+             status_line(status, client)]
     coding_rules = rules.context(top)
 
     if coding_rules:

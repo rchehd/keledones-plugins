@@ -23,6 +23,9 @@ codex plugin marketplace add rchehd/keledones
 codex plugin add ready@keledones
 ```
 
+Then open `/hooks` in Codex and trust the plugin's three hooks; Codex runs them only after that and may ask
+again after each plugin update.
+
 Cursor: **Customize → From GitHub Repository** with `rchehd/keledones`, or a team admin adds it under
 **Dashboard → Plugins & MCPs → Add Marketplace → Import from Repo**.
 

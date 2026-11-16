@@ -7,12 +7,9 @@ stage packages established engineering and testing practice into an agent skill 
 
 ## How it works
 
-```text
-task (chat, file or recorded prompts) → requirements RC-001…
-  → static checks → review → QA plan ⏸ approval → QA → verdict + PR draft
-           ↑                                         │
-           └──── fix (here, subagent or you) ← findings ⏸
-```
+![Ready Check workflow: task, requirements, static checks, review, QA plan approval, browser QA, verdict and PR draft, with fix rounds and learning from returned tasks](assets/workflow.png)
+
+The diagram source is [assets/workflow.drawio](assets/workflow.drawio); edit it in draw.io and export the PNG again.
 
 1. **Task and requirements.** The agent takes the task from the chat, a file or the prompts Ready Check recorded
    for the branch, asks only what changes the expected result, and writes requirements `RC-001`, `RC-002`, … with
@@ -79,6 +76,9 @@ codex plugin marketplace add rchehd/keledones
 codex plugin add ready@keledones
 ```
 
+Then open `/hooks` in Codex and trust the plugin's three hooks; Codex runs them only after that and may ask
+again after each plugin update.
+
 Cursor: **Customize → From GitHub Repository** with `rchehd/keledones`, or a team admin adds it under
 **Dashboard → Plugins & MCPs → Add Marketplace → Import from Repo**.
 
@@ -113,6 +113,9 @@ the **background** (Playwright CLI). The agent asks before QA unless you set a d
 `config set browser visible|background`. In Drupal the agent logs in through `drush uli`, in Symfony through `login_link` when configured, elsewhere
 with a local test user it creates and keeps in `ai/ready-check/qa-accounts.json`; it never asks for or types
 real credentials. A visible browser needs a graphical session.
+
+**Language.** The agent talks in your language; reports, QA plans and handoffs are written in English unless you
+choose another language at first run or with `config set artifactLanguage Ukrainian`. PR drafts stay in English.
 
 **Task memory.** Each prompt you send is saved with branch, commit and time in `ai/ready-check/tasks/<branch>/`
 (git-excluded, cut at 20 KB, kept 30 days). When the task is not in the chat, `check` proposes it from these
