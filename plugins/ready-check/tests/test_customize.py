@@ -3,9 +3,9 @@ import os
 import unittest
 from unittest.mock import patch
 
+from helpers import RepoTest
 import customize
 import rules
-from helpers import RepoTest
 
 
 class CustomizeTest(RepoTest):

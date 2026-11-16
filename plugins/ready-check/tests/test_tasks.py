@@ -2,8 +2,8 @@ import json
 import unittest
 from datetime import datetime, timedelta
 
-import tasks
 from helpers import RepoTest
+import tasks
 
 
 class TaskRecordTest(RepoTest):

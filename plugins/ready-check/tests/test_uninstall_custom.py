@@ -1,7 +1,7 @@
 import unittest
 
-import customize
 from helpers import RepoTest
+import customize
 
 
 class UninstallCustomTest(RepoTest):

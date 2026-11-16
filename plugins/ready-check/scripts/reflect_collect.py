@@ -126,31 +126,38 @@ def chart_source():
     return path.read_text(encoding="utf-8") if installed(source, folder) and path.is_file() else None
 
 
-def table(headers, rows):
+def table(headers, rows, kind=None):
     head = "".join(f"<th>{html.escape(str(cell))}</th>" for cell in headers)
     body = "".join("<tr>" + "".join(f"<td>{html.escape(str(cell))}</td>" for cell in row) + "</tr>" for row in rows)
-    return f"<table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>"
+    css = f' class="{kind}"' if kind else ""
+    return f"<table{css}><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>"
+
+
+def short(label, size=22):
+    label = str(label)
+    return label if len(label) <= size else label[:size - 1].rstrip(" -,.") + "…"
 
 
 def render_html(digest):
     totals, tasks = digest["totals"], digest["tasks"]
     library = chart_source()
     charts = dict(
-        rounds=dict(type="bar", labels=[task["task_id"] for task in tasks], values=[task["rounds"] or 0 for task in tasks]),
+        rounds=dict(type="bar", labels=[short(task["task_id"]) for task in tasks], values=[task["rounds"] or 0 for task in tasks]),
         outcomes=dict(type="doughnut", labels=["Passed in round 1", "Confirmed defects", "Returned after review"],
                       values=[totals["passed_first_round"], totals["with_defects"], totals["returned"]]),
-        areas=dict(type="bar", labels=[area for area, _ in digest["areas"][:8]], values=[count for _, count in digest["areas"][:8]]),
+        areas=dict(type="bar", labels=[short(area) for area, _ in digest["areas"][:8]], values=[count for _, count in digest["areas"][:8]]),
         weeks=dict(type="line", labels=[week for week, _ in digest["returns_per_week"]],
                    values=[count for _, count in digest["returns_per_week"]]),
     )
     titles = dict(rounds="Rounds per task", outcomes="Task outcomes", areas="Top error areas", weeks="Returns per week")
-    cards = "".join(f'<section class="card"><h2>{titles[name]}</h2><canvas id="{name}"></canvas></section>' for name in charts)
+    cards = "".join(f'<section class="card"><h2>{titles[name]}</h2><div class="chart"><canvas id="{name}"></canvas></div></section>'
+                    for name in charts)
     totals_rows = [("Tasks", totals["tasks"]), ("Passed in round 1", totals["passed_first_round"]),
                    ("With confirmed defects", totals["with_defects"]), ("Returned after review", totals["returned"]),
                    ("Returned and missed by Ready Check", totals["returned_missed"]),
                    ("QA cases that failed because of the test", totals["qa_test_problems"]),
                    ("Tasks without round summaries", totals["without_summary"])]
-    task_rows = [(task["task_id"], task["branch"], task["date"] or "unknown", task["rounds"] or "unknown", task["verdict"],
+    task_rows = [(task["task_id"], re.sub(r"-[0-9a-f]{12}$", "", task["branch"] or ""), task["date"] or "unknown", task["rounds"] or "unknown", task["verdict"],
                   "yes" if task["returned"] else "no", "; ".join(r for r in task["return_reasons"] if r) or "") for task in tasks]
     script = ""
 
@@ -158,15 +165,21 @@ def render_html(digest):
         data = json.dumps(charts).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
         script = f"<script>{library}</script><script>const DATA = {data};" + """
 const css = getComputedStyle(document.documentElement);
-const color = css.getPropertyValue('--accent').trim(), text = css.getPropertyValue('--text').trim();
-const palette = ['#16794C', '#C2410C', '#2563EB', '#9333EA', '#0F766E', '#B45309', '#BE123C', '#4D7C0F'];
-Chart.defaults.color = text;
+const value = name => css.getPropertyValue(name).trim();
+const color = value('--accent'), gold = value('--gold'), line = value('--line');
+const palette = [value('--accent'), value('--gold'), value('--danger')];
+Chart.defaults.color = value('--muted');
+Chart.defaults.borderColor = line;
+Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
 for (const [id, c] of Object.entries(DATA)) {
+  const lineChart = c.type === 'line';
   new Chart(document.getElementById(id), {
     type: c.type,
-    data: { labels: c.labels, datasets: [{ data: c.values, backgroundColor: c.type === 'doughnut' ? palette : color,
-            borderColor: color, tension: 0.3 }] },
-    options: { plugins: { legend: { display: c.type === 'doughnut' } }, indexAxis: id === 'areas' ? 'y' : 'x',
+    data: { labels: c.labels, datasets: [{ data: c.values, backgroundColor: c.type === 'doughnut' ? palette : lineChart ? gold : color,
+            borderColor: c.type === 'doughnut' ? value('--card') : lineChart ? gold : color, borderWidth: lineChart ? 2 : 1,
+            borderRadius: c.type === 'bar' ? 4 : 0, maxBarThickness: 24, tension: 0.3, pointRadius: lineChart ? 4 : 0 }] },
+    options: { maintainAspectRatio: false, plugins: { legend: { display: c.type === 'doughnut', position: 'right' } },
+               indexAxis: id === 'areas' ? 'y' : 'x',
                scales: c.type === 'doughnut' ? {} : { x: { beginAtZero: true, ticks: { autoSkip: false, precision: 0 } }, y: { beginAtZero: true, ticks: { precision: 0 } } } }
   });
 }
@@ -176,23 +189,49 @@ for (const [id, c] of Object.entries(DATA)) {
                         table(["Label", "Value"], list(zip(chart["labels"], chart["values"]))) + "</section>"
                         for name, chart in charts.items())
 
+    tiles = "".join(f'<div class="tile"><span>{html.escape(label)}</span><strong>{number}</strong></div>' for label, number in (
+        ("Tasks", totals["tasks"]), ("Passed in round 1", totals["passed_first_round"]),
+        ("Returned after review", totals["returned"]), ("Missed by Ready Check", totals["returned_missed"])))
+
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:">
 <title>Ready Check overview</title>
 <style>
-:root {{ --bg: #f7f8f6; --card: #ffffff; --text: #1d2420; --muted: #5d6762; --line: #dde3df; --accent: #16794C; }}
-@media (prefers-color-scheme: dark) {{ :root {{ --bg: #111614; --card: #1a211e; --text: #e6ece8; --muted: #9aa6a0; --line: #2c3631; --accent: #3fb97f; }} }}
-body {{ margin: 0; padding: 24px 16px; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, sans-serif; }}
-main {{ max-width: 1100px; margin: 0 auto; }} h1 {{ margin: 0 0 4px; }} p.muted {{ color: var(--muted); margin: 0 0 24px; }}
-.grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 16px; }}
-.card {{ background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; overflow-x: auto; }}
-h2 {{ font-size: 16px; margin: 0 0 12px; }} table {{ width: 100%; border-collapse: collapse; }}
-th, td {{ text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }} th {{ color: var(--muted); font-weight: 600; }} td:not(:last-child) {{ white-space: nowrap; }}
+:root {{ --bg: #EFEBE1; --card: #FBF9F3; --text: #071218; --muted: #575450; --line: #E0DDD8; --accent: #1F5673;
+         --gold: #D99A43; --danger: #B3423A; --soft: #E3EDF0; }}
+@media (prefers-color-scheme: dark) {{ :root {{ --bg: #102633; --card: #14303F; --text: #F4F0E6; --muted: #A9BBC2;
+         --line: #23475A; --accent: #9CCBDD; --gold: #D99A43; --danger: #E58A7F; --soft: #173545; }} }}
+body {{ margin: 0; padding: 32px 16px; background: var(--bg); color: var(--text);
+       font: 15px/1.55 "Ubuntu Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }}
+main {{ max-width: 1100px; margin: 0 auto; }}
+header {{ margin-bottom: 24px; }} .eyebrow {{ display: flex; align-items: center; gap: 8px; color: var(--accent);
+       font-size: 13px; letter-spacing: .04em; text-transform: uppercase; }}
+.eyebrow::before {{ content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--gold); }}
+h1 {{ margin: 6px 0 4px; font-size: 28px; font-weight: 600; }} p.muted {{ color: var(--muted); margin: 0; }}
+.tiles {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }}
+.tile {{ background: var(--soft); border-radius: 12px; padding: 14px 16px; }} .tile span {{ color: var(--muted); font-size: 13px; }}
+.tile strong {{ display: block; font-size: 30px; font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums; }}
+.grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }}
+@media (max-width: 760px) {{ .grid {{ grid-template-columns: minmax(0, 1fr); }} }}
+.chart {{ position: relative; height: 260px; }}
+.card {{ background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; overflow-x: auto; }}
+h2 {{ font-size: 15px; font-weight: 600; margin: 0 0 12px; }} table {{ width: 100%; border-collapse: collapse; }}
+th, td {{ text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }}
+th {{ color: var(--muted); font-weight: 600; font-size: 13px; white-space: nowrap; }}
+.tasks td:not(:last-child) {{ white-space: nowrap; }} .tasks td:last-child {{ width: 100%; min-width: 200px; color: var(--muted); }}
+.totals td:last-child, .totals th:last-child {{ text-align: right; width: 120px; font-variant-numeric: tabular-nums; }}
+tbody tr:last-child td {{ border-bottom: 0; }} tbody tr:hover td {{ background: var(--soft); }}
+td:first-child {{ font-weight: 500; }}
+footer {{ margin-top: 24px; color: var(--muted); font-size: 13px; }}
 </style></head><body><main>
-<h1>Ready Check overview</h1><p class="muted">Generated {date.today().isoformat()} from {totals["tasks"]} tasks.</p>
-<section class="card" style="margin-bottom:16px"><h2>Totals</h2>{table(["Metric", "Value"], totals_rows)}</section>
+<header><div class="eyebrow">Ready Check</div><h1>Task overview</h1>
+<p class="muted">Generated {date.today().isoformat()} from {totals["tasks"]} tasks.</p></header>
+<div class="tiles">{tiles}</div>
+<section class="card" style="margin-bottom:16px"><h2>Totals</h2>{table(["Metric", "Value"], totals_rows, "totals")}</section>
 <div class="grid">{cards}</div>
-<section class="card"><h2>Tasks</h2>{table(["Task", "Branch", "Date", "Rounds", "Verdict", "Returned", "Reason"], task_rows)}</section>
+<section class="card"><h2>Tasks</h2>{table(["Task", "Branch", "Date", "Rounds", "Verdict", "Returned", "Reason"], task_rows, "tasks")}</section>
+<footer>Local, confidential report generated on this machine. It loads nothing from the network; do not publish or share it.</footer>
 </main>{script}</body></html>
 """
 

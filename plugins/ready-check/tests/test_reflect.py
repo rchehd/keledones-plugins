@@ -3,8 +3,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import reflect_collect
 from helpers import RepoTest
+import reflect_collect
 
 
 class ReflectTest(RepoTest):

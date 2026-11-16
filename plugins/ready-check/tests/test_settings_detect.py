@@ -1,9 +1,9 @@
 import json
 import unittest
 
+from helpers import RepoTest
 import detect
 import settings
-from helpers import RepoTest
 
 
 class SettingsTest(RepoTest):
