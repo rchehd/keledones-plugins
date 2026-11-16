@@ -11,6 +11,11 @@
       "name": "ready",
       "source": "./plugins/ready-check",
       "description": "Check task readiness against requirements, static checks, and browser QA."
+    },
+    {
+      "name": "keledones-themes",
+      "source": "./plugins/keledones-themes",
+      "description": "Looks for the Claude app: Keledones and Graphite, switched with /look."
     }
   ]
 }

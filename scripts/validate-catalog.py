@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check that the Claude Code, Codex and Cursor catalogs list the same plugins from plugins/."""
+"""Check that every plugin in plugins/ is listed in the catalog of each client it has a manifest for."""
 import json
 import sys
 from pathlib import Path
@@ -71,19 +71,25 @@ def check_catalog(client):
 
 def validate():
     listed = {client: check_catalog(client) for client in CATALOGS}
-    first = listed["claude"]
+    plugins = {}
 
     for client, found in listed.items():
-        if found != first:
-            raise ValueError(f"{client} lists {sorted(found.items())}, claude lists {sorted(first.items())}")
+        for name, folder in found.items():
+            if plugins.setdefault(folder, (name, []))[0] != name:
+                raise ValueError(f"plugins/{folder} is listed under two names: {plugins[folder][0]} and {name}")
+            plugins[folder][1].append(client)
 
-    folders = {p.name for p in (ROOT / "plugins").iterdir() if p.is_dir()}
-    unlisted = folders - set(first.values())
+    for path in sorted(p for p in (ROOT / "plugins").iterdir() if p.is_dir()):
+        clients = [client for client, (_, manifest) in CATALOGS.items() if (path / manifest).is_file()]
 
-    if unlisted:
-        raise ValueError(f"Plugin folders missing from the catalogs: {', '.join(sorted(unlisted))}")
+        if not clients:
+            raise ValueError(f"plugins/{path.name} has no plugin manifest")
 
-    return first
+        for client in clients:
+            if client not in plugins.get(path.name, ("", []))[1]:
+                raise ValueError(f"plugins/{path.name} has a {client} manifest but is missing from the {client} catalog")
+
+    return plugins
 
 
 def main():
@@ -93,7 +99,8 @@ def main():
         print(f"FAIL: {error}")
         return 1
 
-    print("PASS: " + ", ".join(f"{name} ({folder})" for name, folder in sorted(plugins.items())))
+    print("PASS: " + "; ".join(f"{name} (plugins/{folder}: {', '.join(clients)})"
+                                for folder, (name, clients) in sorted(plugins.items())))
     return 0
 
 

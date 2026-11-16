@@ -20,13 +20,19 @@ class CatalogTest(unittest.TestCase):
         for path, manifest in catalog.CATALOGS.values():
             (self.root / path).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(ROOT / path, self.root / path)
-            target = self.root / "plugins/ready-check" / manifest
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(json.dumps({"name": "ready"}))
+
+            for entry in json.loads((ROOT / path).read_text())["plugins"]:
+                source = entry["source"]["path"] if isinstance(entry["source"], dict) else entry["source"]
+                self.manifest(source, manifest, entry["name"])
 
         self.original = catalog.ROOT
         catalog.ROOT = self.root
         self.addCleanup(setattr, catalog, "ROOT", self.original)
+
+    def manifest(self, folder, manifest, name):
+        target = self.root / folder / manifest
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps({"name": name}))
 
     def change(self, client, update):
         path = self.root / catalog.CATALOGS[client][0]
@@ -41,7 +47,8 @@ class CatalogTest(unittest.TestCase):
 
     def test_repository_catalogs_are_valid(self):
         catalog.ROOT = self.original
-        self.assertEqual(catalog.validate(), {"ready": "ready-check"})
+        self.assertEqual(catalog.validate(), {"ready-check": ("ready", ["claude", "codex", "cursor"]),
+                                              "keledones-themes": ("keledones-themes", ["claude"])})
 
     def test_source_outside_plugins_is_rejected(self):
         self.change("cursor", lambda data: data["plugins"][0].update(source="../elsewhere"))
@@ -55,15 +62,21 @@ class CatalogTest(unittest.TestCase):
         (self.root / "plugins/ready-check/.claude-plugin/plugin.json").write_text(json.dumps({"name": "other"}))
         self.assert_fails("differs from the name")
 
-    def test_catalogs_must_list_the_same_plugins(self):
-        (self.root / "plugins/second/.cursor-plugin").mkdir(parents=True)
-        (self.root / "plugins/second/.cursor-plugin/plugin.json").write_text(json.dumps({"name": "second"}))
-        self.change("cursor", lambda data: data["plugins"].append({"name": "second", "source": "plugins/second"}))
-        self.assert_fails("cursor lists")
+    def test_a_plugin_for_one_client_is_listed_only_there(self):
+        self.assertEqual(catalog.validate()["keledones-themes"], ("keledones-themes", ["claude"]))
 
-    def test_unlisted_plugin_folder_is_reported(self):
+    def test_a_manifest_without_its_catalog_entry_is_reported(self):
+        self.manifest("plugins/keledones-themes", ".cursor-plugin/plugin.json", "keledones-themes")
+        self.assert_fails("has a cursor manifest but is missing from the cursor catalog")
+
+    def test_one_folder_cannot_have_two_names(self):
+        self.manifest("plugins/ready-check", ".cursor-plugin/plugin.json", "other")
+        self.change("cursor", lambda data: data["plugins"][0].update(name="other"))
+        self.assert_fails("listed under two names")
+
+    def test_folder_without_a_manifest_is_reported(self):
         (self.root / "plugins/forgotten").mkdir()
-        self.assert_fails("missing from the catalogs: forgotten")
+        self.assert_fails("plugins/forgotten has no plugin manifest")
 
 
 if __name__ == "__main__":
