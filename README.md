@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
+    <img src="assets/logo.svg" alt="Keledones" width="120">
+  </picture>
+</p>
+
 # Keledones
 
 Plugins for AI coding agents (Claude Code, Codex, Cursor). Each plugin lives in its own folder under `plugins/`; the
