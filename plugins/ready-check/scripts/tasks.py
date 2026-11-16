@@ -77,6 +77,17 @@ def append(path, data):
         os.close(descriptor)
 
 
+def repeated(path, session, prompt):
+    try:
+        with open(path, "rb") as stream:
+            stream.seek(max(0, stream.seek(0, os.SEEK_END) - 4 * MAX_PROMPT))
+            last = json.loads(stream.read().decode("utf-8", "replace").strip().splitlines()[-1])
+    except (OSError, ValueError, IndexError):
+        return False
+
+    return isinstance(last, dict) and last.get("session") == session and last.get("prompt") == truncate(prompt)
+
+
 def record(top, client, session, prompt, now=None):
     if not isinstance(prompt, str):
         return None
@@ -96,6 +107,11 @@ def record(top, client, session, prompt, now=None):
         folder.mkdir(parents=True, exist_ok=True)
 
     path = folder / f"{now:%Y-%m-%d}.jsonl"
+
+    # A question answer can arrive both as a prompt and as a tool result; keep one record.
+    if prompt.startswith("Q: ") and repeated(path, session, prompt):
+        return path
+
     line = dict(ts=now.isoformat(timespec="seconds"), client=client, session=session, branch=branch,
                 head=git(top, "rev-parse", "HEAD"), prompt=truncate(prompt))
     append(path, (json.dumps(line, ensure_ascii=False) + "\n").encode("utf-8"))

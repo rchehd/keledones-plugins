@@ -10,6 +10,12 @@
       {
         "command": "python3 \"${CURSOR_PLUGIN_ROOT}/scripts/ready-check.py\" hook prompt --client cursor || python \"${CURSOR_PLUGIN_ROOT}/scripts/ready-check.py\" hook prompt --client cursor || py -3 \"${CURSOR_PLUGIN_ROOT}/scripts/ready-check.py\" hook prompt --client cursor"
       }
+    ],
+    "postToolUse": [
+      {
+        "command": "python3 \"${CURSOR_PLUGIN_ROOT}/scripts/ready-check.py\" hook answer --client cursor || python \"${CURSOR_PLUGIN_ROOT}/scripts/ready-check.py\" hook answer --client cursor || py -3 \"${CURSOR_PLUGIN_ROOT}/scripts/ready-check.py\" hook answer --client cursor",
+        "matcher": "[Qq]uestion"
+      }
     ]
   }
 }

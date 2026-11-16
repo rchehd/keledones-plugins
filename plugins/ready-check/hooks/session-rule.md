@@ -33,5 +33,7 @@ When the user asks to remember a coding rule for Ready Check (for example "alway
 save it with `{rules} "<rule>"`; add `--project <repo>` for a project rule (stored in the git-excluded
 `ai/ready-check/`; the team shares it with `git add -f`) and `--must` when breaking it should block the review.
 Confirm what was saved.
+Never edit, copy or patch the Ready Check plugin or its scripts to work around an error; report the failing command
+and its error instead.
 Do not start another AI harness or a headless agent. This offer does not apply to setup, review or
 Ready Check verification itself; do not create a loop.

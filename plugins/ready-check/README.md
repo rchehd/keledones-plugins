@@ -121,8 +121,8 @@ real credentials. A visible browser needs a graphical session.
 **Language.** The agent talks in your language; reports, QA plans and handoffs are written in English unless you
 choose another language at first run or with `config set artifactLanguage Ukrainian`. PR drafts stay in English.
 
-**Task memory.** Each prompt you send is saved with branch, commit and time in `ai/ready-check/tasks/<branch>/`
-(git-excluded, cut at 20 KB, kept 30 days). When the task is not in the chat, `check` proposes it from these
+**Task memory.** Each prompt you send, and each answer you pick in the agent's questions, is saved with branch,
+commit and time in `ai/ready-check/tasks/<branch>/` (git-excluded, cut at 20 KB, kept 30 days). When the task is not in the chat, `check` proposes it from these
 records and asks you to confirm. Turn off with `config set captureTasks false`.
 
 **Coding rules.** Add your own rules, for example "Prefer switch over long if/elseif chains" or "Flag comments

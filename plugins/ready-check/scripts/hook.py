@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 sys.dont_write_bytecode = True
+import answers
 import hook_state
 import logs
 import rules
@@ -16,7 +17,7 @@ from detect import detect, profile_name
 from fingerprint import last_checked, work_fingerprint
 from project import toplevel
 
-EVENTS = ("session-start", "prompt", "stop")
+EVENTS = ("session-start", "prompt", "answer", "stop")
 CLIENTS = ("claude", "cursor", "codex")
 CHECK = {"claude": "/ready:check", "cursor": "/check", "codex": "$check"}
 RUNNERS = {"ddev": "DDEV", "compose": "Docker Compose", "local": "local"}
@@ -203,6 +204,15 @@ def prompt(client, payload):
         tasks.record(top, client, session_id(payload), payload.get("prompt"))
 
 
+def answer(client, payload):
+    directory = start_directory(payload)
+    top = toplevel(directory) if directory else None
+    text = answers.text(payload) if top else None
+
+    if text and settings.load(top)["captureTasks"]:
+        tasks.record(top, client, session_id(payload), text)
+
+
 def stop(client, payload):
     directory = start_directory(payload)
     top = toplevel(directory) if directory else None
@@ -241,6 +251,10 @@ def handle(event, client, payload):
 
         if event == "stop":
             return stop(client, payload)
+
+        if event == "answer":
+            answer(client, payload)
+            return None
 
         prompt(client, payload)
     except Exception as error:

@@ -203,7 +203,7 @@ def entry_points(root):
     for name in ("doctor.sh", "check-static.sh", "check-profile.py", "setup.sh", "setup.py", "dependency_support.py",
                  "process_support.py", "profile_runtime.py", "managed_storage.py", "git_exclude.py", "reports.py", "mcp.py", "mcp.mjs",
                  "ready-check.py", "playwright.sh", "playwright.py", "project.py", "settings.py", "detect.py", "logs.py",
-                 "tasks.py", "hook.py", "hook_state.py", "fingerprint.py", "consent.py", "uninstall.py", "rules.py", "a11y.py", "customize.py", "summary.py", "feedback.py", "reflect_collect.py"):
+                 "tasks.py", "answers.py", "hook.py", "hook_state.py", "fingerprint.py", "consent.py", "uninstall.py", "rules.py", "a11y.py", "customize.py", "summary.py", "feedback.py", "reflect_collect.py"):
         resource(root, root, "scripts/" + name)
     for name in ("session-rule.md", "first-run.md"):
         resource(root, root, "hooks/" + name)
@@ -226,9 +226,9 @@ def entry_points(root):
 
 
 def hooks(root):
-    files = {"hooks/hooks.json": ("claude", {"SessionStart", "UserPromptSubmit", "Stop"}),
-             "hooks/cursor-hooks.json": ("cursor", {"sessionStart", "beforeSubmitPrompt"}),
-             "hooks/codex-hooks.json": ("codex", {"SessionStart", "UserPromptSubmit", "Stop"})}
+    files = {"hooks/hooks.json": ("claude", {"SessionStart", "UserPromptSubmit", "PostToolUse", "Stop"}),
+             "hooks/cursor-hooks.json": ("cursor", {"sessionStart", "beforeSubmitPrompt", "postToolUse"}),
+             "hooks/codex-hooks.json": ("codex", {"SessionStart", "UserPromptSubmit", "PostToolUse", "Stop"})}
 
     for relative, (client, events) in files.items():
         data = read_json(resource(root, root, relative))

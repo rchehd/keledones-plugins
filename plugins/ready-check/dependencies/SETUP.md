@@ -30,13 +30,15 @@ Manual paths stay available through the `setup` skill: `/ready:setup` (Claude Co
 
 | Client | Registration | Events |
 | --- | --- | --- |
-| Claude Code | `hooks/hooks.json` | `SessionStart`, `UserPromptSubmit`, `Stop` |
-| Cursor | `hooks/cursor-hooks.json` | `sessionStart`, `beforeSubmitPrompt` |
-| Codex | `hooks/codex-hooks.json` | `SessionStart`, `UserPromptSubmit`, `Stop` |
+| Claude Code | `hooks/hooks.json` | `SessionStart`, `UserPromptSubmit`, `PostToolUse` (`AskUserQuestion`), `Stop` |
+| Cursor | `hooks/cursor-hooks.json` | `sessionStart`, `beforeSubmitPrompt`, `postToolUse` (question tool) |
+| Codex | `hooks/codex-hooks.json` | `SessionStart`, `UserPromptSubmit`, `PostToolUse` (`request_user_input`), `Stop` |
 
 - Session start: injects the rule "offer Ready Check after a finished task", the browser-tool status and the
   first-run question. It never installs anything and finishes in about a second.
 - Prompt submit: appends the prompt to `ai/ready-check/tasks/<branch>/<date>.jsonl` (see below).
+- Question answers: answers chosen in the client's question tool reach the agent as a tool result, not as a prompt;
+  the tool hook records them in the same file as `Q: … A: …`, once even when the client also sends them as a prompt.
 - Stop: after files changed in the session, reminds the agent once per change set to offer the check; quiet
   again after a check reaches a result. Cursor has no stop hook because its only option posts a visible message
   as the user; there the session-start rule applies.

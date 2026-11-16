@@ -9,6 +9,9 @@ Review in the current conversation and harness. Inputs are the Ready Check repor
 requirements with stable `RC-...` IDs, the target application, selected profile, selected checks, and saved
 static JSON or partial scope evidence.
 Respond in the user's language. This is implementation review; runtime verification belongs to QA.
+Never edit, copy or patch the Ready Check plugin, its scripts or its installed copy, not even in a temporary
+folder, to work around an error. When a Ready Check command fails, show the command and its error, mark the
+affected stage INCOMPLETE and offer to report the bug from the plugin's `templates/bug.md`.
 
 ## Establish the gate and scope
 

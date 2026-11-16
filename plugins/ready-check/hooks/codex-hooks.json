@@ -23,6 +23,18 @@
         ]
       }
     ],
+    "PostToolUse": [
+      {
+        "matcher": "request_user_input",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/scripts/ready-check.py\" hook answer --client codex || python \"${PLUGIN_ROOT}/scripts/ready-check.py\" hook answer --client codex || py -3 \"${PLUGIN_ROOT}/scripts/ready-check.py\" hook answer --client codex",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

@@ -8,11 +8,11 @@ from pathlib import Path
 
 from helpers import PLUGIN, RepoTest
 
-STANDARD = {"SessionStart": "session-start", "UserPromptSubmit": "prompt", "Stop": "stop"}
+STANDARD = {"SessionStart": "session-start", "UserPromptSubmit": "prompt", "PostToolUse": "answer", "Stop": "stop"}
 CLIENTS = {
     "claude": ("hooks/hooks.json", "CLAUDE_PLUGIN_ROOT", STANDARD),
     "codex": ("hooks/codex-hooks.json", "PLUGIN_ROOT", STANDARD),
-    "cursor": ("hooks/cursor-hooks.json", "CURSOR_PLUGIN_ROOT", {"sessionStart": "session-start", "beforeSubmitPrompt": "prompt"}),
+    "cursor": ("hooks/cursor-hooks.json", "CURSOR_PLUGIN_ROOT", {"sessionStart": "session-start", "beforeSubmitPrompt": "prompt", "postToolUse": "answer"}),
 }
 
 
@@ -104,6 +104,21 @@ class RegisteredHookTest(RepoTest):
         self.assertIn("Ready Check", claude["hookSpecificOutput"]["additionalContext"])
         self.assertEqual(codex["decision"], "block")
         self.assertIn("Ready Check", codex["reason"])
+
+    def test_answer_hooks_match_only_question_tools_and_record_answers(self):
+        matchers = {"claude": "AskUserQuestion", "codex": "request_user_input", "cursor": "[Qq]uestion"}
+
+        for client, (path, _, events) in CLIENTS.items():
+            event = next(name for name, action in events.items() if action == "answer")
+            group = json.loads((PLUGIN / path).read_text(encoding="utf-8"))["hooks"][event][0]
+            self.assertEqual(group["matcher"], matchers[client])
+            tool = {"claude": "AskUserQuestion", "codex": "request_user_input", "cursor": "AskQuestion"}[client]
+            payload = self.payload(client, tool_name=tool,
+                                   tool_input={"questions": [{"question": f"Mode for {client}?"}]},
+                                   tool_response={"answers": {f"Mode for {client}?": "background"}})
+            self.assertIsNone(self.run_hook(client, event, payload))
+
+        self.assertEqual(sorted(self.records()), [f"Q: Mode for {c}?\nA: background" for c in sorted(CLIENTS)])
 
     def test_fallback_interpreter_runs_when_python3_fails(self):
         folder = self.root / "bin"

@@ -8,7 +8,10 @@ description: Check whether a task is ready to push through profile-based static 
 Verify a task in the current harness. Respond in the user's language; write the report in the Ready Check file
 language from the session context (English unless the user chose another); write the PR title and summary in
 English. One invocation continues through preparation, statics, review, QA, and the final result, pausing
-for missing answers, QA-plan approval or fixes when needed. Follow
+for missing answers, QA-plan approval or fixes when needed. Never edit, copy or patch the Ready Check plugin,
+its scripts or its installed copy, not even in a temporary folder, to work around an error. When a Ready Check
+command fails, show the command and its error, mark the affected stage INCOMPLETE and offer to report the bug
+from the plugin's `templates/bug.md`. Follow
 [check selection](references/check-selection.md): record full or selected stages, reuse the user's choice,
 and keep unselected stages NOT_SELECTED. Only a full successful run can establish readiness to push.
 

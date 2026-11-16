@@ -38,6 +38,7 @@ class HookTest(RepoTest):
             self.assertIn("Ready Check browser tools:", text)
             self.assertIn("consent yes", text)
             self.assertIn("Do not investigate or fix the reported problem until the user asks", text)
+            self.assertIn("Never edit, copy or patch the Ready Check plugin", text)
 
     def test_file_language_defaults_to_english_and_is_asked_once(self):
         start = lambda: self.hook("session-start", "claude", {"cwd": str(self.repo), "session_id": "l"})["hookSpecificOutput"]["additionalContext"]

@@ -10,6 +10,9 @@ application, selected profile, selected checks, and static JSON or partial scope
 language; write the plan and results into the report in the Ready Check file language. Verify behavior through
 the application; code inspection or a successful browser command alone is not a scenario pass. Techniques,
 oracles and investigation steps are in [test design](references/test-design.md).
+Never edit, copy or patch the Ready Check plugin, its scripts or its installed copy, not even in a temporary
+folder, to work around an error. When a Ready Check command fails, show the command and its error, mark the
+affected stage INCOMPLETE and offer to report the bug from the plugin's `templates/bug.md`.
 
 ## Talking to the user
 
