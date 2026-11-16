@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "python3 \"${CURSOR_PLUGIN_ROOT}/scripts/ready-check.py\" hook session-start --client cursor || python \"${CURSOR_PLUGIN_ROOT}/scripts/ready-check.py\" hook session-start --client cursor || py -3 \"${CURSOR_PLUGIN_ROOT}/scripts/ready-check.py\" hook session-start --client cursor"
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "command": "python3 \"${CURSOR_PLUGIN_ROOT}/scripts/ready-check.py\" hook prompt --client cursor || python \"${CURSOR_PLUGIN_ROOT}/scripts/ready-check.py\" hook prompt --client cursor || py -3 \"${CURSOR_PLUGIN_ROOT}/scripts/ready-check.py\" hook prompt --client cursor"
+      }
+    ]
+  }
+}

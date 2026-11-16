@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "id": "drupal",
+  "name": "Drupal",
+  "version": "0.1.0",
+  "detection": {
+    "composer_packages": [
+      "drupal/core",
+      "drupal/core-recommended"
+    ],
+    "core_paths": [
+      "web/core/lib/Drupal.php",
+      "docroot/core/lib/Drupal.php",
+      "html/core/lib/Drupal.php",
+      "core/lib/Drupal.php"
+    ]
+  },
+  "instructions": {
+    "requirements": "requirements.md",
+    "static": "static.md",
+    "review": "review.md",
+    "qa": "qa.md"
+  },
+  "scripts": {
+    "doctor": "scripts/checks.py",
+    "static": "scripts/checks.py",
+    "setup": "scripts/setup.py"
+  },
+  "checks": [
+    {"id": "phpcs", "required": true},
+    {"id": "phpstan", "required": true},
+    {"id": "syntax", "required": true},
+    {"id": "debug", "required": true},
+    {"id": "diff", "required": true},
+    {"id": "config", "required": true},
+    {"id": "twig", "required": true},
+    {"id": "js", "required": true},
+    {"id": "composer", "required": true},
+    {"id": "dup", "required": false},
+    {"id": "phpmd", "required": false},
+    {"id": "audit", "required": false},
+    {"id": "deadcode", "required": false, "enabled": false}
+  ]
+}

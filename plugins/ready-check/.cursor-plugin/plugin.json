@@ -1,0 +1,29 @@
+{
+  "name": "ready",
+  "displayName": "Ready Check",
+  "version": "0.1.0",
+  "description": "Check task readiness against requirements, static checks, and browser QA.",
+  "author": {
+    "name": "Roman Chekhaniuk"
+  },
+  "logo": "assets/logo.png",
+  "skills": "./skills/",
+  "hooks": "./hooks/cursor-hooks.json",
+  "mcpServers": {
+    "ready-playwright": {
+      "command": "node",
+      "args": [
+        "${CURSOR_PLUGIN_ROOT}/scripts/mcp.mjs"
+      ]
+    }
+  },
+  "variables": {
+    "type": "object",
+    "properties": {
+      "READY_CHECK_RULES": {
+        "type": "string",
+        "description": "Your coding rules, one per entry, for example \"Prefer switch over long if/elseif chains\". Start a rule with MUST: to make the Ready Check review block on it. Separate rules with new lines."
+      }
+    }
+  }
+}

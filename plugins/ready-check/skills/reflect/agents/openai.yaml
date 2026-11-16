@@ -1,0 +1,3 @@
+interface:
+  icon_small: "./assets/reflect-small.svg"
+  icon_large: "./assets/reflect.png"

@@ -1,0 +1,21 @@
+{
+  "name": "ready-check/laravel-tools",
+  "type": "project",
+  "require": {
+    "php": ">=8.2",
+    "larastan/larastan": "3.13.2",
+    "laravel/pint": "1.30.4",
+    "phpstan/phpstan": "2.3.4",
+    "phpmd/phpmd": "2.15.0",
+    "rector/rector": "2.8.3",
+    "driftingly/rector-laravel": "2.5.0",
+    "symfony/yaml": "7.4.23"
+  },
+  "config": {
+    "platform": {
+      "php": "8.2.0"
+    },
+    "allow-plugins": false,
+    "sort-packages": true
+  }
+}

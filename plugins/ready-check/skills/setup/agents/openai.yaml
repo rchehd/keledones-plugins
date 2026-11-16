@@ -1,0 +1,3 @@
+interface:
+  icon_small: "./assets/setup-small.svg"
+  icon_large: "./assets/setup.png"

@@ -1,0 +1,19 @@
+{
+  "go_minimum": "1.26.0",
+  "tools": {
+    "golangci-lint": {
+      "module": "github.com/golangci/golangci-lint/v2/cmd/golangci-lint",
+      "version": "v2.15.0",
+      "released": "2026-10-16",
+      "sum_module": "github.com/golangci/golangci-lint/v2",
+      "sum": "h1:w94zf8HAYI7hm3164kwKsvZRuqXvY+YxeFoTbu1OLg8="
+    },
+    "govulncheck": {
+      "module": "golang.org/x/vuln/cmd/govulncheck",
+      "version": "v1.9.0",
+      "released": "2026-10-11",
+      "sum_module": "golang.org/x/vuln",
+      "sum": "h1:12VaqnI9kJfqwRoPptxoqsUhQtdfrSbdksT7X/KY/sc="
+    }
+  }
+}

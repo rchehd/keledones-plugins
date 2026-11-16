@@ -1,0 +1,19 @@
+{
+  "name": "ready",
+  "displayName": "Ready Check",
+  "version": "0.1.0",
+  "description": "Check task readiness against requirements, static checks, and browser QA.",
+  "icon": "./assets/logo.png",
+  "author": {
+    "name": "Roman Chekhaniuk"
+  },
+  "userConfig": {
+    "rules": {
+      "type": "string",
+      "title": "Coding rules",
+      "description": "Your coding rules, one per entry, for example \"Prefer switch over long if/elseif chains\". Start a rule with MUST: to make the Ready Check review block on it.",
+      "multiple": true,
+      "required": false
+    }
+  }
+}

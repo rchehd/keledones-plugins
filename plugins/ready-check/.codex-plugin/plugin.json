@@ -1,0 +1,31 @@
+{
+  "name": "ready",
+  "version": "0.1.0",
+  "description": "Check task readiness against requirements, static checks, and browser QA.",
+  "author": {
+    "name": "Roman Chekhaniuk"
+  },
+  "skills": "./skills/",
+  "onboardingSkill": "./skills/setup/SKILL.md",
+  "interface": {
+    "displayName": "Ready Check",
+    "shortDescription": "Task readiness checks with requirements review and browser QA.",
+    "developerName": "Roman Chekhaniuk",
+    "category": "Developer Tools",
+    "brandColor": "#16794C",
+    "composerIcon": "./assets/logo.svg",
+    "logo": "./assets/logo.svg",
+    "defaultPrompt": [
+      "Use $check to check whether this task is ready to push."
+    ]
+  },
+  "hooks": "./hooks/codex-hooks.json",
+  "mcpServers": {
+    "ready-playwright": {
+      "command": "node",
+      "args": [
+        "${PLUGIN_ROOT}/scripts/mcp.mjs"
+      ]
+    }
+  }
+}

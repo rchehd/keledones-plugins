@@ -1,0 +1,25 @@
+name: Catalog
+on:
+  push:
+    paths: [".claude-plugin/**", ".agents/**", ".cursor-plugin/**", "plugins/*/.*-plugin/plugin.json", "scripts/**", "tests/**",
+            ".github/workflows/catalog.yml"]
+  pull_request:
+    paths: [".claude-plugin/**", ".agents/**", ".cursor-plugin/**", "plugins/*/.*-plugin/plugin.json", "scripts/**", "tests/**",
+            ".github/workflows/catalog.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  catalog:
+    name: Catalog manifests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Validate the catalogs
+        run: python -B scripts/validate-catalog.py
+      - name: Run catalog tests
+        run: python -B -m unittest discover -s tests -v

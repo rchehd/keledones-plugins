@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "id": "python",
+  "name": "Python",
+  "version": "0.1.0",
+  "priority": 90,
+  "detection": {
+    "files": [
+      "pyproject.toml",
+      "requirements.txt",
+      "setup.cfg",
+      "manage.py"
+    ],
+    "frameworks": {
+      "django": {"files": ["manage.py"], "python_packages": ["django"]},
+      "fastapi": {"python_packages": ["fastapi"]},
+      "flask": {"python_packages": ["flask"]}
+    }
+  },
+  "instructions": {
+    "requirements": "requirements.md",
+    "static": "static.md",
+    "review": "review.md",
+    "qa": "qa.md"
+  },
+  "scripts": {
+    "doctor": "scripts/checks.py",
+    "static": "scripts/checks.py",
+    "setup": "scripts/setup.py"
+  },
+  "checks": [
+    {"id": "ruff", "required": true},
+    {"id": "format", "required": true},
+    {"id": "syntax", "required": true},
+    {"id": "debug", "required": true},
+    {"id": "diff", "required": true},
+    {"id": "mypy", "required": true},
+    {"id": "django", "required": true},
+    {"id": "migrations", "required": true},
+    {"id": "js", "required": true},
+    {"id": "bandit", "required": false},
+    {"id": "audit", "required": false},
+    {"id": "dup", "required": false}
+  ]
+}

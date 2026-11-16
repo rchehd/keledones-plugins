@@ -1,0 +1,20 @@
+{
+  "name": "ready-check/symfony-tools",
+  "type": "project",
+  "require": {
+    "php": ">=8.2",
+    "friendsofphp/php-cs-fixer": "3.95.27",
+    "phpstan/phpstan": "2.3.4",
+    "phpstan/phpstan-symfony": "2.1.1",
+    "phpstan/phpstan-doctrine": "2.1.0",
+    "phpmd/phpmd": "2.15.0",
+    "symfony/yaml": "7.4.23"
+  },
+  "config": {
+    "platform": {
+      "php": "8.2.0"
+    },
+    "allow-plugins": false,
+    "sort-packages": true
+  }
+}

@@ -1,0 +1,3 @@
+interface:
+  icon_small: "./assets/customize-small.svg"
+  icon_large: "./assets/customize.png"

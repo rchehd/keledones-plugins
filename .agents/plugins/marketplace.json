@@ -1,0 +1,20 @@
+{
+  "name": "keledones",
+  "interface": {
+    "displayName": "Keledones"
+  },
+  "plugins": [
+    {
+      "name": "ready",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ready-check"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

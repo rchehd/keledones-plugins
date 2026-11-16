@@ -1,0 +1,38 @@
+{
+  "description": "Ready Check session rule, task records and finished-task reminder.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/scripts/ready-check.py\" hook session-start --client codex || python \"${PLUGIN_ROOT}/scripts/ready-check.py\" hook session-start --client codex || py -3 \"${PLUGIN_ROOT}/scripts/ready-check.py\" hook session-start --client codex",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/scripts/ready-check.py\" hook prompt --client codex || python \"${PLUGIN_ROOT}/scripts/ready-check.py\" hook prompt --client codex || py -3 \"${PLUGIN_ROOT}/scripts/ready-check.py\" hook prompt --client codex",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/scripts/ready-check.py\" hook stop --client codex || python \"${PLUGIN_ROOT}/scripts/ready-check.py\" hook stop --client codex || py -3 \"${PLUGIN_ROOT}/scripts/ready-check.py\" hook stop --client codex",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

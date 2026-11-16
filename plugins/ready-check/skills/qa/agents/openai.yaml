@@ -1,0 +1,4 @@
+interface:
+  display_name: "QA Exploratory Testing"
+  icon_small: "./assets/qa-small.svg"
+  icon_large: "./assets/qa.png"

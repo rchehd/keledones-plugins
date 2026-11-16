@@ -1,0 +1,38 @@
+{
+  "description": "Ready Check session rule, task records and finished-task reminder.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/ready-check.py\" hook session-start --client claude || python \"${CLAUDE_PLUGIN_ROOT}/scripts/ready-check.py\" hook session-start --client claude || py -3 \"${CLAUDE_PLUGIN_ROOT}/scripts/ready-check.py\" hook session-start --client claude",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/ready-check.py\" hook prompt --client claude || python \"${CLAUDE_PLUGIN_ROOT}/scripts/ready-check.py\" hook prompt --client claude || py -3 \"${CLAUDE_PLUGIN_ROOT}/scripts/ready-check.py\" hook prompt --client claude",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/ready-check.py\" hook stop --client claude || python \"${CLAUDE_PLUGIN_ROOT}/scripts/ready-check.py\" hook stop --client claude || py -3 \"${CLAUDE_PLUGIN_ROOT}/scripts/ready-check.py\" hook stop --client claude",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

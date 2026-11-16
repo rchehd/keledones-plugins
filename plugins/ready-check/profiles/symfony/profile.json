@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "id": "symfony",
+  "name": "Symfony",
+  "version": "0.1.0",
+  "priority": 60,
+  "detection": {
+    "composer_packages": [
+      "symfony/framework-bundle"
+    ],
+    "files": [
+      "bin/console",
+      "symfony.lock"
+    ]
+  },
+  "instructions": {
+    "requirements": "requirements.md",
+    "static": "static.md",
+    "review": "review.md",
+    "qa": "qa.md"
+  },
+  "scripts": {
+    "doctor": "scripts/checks.py",
+    "static": "scripts/checks.py",
+    "setup": "scripts/setup.py"
+  },
+  "checks": [
+    {"id": "csfixer", "required": true},
+    {"id": "phpstan", "required": true},
+    {"id": "syntax", "required": true},
+    {"id": "debug", "required": true},
+    {"id": "diff", "required": true},
+    {"id": "container", "required": true},
+    {"id": "yaml", "required": true},
+    {"id": "twig", "required": true},
+    {"id": "xliff", "required": true},
+    {"id": "js", "required": true},
+    {"id": "composer", "required": true},
+    {"id": "schema", "required": false},
+    {"id": "audit", "required": false},
+    {"id": "dup", "required": false},
+    {"id": "phpmd", "required": false}
+  ]
+}

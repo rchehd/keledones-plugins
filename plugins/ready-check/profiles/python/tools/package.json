@@ -1,0 +1,14 @@
+{
+  "name": "ready-check-python-tools",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {"node": ">=20"},
+  "dependencies": {
+    "@eslint/js": "9.39.5",
+    "eslint": "9.39.5",
+    "globals": "16.5.0",
+    "jscpd": "4.3.0",
+    "stylelint": "16.26.1",
+    "stylelint-config-standard-scss": "16.0.0"
+  }
+}

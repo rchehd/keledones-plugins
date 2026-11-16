@@ -1,0 +1,16 @@
+{
+  "name": "keledones",
+  "owner": {
+    "name": "Roman Chekhaniuk"
+  },
+  "metadata": {
+    "description": "Keledones plugins for AI coding agents."
+  },
+  "plugins": [
+    {
+      "name": "ready",
+      "source": "./plugins/ready-check",
+      "description": "Check task readiness against requirements, static checks, and browser QA."
+    }
+  ]
+}

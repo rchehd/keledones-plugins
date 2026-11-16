@@ -1,0 +1,99 @@
+name: Ready Check
+on:
+  push:
+    paths: ["plugins/ready-check/**", ".github/workflows/ready-check.yml"]
+  pull_request:
+    paths: ["plugins/ready-check/**", ".github/workflows/ready-check.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+defaults:
+  run:
+    working-directory: plugins/ready-check
+concurrency:
+  group: ready-check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  unit:
+    name: Tests / ${{ matrix.platform.name }} / Python ${{ matrix.python }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - {name: Linux, runner: ubuntu-24.04}
+          - {name: macOS, runner: macos-15-intel}
+          - {name: Windows, runner: windows-latest}
+        python: ['3.9', '3.13']
+    runs-on: ${{ matrix.platform.runner }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, xml, dom, simplexml, tokenizer
+          coverage: none
+      - name: Validate plugin package
+        run: python -B scripts/ready-check.py validate-package
+      - name: Run regression tests
+        run: python -B -m unittest discover -s tests -v
+  integration:
+    name: Installation / ${{ matrix.platform.name }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - {name: Linux, runner: ubuntu-24.04}
+          - {name: macOS, runner: macos-15-intel}
+          - {name: Windows, runner: windows-latest}
+    runs-on: ${{ matrix.platform.runner }}
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, xml, dom, simplexml, tokenizer
+          tools: composer
+          coverage: none
+      - name: Install dependencies, launch Chromium and verify static gates
+        env:
+          READY_CHECK_CI_REPORTS: ${{ runner.temp }}/ready-check-integration
+        shell: python {0}
+        run: |
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
+          reports = Path(os.environ['READY_CHECK_CI_REPORTS'])
+          reports.mkdir(parents=True, exist_ok=True)
+          log = reports / 'integration.log'
+          with log.open('wb') as stream:
+              result = subprocess.run([sys.executable, '-B', 'tests/smoke_setup.py', '--report-dir', str(reports)], stdout=stream, stderr=subprocess.STDOUT)
+          print(log.read_text(encoding='utf-8', errors='replace'))
+          sys.exit(result.returncode)
+      - name: Upload installation reports and logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-${{ matrix.platform.name }}
+          path: ${{ runner.temp }}/ready-check-integration
+          retention-days: 7
+          if-no-files-found: warn
