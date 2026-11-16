@@ -11,6 +11,11 @@
       "name": "ready",
       "source": "plugins/ready-check",
       "description": "Check task readiness against requirements, static checks, and browser QA."
+    },
+    {
+      "name": "gnothi",
+      "source": "plugins/gnothi",
+      "description": "A private portrait of how you work with AI agents."
     }
   ]
 }

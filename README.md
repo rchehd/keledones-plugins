@@ -14,6 +14,7 @@ root holds one catalog per client.
 | --- | --- | --- | --- |
 | Ready Check (`ready`) | [plugins/ready-check](plugins/ready-check) | Checks a task before push: requirements, static checks, review, browser QA and a PR draft | Claude Code, Codex, Cursor |
 | Keledones themes (`keledones-themes`) | [plugins/keledones-themes](plugins/keledones-themes) | Looks for the Claude app: Keledones and Graphite, switched with `/look` | Claude Code (desktop and mobile app) |
+| Gnothi (`gnothi`) | [plugins/gnothi](plugins/gnothi) | A private portrait of how you work with AI agents, from local session history | Claude Code, Codex, Cursor |
 
 ## Install
 
@@ -23,6 +24,7 @@ Claude Code:
 claude plugin marketplace add rchehd/keledones
 claude plugin install ready@keledones
 claude plugin install keledones-themes@keledones
+claude plugin install gnothi@keledones
 ```
 
 Codex:
@@ -30,6 +32,7 @@ Codex:
 ```sh
 codex plugin marketplace add rchehd/keledones
 codex plugin add ready@keledones
+codex plugin add gnothi@keledones
 ```
 
 Then open `/hooks` in Codex and trust the plugin's three hooks; Codex runs them only after that and may ask

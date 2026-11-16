@@ -1,0 +1,22 @@
+{"timestamp":"2026-11-10T10:00:00.000Z","type":"session_meta","payload":{"id":"x","cwd":"/home/user/Projects/api"}}
+{"timestamp":"2026-11-10T10:00:00.100Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"# AGENTS.md instructions\n\n<INSTRUCTIONS>rules</INSTRUCTIONS>"}]}}
+{"timestamp":"2026-11-10T10:00:00.200Z","type":"event_msg","payload":{"type":"task_started"}}
+{"timestamp":"2026-11-10T10:00:01.000Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"UserMessage","content":[{"type":"text","text":"Add pagination to the users endpoint"}]}}}
+{"timestamp":"2026-11-10T10:00:05.000Z","type":"response_item","payload":{"type":"function_call","name":"exec_command","arguments":"{\"cmd\":\"go test ./...\"}"}}
+{"timestamp":"2026-11-10T10:00:06.000Z","type":"response_item","payload":{"type":"function_call","name":"mcp__github__get_issue","arguments":"{}"}}
+{"timestamp":"2026-11-10T10:00:07.000Z","type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"total_tokens":400}}}}
+{"timestamp":"2026-11-10T10:00:08.000Z","type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"total_tokens":100}}}}
+{"timestamp":"2026-11-10T10:00:09.000Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Done"}]}}
+{"timestamp":"2026-11-10T10:00:10.000Z","type":"event_msg","payload":{"type":"task_complete"}}
+{"timestamp":"2026-11-10T10:01:00.000Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"UserMessage","content":[{"type":"text","text":"<environment_context>cwd</environment_context>"}]}}}
+{"timestamp":"2026-11-10T10:02:00.000Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"UserMessage","content":[{"type":"text","text":"not that, I meant the admin endpoint"}]}}}
+{"timestamp":"2026-11-10T10:02:05.000Z","type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"total_tokens":300}}}}
+{"timestamp":"2026-11-10T10:02:06.000Z","type":"event_msg","payload":{"type":"turn_aborted"}}
+{"timestamp":"2026-11-10T10:03:00.000Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"UserMessage","content":[{"type":"text","text":"Explain why the cache is stale"}]}}}
+{"timestamp":"2026-11-10T10:03:01.000Z","type":"response_item","payload":{"type":"function_call","name":"update_plan","arguments":"{}"}}
+{"timestamp":"2026-11-10T10:03:02.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","input":"tools.exec_command({cmd:\"cat /home/u/.codex/plugins/x/skills/review/SKILL.md\"})"}}
+{"timestamp":"2026-11-10T10:03:03.000Z","type":"event_msg","payload":{"type":"token_count","info":null}}
+{"timestamp":"2026-11-10T10:03:04.000Z","type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"total_tokens":200}}}}
+{"timestamp":"2026-11-10T10:03:05.000Z","type":"compacted","payload":{"message":""}}
+{"timestamp":"2026-11-10T10:03:06.000Z","type":"event_msg","payload":{"type":"task_complete"}}
+not json at all

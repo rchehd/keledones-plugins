@@ -16,6 +16,11 @@
       "name": "keledones-themes",
       "source": "./plugins/keledones-themes",
       "description": "Looks for the Claude app: Keledones and Graphite, switched with /look."
+    },
+    {
+      "name": "gnothi",
+      "source": "./plugins/gnothi",
+      "description": "A private portrait of how you work with AI agents."
     }
   ]
 }

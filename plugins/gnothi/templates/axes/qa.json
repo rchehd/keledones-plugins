@@ -1,0 +1,42 @@
+{
+  "name": "QA engineer",
+  "description": "Tests products and reports defects with agents.",
+  "axes": [
+    {
+      "id": "test-design",
+      "name": "Test design",
+      "measures": "Scenarios cover requirements, edge cases and risks",
+      "signals": [
+        "scenario requests",
+        "corrections"
+      ]
+    },
+    {
+      "id": "reproduction",
+      "name": "Reproduction",
+      "measures": "Defects come with exact, repeatable steps and evidence",
+      "signals": [
+        "debug requests",
+        "logs and screenshots"
+      ]
+    },
+    {
+      "id": "coverage",
+      "name": "Coverage",
+      "measures": "Checks reach the changed areas and regressions around them",
+      "signals": [
+        "test runs",
+        "browser checks"
+      ]
+    },
+    {
+      "id": "bug-reports",
+      "name": "Bug reports",
+      "measures": "Reports are clear enough for a developer to act without questions",
+      "signals": [
+        "report drafting",
+        "follow-up questions"
+      ]
+    }
+  ]
+}

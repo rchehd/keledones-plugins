@@ -1,0 +1,39 @@
+name: Gnothi
+on:
+  push:
+    paths: ["plugins/gnothi/**", ".github/workflows/gnothi.yml"]
+  pull_request:
+    paths: ["plugins/gnothi/**", ".github/workflows/gnothi.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+defaults:
+  run:
+    working-directory: plugins/gnothi
+concurrency:
+  group: gnothi-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  unit:
+    name: Tests / ${{ matrix.platform.name }} / Python ${{ matrix.python }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - {name: Linux, runner: ubuntu-24.04}
+          - {name: macOS, runner: macos-15-intel}
+          - {name: Windows, runner: windows-latest}
+        python: ['3.9', '3.13']
+    runs-on: ${{ matrix.platform.runner }}
+    env:
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Validate plugin package
+        run: python -B scripts/validate-package.py
+      - name: Run regression tests
+        run: python -B -m unittest discover -s tests -v

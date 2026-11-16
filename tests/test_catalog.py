@@ -48,7 +48,8 @@ class CatalogTest(unittest.TestCase):
     def test_repository_catalogs_are_valid(self):
         catalog.ROOT = self.original
         self.assertEqual(catalog.validate(), {"ready-check": ("ready", ["claude", "codex", "cursor"]),
-                                              "keledones-themes": ("keledones-themes", ["claude"])})
+                                              "keledones-themes": ("keledones-themes", ["claude"]),
+                                              "gnothi": ("gnothi", ["claude", "codex", "cursor"])})
 
     def test_source_outside_plugins_is_rejected(self):
         self.change("cursor", lambda data: data["plugins"][0].update(source="../elsewhere"))

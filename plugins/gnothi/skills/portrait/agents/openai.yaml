@@ -1,0 +1,3 @@
+interface:
+  icon_small: "./assets/portrait-small.svg"
+  icon_large: "./assets/portrait.png"

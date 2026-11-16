@@ -1,0 +1,23 @@
+{
+  "name": "gnothi",
+  "version": "0.1.0",
+  "description": "Gnothi — know yourself: a portrait of how you work with AI agents.",
+  "author": {
+    "name": "Roman Chekhaniuk"
+  },
+  "skills": "./skills/",
+  "requires_local_executor": true,
+  "onboardingSkill": "./skills/setup/SKILL.md",
+  "interface": {
+    "displayName": "Gnothi",
+    "shortDescription": "A private portrait of how you work with AI agents.",
+    "developerName": "Roman Chekhaniuk",
+    "category": "Productivity",
+    "brandColor": "#1F5673",
+    "composerIcon": "./assets/logo.svg",
+    "logo": "./assets/logo.svg",
+    "defaultPrompt": [
+      "Use $gnothi:portrait to analyze my local AI sessions and create a private HTML report on how I work."
+    ]
+  }
+}

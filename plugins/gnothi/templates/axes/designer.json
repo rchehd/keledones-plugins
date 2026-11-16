@@ -1,0 +1,42 @@
+{
+  "name": "Designer",
+  "description": "Shapes interfaces, visuals and content with agents.",
+  "axes": [
+    {
+      "id": "brief-clarity",
+      "name": "Brief clarity",
+      "measures": "Requests describe audience, goal, constraints and references",
+      "signals": [
+        "corrections",
+        "request length"
+      ]
+    },
+    {
+      "id": "iteration",
+      "name": "Iteration rhythm",
+      "measures": "Ideas improve through short, focused rounds of feedback",
+      "signals": [
+        "turns per session",
+        "repeats"
+      ]
+    },
+    {
+      "id": "references",
+      "name": "Use of references",
+      "measures": "Examples, brand rules and existing screens guide the work",
+      "signals": [
+        "attachments and pasted references",
+        "read actions"
+      ]
+    },
+    {
+      "id": "handoff",
+      "name": "Handoff quality",
+      "measures": "Results end in something a developer or client can use",
+      "signals": [
+        "completed sessions",
+        "final requests"
+      ]
+    }
+  ]
+}

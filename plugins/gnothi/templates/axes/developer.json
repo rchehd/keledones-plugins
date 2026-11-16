@@ -1,0 +1,54 @@
+{
+  "name": "Developer",
+  "description": "Writes, reviews and debugs code with agents.",
+  "axes": [
+    {
+      "id": "task-framing",
+      "name": "Task framing",
+      "measures": "Requests state the goal, constraints and done criteria up front",
+      "signals": [
+        "corrections",
+        "repeats",
+        "request length"
+      ]
+    },
+    {
+      "id": "verification",
+      "name": "Verification habit",
+      "measures": "Changes are checked with tests, linters or builds before moving on",
+      "signals": [
+        "sessions with a check call after the last recorded edit",
+        "test and lint runs",
+        "interrupted turns"
+      ]
+    },
+    {
+      "id": "debugging",
+      "name": "Debugging method",
+      "measures": "Bugs are reproduced and narrowed down with logs and evidence before fixing",
+      "signals": [
+        "debug requests",
+        "repeats on the same error"
+      ]
+    },
+    {
+      "id": "codebase-context",
+      "name": "Codebase context",
+      "measures": "The agent gets the files, docs and conventions it needs instead of guessing",
+      "signals": [
+        "read actions",
+        "corrections about wrong files"
+      ]
+    },
+    {
+      "id": "tool-reuse",
+      "name": "Tool reuse",
+      "measures": "Skills, MCP tools and subagents are used where they save work",
+      "signals": [
+        "skills",
+        "MCP tools",
+        "subagents"
+      ]
+    }
+  ]
+}

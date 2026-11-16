@@ -1,0 +1,42 @@
+{
+  "name": "Product manager",
+  "description": "Plans, writes and communicates product work with agents.",
+  "axes": [
+    {
+      "id": "problem-framing",
+      "name": "Problem framing",
+      "measures": "Work starts from the user problem and the expected outcome",
+      "signals": [
+        "plan-first starts",
+        "questions"
+      ]
+    },
+    {
+      "id": "decision-records",
+      "name": "Decision records",
+      "measures": "Decisions, trade-offs and open questions are written down",
+      "signals": [
+        "documents produced",
+        "summaries requested"
+      ]
+    },
+    {
+      "id": "communication",
+      "name": "Stakeholder communication",
+      "measures": "Updates and documents fit their readers",
+      "signals": [
+        "drafting requests",
+        "corrections about tone"
+      ]
+    },
+    {
+      "id": "prioritization",
+      "name": "Prioritization",
+      "measures": "Effort goes to the most important work first",
+      "signals": [
+        "project switches",
+        "abandoned sessions"
+      ]
+    }
+  ]
+}

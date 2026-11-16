@@ -1,0 +1,15 @@
+{"type":"user","cwd":"/home/user/Projects/shop","timestamp":"2026-11-10T09:00:00.000Z","message":{"role":"user","content":"Add a coupon field to the checkout form"}}
+{"type":"user","isMeta":true,"cwd":"/home/user/Projects/shop","timestamp":"2026-11-10T09:00:01.000Z","message":{"role":"user","content":"meta note"}}
+{"type":"assistant","timestamp":"2026-11-10T09:00:05.000Z","message":{"role":"assistant","content":[{"type":"tool_use","name":"Skill","input":{"skill":"superpowers:brainstorming"}}],"usage":{"input_tokens":100,"output_tokens":20,"cache_creation_input_tokens":5}}}
+{"type":"user","timestamp":"2026-11-10T09:00:06.000Z","message":{"role":"user","content":[{"type":"tool_result","content":"ok"}]}}
+{"type":"assistant","timestamp":"2026-11-10T09:00:07.000Z","message":{"role":"assistant","content":[{"type":"tool_use","name":"Bash","input":{"command":"python -m pytest tests"}}],"usage":{"input_tokens":10,"output_tokens":5}}}
+{"type":"assistant","timestamp":"2026-11-10T09:00:08.000Z","message":{"role":"assistant","content":[{"type":"tool_use","name":"mcp__context7__query-docs","input":{}}]}}
+{"type":"assistant","timestamp":"2026-11-10T09:00:09.000Z","message":{"role":"assistant","content":[{"type":"text","text":"Done"}]}}
+{"type":"user","timestamp":"2026-11-10T09:05:00.000Z","message":{"role":"user","content":"<system-reminder>hook said hi</system-reminder>"}}
+{"type":"user","timestamp":"2026-11-10T09:10:00.000Z","message":{"role":"user","content":[{"type":"text","text":"no, I meant the other file"}]}}
+{"type":"assistant","isSidechain":true,"timestamp":"2026-11-10T09:10:05.000Z","message":{"role":"assistant","content":[{"type":"tool_use","name":"Read","input":{"file_path":"a.py"}}]}}
+{"type":"user","timestamp":"2026-11-10T09:11:00.000Z","message":{"role":"user","content":[{"type":"text","text":"[Request interrupted by user]"}]}}
+{"type":"user","timestamp":"2026-11-10T09:20:00.000Z","message":{"role":"user","content":"Now run the linter on the checkout module"}}
+{"type":"user","isCompactSummary":true,"timestamp":"2026-11-10T09:21:00.000Z","message":{"role":"user","content":"This session is being continued from a previous conversation."}}
+{"type":"assistant","timestamp":"2026-11-10T09:25:00.000Z","message":{"role":"assistant","content":[{"type":"text","text":"ok"}]}}
+{not json

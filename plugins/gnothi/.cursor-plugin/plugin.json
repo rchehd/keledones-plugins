@@ -1,0 +1,11 @@
+{
+  "name": "gnothi",
+  "displayName": "Gnothi",
+  "version": "0.1.0",
+  "description": "Gnothi — know yourself: a portrait of how you work with AI agents.",
+  "author": {
+    "name": "Roman Chekhaniuk"
+  },
+  "logo": "assets/logo.png",
+  "skills": "./skills/"
+}
