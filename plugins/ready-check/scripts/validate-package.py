@@ -110,7 +110,7 @@ def profiles(root):
             require(type(check.get("required")) is bool, f"Check required flag must be boolean: {child.name}")
             ids.add(check["id"])
         found.append(child.name)
-    missing = (set(PROFILE_TOOLS) | {"generic", "devops"}) - set(found)
+    missing = (set(PROFILE_TOOLS) | {"generic", "devops", "flutter"}) - set(found)
     require(not missing, "A required profile is missing: " + ", ".join(sorted(missing)))
     return found
 
@@ -219,7 +219,7 @@ def entry_points(root):
         resource(root, root, "profiles/_shared/core/" + name)
     for name in ("php_runtime.py", "php_toolchain.py", "php_lint.py", "php_provider.py", "php_setup.py"):
         resource(root, root, "profiles/_shared/php/" + name)
-    for profile in PROFILE_TOOLS:
+    for profile in (*PROFILE_TOOLS, "devops", "flutter"):
         for name in ("checks.py", "setup.py", "spec.py"):
             resource(root, root, f"profiles/{profile}/scripts/{name}")
 

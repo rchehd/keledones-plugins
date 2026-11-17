@@ -10,6 +10,7 @@ COMPOSE = ("docker-compose.dev.yml", "docker-compose.yml", "docker-compose.yaml"
 SKIPPED = {"vendor", "node_modules"}
 DEFAULT_PRIORITY = 50
 FALLBACK = "generic"
+FLUTTER_PUBSPEC = "pubspec.yaml"
 
 
 def read_json(path):
@@ -41,6 +42,36 @@ def has_managed_tools(profile):
     return any(item["id"] == profile and item.get("managed_tools", True) for item in profiles())
 
 
+def pubspec_entry(lines, key):
+    entries = [line for line in lines if line.strip() and not line.lstrip().startswith("#")]
+    indent = min((len(line) - len(line.lstrip()) for line in entries), default=0)
+    pattern = re.compile(rf"^(?:{key}|'{key}'|\"{key}\")\s*:\s*(.*)")
+    for index, line in enumerate(entries):
+        match = pattern.fullmatch(line[indent:]) if not line[indent:].startswith(" ") else None
+        if match:
+            end = next((offset for offset in range(index + 1, len(entries))
+                        if len(entries[offset]) - len(entries[offset].lstrip()) <= indent), len(entries))
+            return match[1], entries[index + 1:end]
+    return "", []
+
+
+def flutter_pubspec(path):
+    try:
+        lines = path.read_text(encoding="utf-8-sig").splitlines()
+    except (OSError, UnicodeError):
+        return False
+    dependencies, entries = pubspec_entry(lines, "dependencies")
+    sdk_value = r'''(?:flutter|'flutter'|"flutter")'''
+    flutter, options = pubspec_entry(entries, "flutter")
+    if dependencies.startswith("{"):
+        flutter = re.search(r'''(?:[{,]\s*)(?:flutter|'flutter'|"flutter")\s*:\s*(\{[^}]*\})''', dependencies)
+        flutter = flutter[1] if flutter else ""
+    if flutter.startswith("{"):
+        return re.fullmatch(rf'''\{{\s*(?:sdk|'sdk'|"sdk")\s*:\s*{sdk_value}\s*,?\s*\}}(?:\s*#.*)?''', flutter) is not None
+    sdk, _ = pubspec_entry(options, "sdk")
+    return re.fullmatch(rf"{sdk_value}(?:\s+#.*)?\s*", sdk) is not None
+
+
 def evidence(directory, manifest, top=None):
     rules = manifest["detection"]
     required = (read_json(directory / "composer.json") or {}).get("require")
@@ -57,6 +88,8 @@ def evidence(directory, manifest, top=None):
             markers.append(path)
     if isinstance(required, dict):
         markers.extend(f"composer.json require {package}" for package in sorted(packages & required.keys()))
+    if rules.get("flutter_sdk_dependency") and flutter_pubspec(directory / FLUTTER_PUBSPEC):
+        markers.append("pubspec.yaml dependencies.flutter.sdk=flutter")
     return markers
 
 
@@ -137,6 +170,8 @@ def application_roots(top, manifests):
     roots = {top}
     markers = {"composer.json", ".ready-check.json"}
     for manifest in manifests:
+        if manifest["detection"].get("flutter_sdk_dependency"):
+            markers.add(FLUTTER_PUBSPEC)
         for key in ("files", "core_paths", "file_globs"):
             markers.update(manifest["detection"].get(key, ()))
 

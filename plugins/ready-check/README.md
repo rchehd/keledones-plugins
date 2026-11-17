@@ -25,7 +25,7 @@ The diagram source is [assets/workflow.drawio](assets/workflow.drawio); edit it 
    and applies your own coding rules. Findings are labelled `issue (blocking)`, `suggestion`, `nitpick` or
    `question`; only issues block.
 4. **QA** ranks changed areas by risk and shows the plan for approval. It verifies browser, API, CLI or
-   CI outcomes as applicable, with accessibility and exploration for browser cases.
+   CI and native mobile outcomes as applicable, with accessibility and exploration for browser cases.
 5. **Verdict.** `READY TO PUSH` only after every stage passed, then an offer to write the PR title and
    description in English from a template; otherwise
    `BLOCKED`, `INCOMPLETE` or `PARTIAL CHECK COMPLETE`. Findings come with a fix offer; after a fix or "retest",
@@ -38,7 +38,7 @@ after one consent, records your prompts per branch and passes your coding rules 
 | --- | --- | --- |
 | `check` | `/ready:check` · `/check` · `$check` | Whole flow from task to verdict |
 | `review` | `/ready:review` · `/review` · `$review` | Requirements, framework practices, security, coding rules |
-| `qa` | `/ready:qa` · `/qa` · `$qa` | Risk-based browser, API, CLI and CI QA with approval |
+| `qa` | `/ready:qa` · `/qa` · `$qa` | Risk-based browser, mobile, API, CLI and CI QA with approval |
 | `setup` | `/ready:setup` · `/setup` · `$setup` | Install, repair, change decisions |
 | `customize` | `/ready:customize` · `/customize` · `$customize` | Add, list or disable your rules and checklist items |
 | `feedback` | `/ready:feedback` · `/feedback` · `$feedback` | Record that a checked task was returned after review |
@@ -61,6 +61,7 @@ Checks live in framework profiles. See [supported profiles](#supported-profiles)
 | Bug reports | RIMGEA (Kaner's bug advocacy): replicate, isolate, maximize, generalize, externalize; steps, expected and actual result, severity, evidence |
 | Browser automation | [Playwright best practices](https://playwright.dev/docs/best-practices): user-facing locators, web-first waits, isolated sessions; official Playwright CLI and MCP |
 | Technical QA | Project tests and fixtures, [OpenAPI](https://spec.openapis.org/oas/latest.html) for API contracts, and [CI run evidence](skills/qa/references/technical-qa.md#ci-and-artifacts) tied to the tested revision |
+| Design and native QA | [Figma Dev Mode and MCP](https://developers.figma.com/docs/figma-mcp-server/tools-and-prompts/) for agreed design references, existing [Flutter integration tests](https://docs.flutter.dev/cookbook/testing/integration/introduction), [Maestro](https://docs.maestro.dev/get-started/supported-platform/flutter) for device flows, and [OWASP MASVS](https://mas.owasp.org/MASVS/) for mobile security |
 | Learning from use | Cursor's [`/reflect`](https://github.com/cursor/plugins/blob/main/pstack/skills/reflect/SKILL.md) and [Continual Learning](https://github.com/cursor/plugins/tree/main/continual-learning), [CodeRabbit Learnings](https://www.coderabbit.ai/blog/context-engineering-ai-code-reviews): proposals backed by evidence, applied only after approval |
 | Accessibility | [axe-core](https://github.com/dequelabs/axe-core) on changed pages plus manual keyboard and focus checks, since automated rules find only part of WCAG issues ([Deque coverage study](https://www.deque.com/blog/automated-testing-study-identifies-57-percent-of-digital-accessibility-issues)) |
 
@@ -109,7 +110,9 @@ reminder.
 **QA.** The agent ranks changed areas by risk, designs cases with standard techniques (equivalence classes,
 boundary values, state transitions, decision tables), shows the plan for approval, then runs it. Browser cases
 use Playwright, axe-core and manual keyboard and focus checks. API and CLI cases use project tools or direct
-tests, and CI cases inspect the matching run, job and artifact. All results go into the same report. It stops for
+tests, and CI cases inspect the matching run, job and artifact. Native mobile cases use existing device tests
+or Maestro on the provisioned target. When a task has an agreed Figma reference, QA compares the matching
+viewport, variant and state against that reference. All results go into the same report. It stops for
 you only when the task is unclear, for plan approval, for a login, when it is unsure whether something is a bug,
 and when it finds one. For bugs it offers: fix in this session, fix with a subagent (where the client supports
 it), or you fix it. After a fix, or when you say "retest", the next round reruns only what the change can
@@ -240,6 +243,9 @@ advisory checks report findings or missing tools without blocking the static gat
 - **[DevOps](profiles/devops/static.md)** — profile ID: `devops`.
   - GitHub Actions with actionlint, Docker Compose, DDEV and Nginx validation, and GitLab YAML syntax.
     Uses installed tools. GitLab CI Lint adds provider checks for the effective pipeline and its includes.
+- **[Flutter](profiles/flutter/static.md)** — profile ID: `flutter`.
+  - Uses the project's Flutter SDK for analysis and the bundled Dart formatter. QA reuses the project's
+    unit, widget and device tests, with Maestro for applicable native flows.
 
 Project tools and configs take priority over pinned tools installed outside the project. Projects can use
 several profiles in one directory or across application roots. When no specific profile matches, Ready Check
@@ -280,13 +286,14 @@ Project tools and configs (`vendor/bin`, `phpcs.xml`, `phpstan.neon`, `pint.json
 - For TypeScript checks: Node.js in the runner. Managed setup requires Node.js 20+ and npm.
 - For YAML checks in Generic: `yamllint` in the selected runner.
 - For DevOps: the tools that match the changed files, as listed in the [DevOps profile](profiles/devops/static.md).
+- For Flutter: the project's prepared Flutter SDK and packages. Native device cases need a suitable test target.
 
 ## Documentation
 
 - [Setup details](dependencies/SETUP.md)
 - Static checks: [Drupal](profiles/drupal/static.md), [Laravel](profiles/laravel/static.md),
   [Symfony](profiles/symfony/static.md), [Python](profiles/python/static.md), [Go](profiles/go/static.md),
-  [TypeScript](profiles/typescript/static.md)
+  [TypeScript](profiles/typescript/static.md), [Flutter](profiles/flutter/static.md)
 - [Report template](skills/check/references/report-template.md)
 
 ## Development
