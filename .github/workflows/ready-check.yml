@@ -1,10 +1,6 @@
 name: Ready Check
 on:
-  push:
-    paths: ["plugins/ready-check/**", ".github/workflows/ready-check.yml"]
-  pull_request:
-    paths: ["plugins/ready-check/**", ".github/workflows/ready-check.yml"]
-  workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
 defaults:

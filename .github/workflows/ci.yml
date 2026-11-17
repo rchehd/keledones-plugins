@@ -1,0 +1,14 @@
+name: CI
+on:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  catalog:
+    uses: ./.github/workflows/catalog.yml
+  ready-check:
+    uses: ./.github/workflows/ready-check.yml
+  gnothi:
+    uses: ./.github/workflows/gnothi.yml
