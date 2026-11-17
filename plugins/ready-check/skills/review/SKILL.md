@@ -36,6 +36,7 @@ static gate: return to the static stage before reviewing. Do not switch branches
 Read each applicable profile's `instructions.review` resource. If it is absent, inaccessible, or outside the
 installed profile, record `INCOMPLETE`; do not silently omit framework-specific review. Locate the plugin
 and profile through the installed skill's location, not by assuming they live in the application repository.
+Read the [shared change-type checklists](references/change-types.md) for behavior spanning profiles.
 
 ## Size of the change
 
@@ -63,6 +64,11 @@ check each item of those sections against the current code. Record every trigger
 INCOMPLETE or N/A with a one-line reason, and list untriggered sections once with the reason they do not apply.
 Do not invent checks for areas the change cannot affect, and do not skip an item of a triggered section without
 a reason. Keep framework-specific rules and examples in profiles.
+
+Apply the matching shared checklist rows to changed contracts, security boundaries, migrations, retries and
+delivery paths. Record the shared items in the same practices/security table. Reuse evidence when a profile
+covered the same concern. Link unanswered runtime assertions to their RCs or regression labels and describe
+the action and observable outcome for QA.
 
 Add the user's and team's extra checklist items: `scripts/ready-check.py customize list --kind review --profile <id>
 --project <app>` for each applicable pair. Put each active item (not `disabled`) into the section it names, marked with its scope

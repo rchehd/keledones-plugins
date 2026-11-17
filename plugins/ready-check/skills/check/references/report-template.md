@@ -75,11 +75,11 @@ Current scope evidence: [Fresh doctor JSON when statics selected, otherwise part
 Versions: [Exact framework, runtime and affected components/libraries; lock/installed/runtime sources and discrepancies]
 
 Size: [Counted changed lines, generated files skimmed, and parts reviewed when above ~400 lines]
-Change types: [Types from the profile's change-type map, with the paths that triggered them]
+Change types: [Types from profile guidance and shared checklists, with the paths that triggered them]
 
 | Profile / application | Section / item | Version / official reference | Code evidence | Result | Finding / reason |
 | --- | --- | --- | --- | --- | --- |
-| [ID and root] | [A. Versions and APIs / installed core recorded] | [Applicable version/source] | [File and line] | CHECKED / FINDING / INCOMPLETE / N/A | [Specific result or N/A reason] |
+| [Profile ID and root, or shared guidance and affected roots] | [Checklist item] | [Applicable version/source] | [File and line] | CHECKED / FINDING / INCOMPLETE / N/A | [Specific result or N/A reason] |
 
 Not triggered: [Section — reason, for example "I. Render and cache — no render output or templates changed"]
 
