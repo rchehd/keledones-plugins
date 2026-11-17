@@ -6,7 +6,7 @@ description: Plan risk-based browser QA from the task's requirements with standa
 # QA
 
 Continue `check` in the current chat with its report, complete RC list, any selected review matrix,
-application, selected profile, selected checks, and static JSON or partial scope evidence. Talk in the user's
+applicable profile and application pairs, selected checks, and their static JSON or partial scope evidence. Talk in the user's
 language; write the plan and results into the report in the Ready Check file language. Verify behavior through
 the application; code inspection or a successful browser command alone is not a scenario pass. Techniques,
 oracles and investigation steps are in [test design](references/test-design.md).
@@ -31,14 +31,15 @@ what is already known; silence is never approval.
 
 ## 1. Check the gates and the round
 
-Follow [check selection](../check/references/check-selection.md). In full mode require a current static result
+Follow [check selection](../check/references/check-selection.md). In full mode require current static results for all applicable pairs
 (`action: static`, `can_proceed: true`, `PASS` or justified `N/A`) and a review `PASS` with the same scope
 identity and requirements revision. For partial QA, require only the selected earlier stages and compare the
 partial source identity before and after; unselected stages stay NOT_SELECTED. When statics are selected, run
-the packaged doctor again and compare its snapshot, HEAD, merge base, application, profile version and runner;
+the packaged doctor again for each pair and compare its snapshot, HEAD, merge base, application, profile version and runner;
 a mismatch returns to statics and review. Doctor can outlive the default command timeout: wait for it.
 
-Read the profile's `instructions.qa`. Missing or out-of-profile guidance makes QA `INCOMPLETE`.
+Read `instructions.qa` for each profile covering an affected scenario. Missing or out-of-profile required
+guidance makes QA `INCOMPLETE`. Use the profile guidance for the specific roots and runtime paths exercised.
 
 Read the QA round from the report. Round 1 runs the approved plan. In a later round (after a fix or a "retest"
 request) rerun only: failed scenarios; scenarios whose recorded files or RCs the change touches; the main flow of
@@ -48,8 +49,9 @@ requirements or the plan changed, or when the user asks for a full retest.
 
 ## 2. Environment
 
-Resolve the local URL, routes, roles, test accounts and fixture data from project and runner information, not
-guesses. A responding URL or the same HEAD does not prove that the container, built assets, active configuration
+Resolve the local URL, routes, roles, test accounts and fixture data from each relevant project and runner.
+For a scenario spanning applications, record the runtime identity of each application it reaches.
+A responding URL or the same HEAD does not prove that the container, built assets, active configuration
 and database reflect the working code; record the evidence the profile asks for. An unknown or mismatched
 environment cannot pass QA. Do not run migrations, imports, rebuilds or destructive actions unless the user
 authorized them; after authorized preparation, refresh the evidence before dependent cases.
@@ -61,10 +63,10 @@ for a bug, include the original trigger, the corrected result and related regres
 baseline reproduction that was never run.
 
 Add the user's and team's extra QA items with `scripts/ready-check.py customize list --kind qa --profile <id>
---project <app>`: active items join the profile's QA checklist section they name, and `Familiar problems` items
+--project <app>` for each applicable pair. Active items join the profile's QA checklist section they name, and `Familiar problems` items
 join error guessing. Mark them with their scope in the plan.
 
-Classify the change with the change-type map in the profile's review guidance and rate each affected area by
+Classify the change with the change-type maps in the applicable review guidance and rate each affected area by
 risk (likelihood × impact). For every RC choose the techniques that fit (equivalence classes with invalid ones,
 boundary values, state transitions including an invalid one, decision tables, error guessing from the profile's
 familiar problems) and the oracle (the RC's expected result first, otherwise HICCUPPS). Cover every RC acceptance
@@ -74,8 +76,9 @@ behavior, plan a technical verification or link current evidence instead of inve
 ## 4. Plan and approval
 
 Give each scenario a stable `QA-001` ID with: RC IDs (or a regression label), required or optional, risk,
-technique, role, preconditions, steps, expected result, oracle, and the files or components it depends on (used
-by later rounds). Order by risk. Add one optional exploratory charter with its action budget, the accessibility
+technique, role, preconditions, steps, expected result, oracle, and the profile/root pairs and files or components
+it depends on (used by later rounds). For a shared scenario, list all covered pairs and record one result.
+Order by risk. Add one optional exploratory charter with its action budget, the accessibility
 check of changed pages, test-data actions, and the browser mode (step 5).
 
 Save `qa_plan_revision`, `requirements_revision`, scenario IDs and `approval: PENDING` in the report, then show
@@ -107,7 +110,7 @@ or a read-only backend view; a confirmation message alone does not prove a write
 `<b>x</b>` and `"><img src=x>` and confirm they are shown as text, not rendered. Keep mocks explicit; they prove
 only the simulated case.
 
-Log in, in this order: the profile's passwordless method; in visible mode, the user logging in in the open
+Log in, in this order: the tested application's profile's passwordless method; in visible mode, the user logging in in the open
 window; test accounts listed in `ai/ready-check/qa-accounts.json` for the local site. Never ask for or type real
 or production credentials. Use isolated sessions per role and confirm the actor between cases.
 
@@ -142,7 +145,7 @@ Record each scenario as `PASS`, `FAIL`, `INCOMPLETE`, `NOT_RUN` or reasoned `N/A
 result, time, role and evidence. Summarize every RC's coverage. List limitations (for example "Chromium only"),
 untested areas, test data created and cleanup still needed.
 
-Compare fresh scope evidence with the saved identity afterwards. Changed code, scope, runner, profile,
+Compare fresh scope evidence with the saved identity of each applicable pair afterwards. Changed code, scope, runner, profile,
 requirements or runtime preparation make affected results stale: mark the run `INCOMPLETE` and return to the
 earliest affected stage.
 

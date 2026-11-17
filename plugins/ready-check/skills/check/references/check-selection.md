@@ -8,7 +8,7 @@ to the offer means `full`. A later instruction to narrow or expand the selection
 | --- | --- |
 | All / `full` | `static`, `review` (requirements, framework/stack practices and security), `qa` |
 | Lints / statics | `static` |
-| Code review / security | `review`, including version-aware framework/stack practices and security from the selected profile |
+| Code review / security | `review`, including version-aware framework/stack practices and security from the applicable profiles |
 | Visual / behavioral QA | `qa`, with requirements and an explicitly approved scenario plan |
 
 Accept explicit combinations; selecting all three is full validation. Never silently narrow a failing full
@@ -20,8 +20,8 @@ partial assessment and does not require installing or running unselected linters
 
 ## Partial scope and freshness
 
-In a partial run without statics, replace the full static prerequisite with recorded read-only scope
-evidence: application, profile/version, actual framework version, HEAD, base, merge base, runner/config,
+In a partial run without statics, record read-only scope evidence for each applicable profile and application
+pair: application, profile/version, actual framework version, HEAD, base, merge base, runner/config,
 mode (`--base` or `--commits` with SHAs), changed paths, complete tracked diff including staged/unstaged changes and content hashes of new
 non-ignored files. Use Git and standard-library hashing, saving evidence in the reports directory.
 Record unavailable facts explicitly; missing essential source/runtime correspondence makes that selected

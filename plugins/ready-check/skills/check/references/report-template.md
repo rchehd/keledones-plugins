@@ -25,17 +25,28 @@ Requirements revision: [Increment when criteria or exclusions change]
 
 - Check selection: [full, or selected static/review/qa combination and source of the user's choice]
 - Unselected stages: [NOT_SELECTED with names; never implied PASS]
-- Application root: [Path or unresolved]
 - Repository root: [Path or unresolved]
 - HEAD: [Commit or unavailable]
 - Mode: [`--base <ref>` or `--commits` with the task SHAs]
 - Base ref: [Ref, or n/a in commits mode]
 - Merge base: [Commit or unavailable]
-- Profile: [ID and version or unsupported/unresolved]
-- Static snapshot: [Snapshot from the latest static result or not yet recorded]
-- Partial source identity: [Read-only Git/diff/untracked hashes and config evidence if statics not selected]
 - Changed files: [Paths, including new files, deletions and renames]
 - Outside scope: [Uncovered changes, `uncommitted_outside_task`, or explicit exclusions]
+
+| Profile / version | Application root | Runner | Detection or config evidence | Affected paths / exclusion reason |
+| --- | --- | --- | --- | --- |
+| [ID and version] | [Repository-relative path] | [Configured and effective if different] | [Markers or config] | [Paths, shared dependencies, or reason excluded] |
+
+## Static checks
+
+Stage status: [NOT_SELECTED, NOT_RUN, PASS, FAIL, INCOMPLETE, or N/A]
+
+| Profile / application | Status | Snapshot or partial source identity | Doctor / static JSON | Checks, findings and prerequisites |
+| --- | --- | --- | --- | --- |
+| [One row per applicable pair] | [Status and reason] | [Current snapshot or Git/diff/untracked and config identity] | [Evidence paths] | [Results, linked finding IDs, and missing tools] |
+
+For a report created before profile lists were introduced, use its existing profile, application and snapshot
+as one row. If the applicable pairs change, refresh the affected evidence in the next round.
 
 ## Task requirements
 
@@ -51,7 +62,7 @@ Requirements revision: [Increment when criteria or exclusions change]
 
 Stage status: [NOT_SELECTED, NOT_RUN, PASS, FAIL, or INCOMPLETE]
 Can proceed to selected QA: [false until selected preceding gates are current and successful]
-Reviewed static snapshot: [Snapshot or not yet reviewed]
+Reviewed static snapshots: [Identity by profile/application or not yet reviewed]
 Reviewed requirements revision: [Revision or not yet reviewed]
 Current scope evidence: [Fresh doctor JSON when statics selected, otherwise partial source evidence]
 
@@ -66,10 +77,9 @@ Versions: [Exact framework, runtime and affected components/libraries; lock/inst
 Size: [Counted changed lines, generated files skimmed, and parts reviewed when above ~400 lines]
 Change types: [Types from the profile's change-type map, with the paths that triggered them]
 
-| Section / item | Version / official reference | Code evidence | Result | Finding / reason |
-| --- | --- | --- | --- | --- |
-| [A. Versions and APIs / installed core recorded] | [Applicable version/source] | [File and line] | CHECKED / FINDING / INCOMPLETE / N/A | [Specific result or N/A reason] |
-| [Each item of every triggered section] | … | … | … | … |
+| Profile / application | Section / item | Version / official reference | Code evidence | Result | Finding / reason |
+| --- | --- | --- | --- | --- | --- |
+| [ID and root] | [A. Versions and APIs / installed core recorded] | [Applicable version/source] | [File and line] | CHECKED / FINDING / INCOMPLETE / N/A | [Specific result or N/A reason] |
 
 Not triggered: [Section — reason, for example "I. Render and cache — no render output or templates changed"]
 
@@ -96,7 +106,7 @@ reasons relevant checks did not apply. Keep code inspection separate from runtim
 
 Stage status: [NOT_SELECTED, NOT_RUN, PASS, FAIL, INCOMPLETE, or justified whole-stage N/A]
 Can proceed to final result: [false until current QA coverage is complete and no blockers remain]
-Checked static snapshot and requirements revision: [Identity or not yet checked]
+Checked static snapshots and requirements revision: [Identity by profile/application or not yet checked]
 QA plan revision: [Increment when scenarios, criteria, roles or data scope change]
 Plan approval: [PENDING / APPROVED / REJECTED; human response and approved revision/RC revision/scenario IDs; not needed for justified whole-stage N/A or NOT_SELECTED]
 Task type and source: [Feature acceptance or bug trigger/corrected expectation/regressions, from session/task/human]
@@ -110,7 +120,7 @@ Scope evidence: [Before/after doctor JSON paths and runtime correspondence check
 
 | Scenario | RC / regression | Required, risk | Technique | Oracle | Depends on | Role and preconditions | Steps | Expected | Actual | Status (round) | Evidence / time |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| QA-001 | RC-001 | [Required/optional, H/M/L and why] | [Boundary values, state transition…] | [RC expected result or HICCUPPS item] | [Files/components] | [Context] | [Exact safe steps] | [Observable outcome] | [Observed outcome or not run] | PASS (round 1) / FAIL / INCOMPLETE / NOT_RUN / N/A | [Screenshot/snapshot, console/network/state proof, and time] |
+| QA-001 | RC-001 | [Required/optional, H/M/L and why] | [Boundary values, state transition…] | [RC expected result or HICCUPPS item] | [Profile/root pairs and files/components] | [Context] | [Exact safe steps] | [Observable outcome] | [Observed outcome or not run] | PASS (round 1) / FAIL / INCOMPLETE / NOT_RUN / N/A | [Screenshot/snapshot, console/network/state proof, and time] |
 
 ### Exploratory session
 
@@ -144,9 +154,9 @@ created/modified data IDs, remaining cleanup and its agreed scope, session clean
 ## TODO
 
 - [ ] Establish the task and resolve requirement ambiguities.
-- [ ] Resolve the application, diff scope, and framework profile.
+- [ ] Resolve the application roots, diff scope, and applicable profiles.
 - [ ] Run static checks.
-- [ ] Review RC implementation, version-aware framework/stack practices and security using the selected profile.
+- [ ] Review RC implementation, version-aware framework/stack practices and security using the applicable profiles.
 - [ ] Show QA requirements/scenarios and obtain explicit approval of the current plan.
 - [ ] Run applicable QA scenarios.
 - [ ] Produce the verdict and ask whether to prepare the English PR title and description.

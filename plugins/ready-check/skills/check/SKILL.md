@@ -41,26 +41,21 @@ Ask concrete questions whenever missing information changes a criterion or the p
 behavioral alternatives when useful. Do not ask for blanket approval of explicit criteria during preparation;
 the separate approval of the concrete QA plan in step 7 is mandatory.
 
-## 2. Identify the project and profile
+## 2. Identify the project and profiles
 
 Resolve the application root from the user's context and workspace. The installed plugin directory is a
 resource location, not the application under test. Resolve this skill's resources relative to its installed
 location; the plugin root is two directories above this file's directory.
 
-Read the project type the user confirmed at first run from `<repo>/ai/ready-check/settings.json` (`profile`,
-`runner`, `application`); it takes precedence. Otherwise read the application's `.ready-check.json` if present.
-Its optional `profile` field selects a profile from the plugin's `profiles/<id>/profile.json`. An unknown profile, malformed config, or unsupported profile schema
-is an unresolved setup issue; only `schema_version: 1` is supported. Do not silently substitute another profile or modify
-the config.
+Run `scripts/ready-check.py profiles --project <workspace or application directory>`. It uses the same
+discovery and configured selections as first-run setup. Record each profile ID, repository-relative application
+root, runner, and evidence. If discovery returns conflicts, clarify those candidates before using them. A
+malformed configuration, unknown profile or unsupported manifest schema is a setup issue. Keep valid
+independent matches, including several profiles at one root.
 
-Without explicit configuration, discover the packaged profiles and compare the application with their
-detection rules. Use `generic` as the fallback when the application is clear and no specific profile matches.
-Use it for a mixed-language project when the user selects it. For a candidate profile, read its requirements guidance through the relative
-path in `instructions.requirements`. If detection conflicts with the selected profile or identifies multiple
-applications, ask the user to resolve the application root and profile before proceeding with dependent work.
-
-When using `generic`, identify the languages and tools affected by the task. Clarify required checks whose
-scope or prerequisites remain unresolved.
+Read each applicable manifest under the installed plugin's `profiles/<id>/profile.json` (schema version 1)
+and its `instructions.requirements` resource. When `generic` applies, identify affected languages and project
+tools. Clarify checks whose scope or prerequisites remain unresolved.
 
 ## 3. Establish the diff scope
 
@@ -79,9 +74,14 @@ equivalent commands. Inspection informs scope and questions; it is not a complet
 commits plus uncommitted changes inside their files; other uncommitted changes are reported as
 `uncommitted_outside_task`. Record mode and commits in the report.
 
+Map the task paths and acceptance conditions to the affected profile and root pairs. Use paths within each
+root, the profile guidance and ownership of affected code, configuration and runtime behavior. A shared
+configuration or integration change can affect several profiles. Two profiles at the same root can apply
+to different paths. Record an exclusion reason for any candidate the task does not affect.
+
 If there is no Git repository, no HEAD, no usable base, or no detected changes, record the situation and
-clarify the intended scope. In a monorepo, record changes outside the selected application as uncovered.
-Preserve useful task information while scope questions are pending.
+clarify the intended scope. Report changes the union of applicable selections leaves uncovered. Preserve
+useful task information while scope questions are pending.
 
 ## 4. Record task requirements and the TODO
 
@@ -109,51 +109,58 @@ The report's TODO section is the persisted copy for resuming; keep both in sync.
 
 ## 5. Run static checks and enforce the gate
 
-Run this stage only when selected and the task requirements, acceptance conditions, application root, profile, and base are sufficiently
-specified. Save the report using step 9 first. Read the profile's `instructions.static` file, then run the
-shared Python entry point `scripts/ready-check.py doctor` with `--profile`, `--project`, and `--base` or `--commits` from the resolved context. Use the available Python 3 interpreter (`python3` on Unix,
-`py -3` or `python` on native Windows). A shell syntax check needs the script's interpreter. Save the JSON
-with `--output` into the reports directory (step 9). Doctor and static can outlive the harness's default
+Run this stage only when selected and the task requirements, acceptance conditions, affected profiles and
+application roots, and diff scope are clear. Save the report using step 9 first. For each applicable pair,
+read `instructions.static` and run `scripts/ready-check.py doctor --profile <id> --project <application-root>`
+with the agreed `--base` or `--commits`. Use the available Python 3 interpreter (`python3` on Unix, `py -3` or
+`python` on native Windows). A shell syntax check needs the script's interpreter. Save the JSON with
+`--output` into the reports directory (step 9). Use a distinct filename for each pair and action, for example
+`doctor-01-drupal.json` and `static-01-drupal.json`. Doctor and static can outlive the harness's default
 command timeout: run them in the background or with the maximum timeout, wait for completion, and never kill
 or rerun them while running. Follow the current harness's normal command permissions.
 
-If required prerequisites are unavailable, list the exact missing tools or setup questions in the TODO and
-report `INCOMPLETE`. Do not install dependencies or switch runners to conceal a failure. Once prerequisites
-are available, run `scripts/ready-check.py static` with the same arguments and save a separate static JSON result.
-Doctor `READY` alone never completes the static-check TODO.
+If required prerequisites are unavailable, list the exact missing tools or setup questions for that pair
+and mark it `INCOMPLETE`. Continue other applicable pairs. Do not install dependencies or switch runners
+to conceal a failure. Once a pair's prerequisites are available, run `scripts/ready-check.py static` with
+the same scope and save its corresponding static JSON. Doctor `READY` alone never completes the static TODO.
 
 For missing managed dependencies (doctor `MISSING`, or no usable managed browser for selected QA), read the
 user's install decision with `scripts/ready-check.py config get install`. With `auto`, install now in the
 foreground without asking: `scripts/ready-check.py setup --project <app> --profile <id> --component profile`
 (or `--component browser`), show the result, then rerun doctor/static. With `ask` or `never`, the user started
-this check, so offer the install once; on yes run `scripts/ready-check.py consent yes --project <app>`, on no keep
+this check, so offer the install once; on yes run `scripts/ready-check.py consent yes --project <repo>`
+with the full confirmed selection set, on no keep
 the stage `INCOMPLETE` and name the setup command (`/ready:setup` in Claude Code, `/setup` in Cursor, `$setup` in
 Codex). A successful install is not a static pass. A broken project tool or config is not a setup case, and
 setup never changes project dependencies.
 
-Use the static JSON's check results, findings, reasons, logs, scope, and snapshot to update the report.
+Record each pair's check results, findings, reasons, logs, scope, and snapshot in the same task report.
+Use repository-relative paths when comparing results. Deduplicate the same finding at the same location
+with the same underlying cause and retain references to each originating result. A path reported outside
+one application can be covered by another pair. Report paths left uncovered by the applicable pairs.
 For `generic`, also follow the project-command guidance in its `instructions.static`. Include required
 project commands in the static gate and record their individual outcomes before proceeding to review or QA.
-`FAIL` blocks the task and leaves the static TODO open. `INCOMPLETE` means verification could not finish.
-Ask about any ambiguity affecting setup or a finding. Keep later selected review and QA `NOT_RUN` until the static
-result has `can_proceed: true`; do not waive required checks or treat an absent result as success.
+Aggregate the static stage as `FAIL` if any required check failed, otherwise `INCOMPLETE` if any required
+result is missing, stale, or incomplete. Use `PASS` when all applicable pairs can proceed and at least one
+required check passed, or `N/A` when all required checks are inapplicable with reasons. Keep later selected
+review and QA `NOT_RUN` until every applicable pair has `can_proceed: true` and any required project commands pass.
 
 After a fix (by the user or an approved agent fix), repeat the doctor and static checks for the current
 diff, refresh the evidence, and retain earlier findings as resolved history where useful. Do not reuse a
 green result after code or configuration changes. Line-level checks use the task lines and syntax checks use
-the relevant changed files. Review traces breakage in unchanged callers. Explicitly retain uncovered changes outside the selected application.
+the relevant changed files. Review traces breakage in unchanged callers. Keep uncovered paths visible.
 
 ## 6. Review requirements, framework/stack practices and security
 
 When review is selected, after any selected static gate passes, read and follow the packaged [review skill](../review/SKILL.md)
-in the current conversation. Pass the existing report, complete RC list, application, selected profile,
-and static JSON (or the partial scope evidence defined in check selection) as context. This is a continuation of the same `/check` invocation; do not require
+in the current conversation. Pass the existing report, complete RC list, applicable profile and application
+pairs, and their static JSON (or the partial scope evidence defined in check selection). This is a continuation of the same `/check` invocation; do not require
 the user to invoke a second skill or start a separate agent or harness.
 
-The review verifies current scope, reads the profile's review guidance, establishes actual framework,
+The review verifies current scope, reads each applicable profile's review guidance, establishes actual framework,
 runtime and affected component/API versions, and records code evidence for every RC plus framework/stack
 practices and security assessments. Obtain concrete practices, version rules and applicable review areas
-from the selected profile; apply them to the affected paths rather than embedding stack rules in this skill.
+from the applicable profiles and apply them to the affected paths.
 Use version-matched official references when API guidance is uncertain; record limitations instead of
 claiming every best practice or a full security audit was verified. Keep implementation support separate from runtime proof.
 Confirmed gaps and regressions block QA; ambiguity requires a human answer. A clear requirement that needs
@@ -166,13 +173,13 @@ NOT_RUN until both gates pass; partial runs follow the explicit selection gates.
 ## 7. Verify behavior through QA
 
 When QA is selected and all selected preceding gates pass, follow the packaged [QA skill](../qa/SKILL.md) in the same chat.
-Pass the report, current requirements revision, complete RC list, any selected review matrix, selected profile,
-application, and static JSON or partial scope evidence. Build requirements and scenarios from the session's
+Pass the report, current requirements revision, complete RC list, any selected review matrix, affected
+profile and application pairs, and their static JSON or partial scope evidence. Build requirements and scenarios from the session's
 task history and human answers, distinguishing feature acceptance from bug reproduction and regression
 coverage. Show RCs, steps, expected outcomes, roles and test-data scope, then wait for explicit approval
 or clarification. General validation consent does not approve an unseen QA plan. Persist plan revision,
 approved scenario IDs and the human decision; a material plan change needs renewed approval before its cases run.
-The skill reads the profile's QA guidance, checks the local runtime, and uses the visible (bundled Playwright
+The skill reads applicable QA guidance per scenario, checks the relevant runtime, and uses the visible (bundled Playwright
 MCP) or background (Playwright CLI) mode from the `browser` setting or the user's answer. No second user
 invocation is needed.
 
@@ -239,8 +246,8 @@ RCs and environment are unchanged; anything else returns to the earliest affecte
 
 ## 9. Save and resume
 
-Use [the report template](references/report-template.md). Every task has its own folder. For a new task run
-`scripts/ready-check.py reports --project <app> --task "<short task title>"`; to continue, run it without `--task`
+Use [the report template](references/report-template.md). Every task has one folder in the shared repository.
+For a new task run `scripts/ready-check.py reports --project <repo> --task "<short task title>"`; to continue, run it without `--task`
 (the newest task on the branch) or with the title or `task_id`. The JSON gives `task_id`, `directory`, `report` and
 `summary`; the command git-excludes `/ai/ready-check/`. Write `report.md` in that folder
 (`<repo>/ai/ready-check/reports/<branch-slug>/<task_id>/`) and report its absolute path as a clickable link. Start the
@@ -248,7 +255,7 @@ report with three English key lines regardless of the report language: `task_id:
 `Verdict: <verdict>`, and keep them current.
 
 At the end of every round, and at the final verdict, record the round:
-`scripts/ready-check.py summary --project <app> --task <task_id> --round <n> --verdict "<READY TO PUSH | PARTIAL CHECK COMPLETE | BLOCKED | INCOMPLETE>" --static <status>
+`scripts/ready-check.py summary --project <repo> --task <task_id> --round <n> --verdict "<READY TO PUSH | PARTIAL CHECK COMPLETE | BLOCKED | INCOMPLETE>" --static <status>
 --review <status> --qa <status> [--finding "F-001:issue (blocking):review:I. Render and cache:RC-001:open" ...]
 [--qa-case "QA-001:FAIL:1" ...]`. Statuses: PASS, FAIL, INCOMPLETE, N/A, NOT_SELECTED, NOT_RUN. Finding status is
 `open` or `fixed`; the area is the checklist section or `code quality`, `tests`, `rule`, `bug fix`. Repeat a QA case
@@ -265,8 +272,8 @@ If saving is unavailable, show the report inline and state that it has not been 
 
 Mark preparation TODO items complete when requirements, selection and scope are clear. Keep unselected
 stages NOT_SELECTED. Mark QA-plan approval complete only after the human confirms its current revision.
-Mark selected static checks complete
-only after an actual `PASS` or justified `N/A` static result; mark review complete only after its `PASS` gate.
+Mark selected static checks complete after a current `PASS` or justified `N/A` for every applicable pair.
+Mark review complete after its `PASS` gate.
 Mark QA complete only after its current `PASS` or justified whole-stage `N/A` gate. The final TODO is
 complete after the scope-appropriate verdict and the PR question (with the English draft when the user agreed). Confirmed current blockers yield
 `BLOCKED`; missing evidence or unresolved required questions yield `INCOMPLETE`. All required gates and

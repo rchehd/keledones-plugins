@@ -1,5 +1,6 @@
 import json
 import unittest
+from pathlib import Path
 
 from helpers import RepoTest
 import detect
@@ -70,6 +71,61 @@ class ProfileSelectionTest(RepoTest):
         selected = [item, dict(item, profile="go")]
         self.entry_json("config", "set", "profiles", json.dumps(selected), "--project", str(self.repo))
         self.assertEqual([item["profile"] for item in self.select()["profiles"]], ["python", "go"])
+
+    def test_profiles_use_separate_scope_and_results_in_one_task_folder(self):
+        tools = self.repo / "tools"
+        service = self.repo / "service"
+        for directory in (tools, service):
+            directory.mkdir()
+        (service / "go.mod").write_text("module example.com/service\n")
+        (tools / "config.json").write_text('{"enabled": false}\n')
+        self.git("add", ".")
+        self.git("commit", "-q", "-m", "Add applications")
+        self.git("switch", "-q", "-c", "task")
+
+        self.run_entry("consent", "no", "--project", str(self.repo), "--selection", "go:local:service",
+                       "--selection", "generic:local:tools").check_returncode()
+        (service / "README.md").write_text("# Service\n")
+        (tools / "config.json").write_text('{"enabled": true}\n')
+        (self.repo / "README.md").write_text("# Repository\n")
+        report = self.entry_json("reports", "--project", str(self.repo), "--task", "Two applications")
+        directory = Path(report["directory"])
+        all_covered, outside = set(), set()
+        for item in self.select()["profiles"]:
+            profile, application = item["profile"], item["application"]
+            args = ("--profile", profile, "--project", str(self.repo / application), "--base", "main")
+            doctor_file, static_file = (directory / f"{action}-{profile}.json" for action in ("doctor", "static"))
+            doctor = self.entry_json("doctor", *args, "--output", str(doctor_file))
+            static = self.entry_json("static", *args, "--output", str(static_file))
+            self.assertEqual(doctor["status"], "READY")
+            self.assertTrue(static["can_proceed"])
+            self.assertEqual(doctor["scope"]["snapshot"], static["scope"]["snapshot"])
+            self.assertEqual(static["runner"], item["runner"])
+            self.assertTrue(doctor_file.is_file() and static_file.is_file())
+            all_covered.update(f"{application}/{path}" for path in static["scope"]["changed_files"])
+            outside.update(static["scope"]["outside_scope"])
+        self.assertEqual(all_covered, {"service/README.md", "tools/config.json"})
+        self.assertEqual(outside - all_covered, {"README.md"})
+        mismatch = self.entry_json("doctor", "--profile", "generic", "--project", str(service),
+                                   "--base", "main", code=2)
+        self.assertIn("conflict with project configuration", mismatch["reason"])
+
+        (tools / "config.json").write_text('{"enabled": }\n')
+        broken = self.entry_json("static", "--profile", "generic", "--project", str(tools),
+                                 "--base", "main", "--output", str(directory / "static-generic-round-2.json"), code=1)
+        self.assertFalse(broken["can_proceed"])
+        self.assertIn("syntax", [check["id"] for check in broken["checks"] if check["status"] == "FAIL"])
+        go = self.entry_json("static", "--profile", "go", "--project", str(service), "--base", "main")
+        self.assertTrue(go["can_proceed"])
+
+    def test_same_application_keeps_each_profiles_runner(self):
+        (self.repo / "README.md").write_text("# Task\n")
+        self.run_entry("consent", "no", "--project", str(self.repo), "--selection", "go:compose:.",
+                       "--selection", "python:local:.").check_returncode()
+        for profile, runner in (("go", "compose"), ("python", "local")):
+            report = self.entry_json("doctor", "--profile", profile, "--project", str(self.repo),
+                                     "--base", "main", env={"LINT_RUNNER": ""})
+            self.assertEqual(report["runner"], runner)
 
 
 class DetectTest(RepoTest):

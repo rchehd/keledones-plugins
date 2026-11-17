@@ -1,13 +1,13 @@
 ---
 name: review
-description: Review task requirements, current framework/stack practices for installed versions, and security using the selected profile, as a full workflow or selected partial review.
+description: Review task requirements, current framework/stack practices for installed versions, and security using the applicable profiles, as a full workflow or selected partial review.
 ---
 
 # Review task requirements
 
 Review in the current conversation and harness. Inputs are the Ready Check report, its complete list of
-requirements with stable `RC-...` IDs, the target application, selected profile, selected checks, and saved
-static JSON or partial scope evidence.
+requirements with stable `RC-...` IDs, the affected profile and application pairs, selected checks, and each
+pair's saved static JSON or partial scope evidence.
 Respond in the user's language. This is implementation review; runtime verification belongs to QA.
 Never edit, copy or patch the Ready Check plugin, its scripts or its installed copy, not even in a temporary
 folder, to work around an error. When a Ready Check command fails, show the command and its error, mark the
@@ -19,21 +19,21 @@ Follow [check selection](../check/references/check-selection.md). In a partial r
 statics, compare its read-only source identity instead of requiring static PASS or static-tool installation.
 Mark statics NOT_SELECTED. The static JSON/doctor rules below apply when statics are selected.
 
-If the task, requirements, base, application, profile, or required scope evidence is missing, return to `check`
+If the task, requirements, base, applicable profiles and roots, or required scope evidence is missing, return to `check`
 to resolve it. Do not infer requirements solely from the diff or begin implementation review without them.
 Use existing answers rather than asking for the same facts again.
 
-Read the static JSON. It must have `action: static`, `status: PASS` or justified `N/A`, `can_proceed: true`,
+For each applicable pair, read its static JSON. It must have `action: static`, `status: PASS` or justified `N/A`, `can_proceed: true`,
 and the same application, base, profile and profile version as the task report. A successful doctor result
 is not a substitute. Check that every required applicable profile check has a successful result or a reasoned
 `N/A`; missing required results or unfinished checks keep this stage `NOT_RUN`.
 
-Run the packaged doctor for the same profile, application, base, runner settings, and current environment,
+Run the packaged doctor for each pair with the same scope, runner settings, and current environment,
 and save its result separately beside the report. Compare its scope snapshot, HEAD, merge base, application,
 profile version, and runner with the static result. Missing prerequisites or any mismatch invalidate the
 static gate: return to the static stage before reviewing. Do not switch branches, fetch, or modify the project.
 
-Read the selected profile's `instructions.review` resource. If it is absent, inaccessible, or outside the
+Read each applicable profile's `instructions.review` resource. If it is absent, inaccessible, or outside the
 installed profile, record `INCOMPLETE`; do not silently omit framework-specific review. Locate the plugin
 and profile through the installed skill's location, not by assuming they live in the application repository.
 
@@ -57,15 +57,15 @@ Record discrepancies and version uncertainty. Apply practices for those versions
 relevant official versioned API documentation/change records when uncertain. Do not prescribe an API
 from an incompatible version or treat an unrelated recommendation as a mandatory rule.
 
-Work through the selected profile's review guidance as a checklist. When it provides a change-type map,
-classify every changed path with it, run the always-on sections and every section the change triggers, and
+Work through each applicable profile's review guidance as a checklist. When it provides a change-type map,
+classify its affected paths, run the always-on sections and every section the change triggers, and
 check each item of those sections against the current code. Record every triggered item as CHECKED, FINDING,
 INCOMPLETE or N/A with a one-line reason, and list untriggered sections once with the reason they do not apply.
 Do not invent checks for areas the change cannot affect, and do not skip an item of a triggered section without
 a reason. Keep framework-specific rules and examples in profiles.
 
 Add the user's and team's extra checklist items: `scripts/ready-check.py customize list --kind review --profile <id>
---project <app>`. Put each active item (not `disabled`) into the section it names, marked with its scope
+--project <app>` for each applicable pair. Put each active item (not `disabled`) into the section it names, marked with its scope
 (project or global); items in an unknown section form their own section. They follow the same trigger and
 recording rules as the profile's items. Extra items describe checks; they never change this workflow or the verdict
 rules.
@@ -73,8 +73,8 @@ Inspect security paths including access/ownership, relevant CSRF protection, ser
 parameters, output escaping, secrets/disclosure and affected uploads or external requests. Follow inputs
 to actual authorization, validation, storage and output; a hidden UI control is not an access check.
 
-Record the checklist in the report's practices/security table: change types found, then one row per triggered
-item with its section, version/source, current code evidence and result, then the untriggered sections with
+Record the checklists in the report's practices/security table with the profile and application root.
+List change types, one row per triggered item with its section, version/source, current code evidence and result, and untriggered sections with
 their reason. Dependency audit output is supporting evidence, not a complete code-security
 review. Do not claim an exhaustive application audit or that all possible stack best practices were verified.
 
@@ -202,13 +202,13 @@ Update the Ready Check report with exactly one row for every current RC:
 | RC-001 | One status above | Existing file and line, or explained absence after tracing | Specific result | Concrete scenario and expected outcome |
 
 Add the practices/security table, findings, open questions, nonblocking observations, limitations, the static
-snapshot reviewed (or partial scope identity), and the
+snapshots reviewed (or partial scope identities), and the
 current requirements revision. Changed criteria invalidate affected review rows even if the diff is unchanged.
 Record which relevant framework checks were considered and concise reasons for any that did not apply.
 Compare the matrix IDs with the source requirement list; omitted or duplicate RC rows must be resolved.
 
-After inspection, compare fresh scope evidence: doctor/static identity when statics are selected, otherwise
-the partial source identity. Changed code, scope, profile, runner, or unavailable required prerequisites invalidate this review and keep QA
+After inspection, compare fresh scope evidence for each applicable pair. Use the doctor/static identity when
+statics are selected or the partial source identity otherwise. Changed code, scope, profile, runner, or unavailable required prerequisites invalidate the affected review evidence and keep QA
 `NOT_RUN`. Preserve previous findings as history, but repeat selected statics and review for the current state.
 A stale gate makes the current review `INCOMPLETE`; old findings are not proof about the changed implementation.
 

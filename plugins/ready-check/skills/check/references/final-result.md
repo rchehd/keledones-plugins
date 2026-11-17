@@ -12,18 +12,18 @@ list NOT_SELECTED stages and stop short of overall readiness. Do not require uns
 standalone QA/review. The full-readiness checks below apply only to full validation; an optional partial
 PR draft must state unperformed checks and cannot describe the task as ready.
 
-Compare the current task requirements revision and scope with the review and QA records. Use a fresh
-packaged doctor result to compare snapshot, HEAD, merge base, application, profile/version, and runner
-with the saved static result. The immediately preceding QA-end doctor can be reused if nothing changed
+Compare the current task requirements revision and scope with the review and QA records. For every applicable
+profile and application pair, compare snapshot, HEAD, merge base, application, profile/version, and runner
+from a fresh packaged doctor with the saved static result. The immediately preceding QA-end doctor results can be reused if nothing changed
 after it; otherwise run it again. Current prerequisites must be available. Doctor success does not replace
 a static result, review conclusion, or runtime check.
 
 Check the following before marking the task ready:
 
-- The task, profile, base and exclusions are resolved, and every current RC is `DEFINED`.
-- Static checks have a saved successful gate for the current snapshot, including every mandatory applicable
+- The task, applicable profiles and roots, base and exclusions are resolved, and every current RC is `DEFINED`.
+- Static checks have saved successful gates for all current snapshots, including every mandatory applicable
   result or explained `N/A`; review has a matching complete `PASS` matrix and no requirement gap.
-- Review includes applicable framework/stack practices from the selected profile for actual installed versions and security paths,
+- Review includes applicable framework/stack practices from every applicable profile for actual installed versions and security paths,
   with code evidence and no missing essential coverage or unresolved blocking finding.
 - QA has a matching `PASS` or justified whole-stage `N/A` gate, environment evidence, and current coverage
   for every RC acceptance condition through scenarios or the necessary technical verification.
@@ -33,7 +33,7 @@ Check the following before marking the task ready:
   N/A needs its current technical evidence instead of approval of nonexistent browser scenarios.
 - No current blocking finding or unresolved question remains. Proposed regressions are not silently promoted
   into requirements, and an explicit RC violation is not downgraded to a cosmetic advisory.
-- Required work in the agreed task scope is covered. Changes outside the selected application are visible;
+- Required work in the agreed task scope is covered. Changes outside the union of applicable profiles and roots are visible;
   if they belong to the task and remain unverified, they prevent readiness. Do not silently shrink scope.
 
 If a gate or environment is stale, return to the earliest affected stage. Retain old observations as history
