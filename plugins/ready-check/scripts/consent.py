@@ -6,7 +6,7 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 import settings
 from dependency_support import PLUGIN, asset_id, bundle_path, data_root
-from detect import FALLBACK, runner
+from detect import has_managed_tools, profile_runner_name
 from profile_runtime import profile_runner
 from profile_selection import discover, parse_argument, selection
 from project import toplevel, write_json
@@ -63,7 +63,7 @@ def accept(top, selected):
     available = []
     for item in selected:
         profile, name, application = item["profile"], item["runner"], item["application"]
-        if profile == FALLBACK or runner_available(top / application, profile):
+        if not has_managed_tools(profile) or runner_available(top / application, profile):
             available.append(item)
         else:
             say(f"{RUNNERS[name]} is unavailable for {profile.capitalize()} in {application}. "
@@ -94,7 +94,7 @@ def confirmed_selections(top, args):
 
     if args.profile and args.application is not None:
         application = settings.application_root(top, args.application)
-        name = args.runner or ("local" if args.profile == FALLBACK else runner(application, application))
+        name = args.runner or profile_runner_name(args.profile, application, application)
         return [dict(profile=args.profile, application=args.application, runner=name)]
 
     _, candidates, conflicts = discover(args.project)
@@ -105,7 +105,7 @@ def confirmed_selections(top, args):
         if matching:
             return [dict(selection(matching[0]), runner=args.runner or matching[0]["runner"])]
         application = args.project.resolve()
-        name = args.runner or ("local" if args.profile == FALLBACK else runner(application, application))
+        name = args.runner or profile_runner_name(args.profile, application, application)
         return [dict(profile=args.profile, application=application.relative_to(top).as_posix(), runner=name)]
 
     if args.application is not None:

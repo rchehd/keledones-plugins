@@ -70,6 +70,7 @@ def discover(project):
             conflicts.append(dict(application=application, profiles=php))
         for profile, evidence in matches.items():
             runner = (local.get("runner") or preferences.get("runner") or
+                      manifests[profile].get("default_runner") or
                       ("local" if profile == detect.FALLBACK else detect.runner(directory, directory)))
             if not settings.valid("runner", runner):
                 raise ValueError(f"Invalid runner in project configuration for {application}")

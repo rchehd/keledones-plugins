@@ -44,10 +44,11 @@ class ProfileSelectionTest(RepoTest):
         (child / "compose.yaml").write_text("services: {}\n")
 
         views = {(item["application"], item["profile"]): item for item in self.select()["profiles"]}
-        self.assertEqual(set(views), {(".", "go"), (".", "python"), ("apps/site", "drupal")})
+        self.assertEqual(set(views), {(".", "go"), (".", "python"), ("apps/site", "drupal"), ("apps/site", "devops")})
         self.assertEqual(views[("apps/site", "drupal")]["runner"], "compose")
+        self.assertEqual(views[("apps/site", "devops")]["runner"], "local")
         self.assertEqual(views[("apps/site", "drupal")]["evidence"], ["composer.json require drupal/core"])
-        self.assertEqual(self.select(child)["profiles"], [views[("apps/site", "drupal")]])
+        self.assertEqual(self.select(child)["profiles"], [views[("apps/site", "drupal")], views[("apps/site", "devops")]])
 
     def test_legacy_config_is_one_explicit_selection(self):
         child = self.repo / "apps"
@@ -153,7 +154,7 @@ class DetectTest(RepoTest):
     def test_non_drupal_project(self):
         self.write("package.json", {"name": "x"})
         self.write("compose.yml", "services: {}\n")
-        self.assertEqual((detect.detect(self.repo)["profile"], detect.detect(self.repo)["runner"]), ("generic", "local"))
+        self.assertEqual((detect.detect(self.repo)["profile"], detect.detect(self.repo)["runner"]), ("devops", "local"))
 
     def test_explicit_unknown_profile_is_preserved(self):
         self.write(".ready-check.json", {"profile": "unavailable"})

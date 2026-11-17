@@ -35,7 +35,7 @@ Follow [check selection](../check/references/check-selection.md). In full mode r
 (`action: static`, `can_proceed: true`, `PASS` or justified `N/A`) and a review `PASS` with the same scope
 identity and requirements revision. For partial QA, require only the selected earlier stages and compare the
 partial source identity before and after; unselected stages stay NOT_SELECTED. When statics are selected, run
-the packaged doctor again for each pair and compare its snapshot, HEAD, merge base, application, profile version and runner;
+the packaged doctor again with each pair's saved scope, including any `--path` arguments, and compare its snapshot, HEAD, merge base, application, profile version and runner;
 a mismatch returns to statics and review. Doctor can outlive the default command timeout: wait for it.
 
 Read `instructions.qa` for each profile covering an affected scenario. Missing or out-of-profile required

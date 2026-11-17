@@ -37,6 +37,10 @@ def profile_name(profile):
     return manifest.get("name") if manifest and manifest.get("name") else str(profile).capitalize()
 
 
+def has_managed_tools(profile):
+    return any(item["id"] == profile and item.get("managed_tools", True) for item in profiles())
+
+
 def evidence(directory, manifest, top=None):
     rules = manifest["detection"]
     required = (read_json(directory / "composer.json") or {}).get("require")
@@ -44,7 +48,7 @@ def evidence(directory, manifest, top=None):
 
     core_paths = rules.get("core_paths") or []
     markers = [path for path in rules.get("files") or [] if (directory / path).is_file()]
-    markers.extend(path.name for pattern in rules.get("file_globs", ())
+    markers.extend(path.relative_to(directory).as_posix() for pattern in rules.get("file_globs", ())
                    for path in sorted(directory.glob(pattern)) if path.is_file())
     for path in core_paths:
         marker = directory / path
@@ -111,6 +115,11 @@ def runner(top, application):
     return "local"
 
 
+def profile_runner_name(profile, top, application):
+    manifest = next((item for item in profiles() if item["id"] == profile), {})
+    return manifest.get("default_runner") or ("local" if profile == FALLBACK else runner(top, application))
+
+
 def candidates(top):
     if detected(top):
         return ["."]
@@ -128,9 +137,8 @@ def application_roots(top, manifests):
     roots = {top}
     markers = {"composer.json", ".ready-check.json"}
     for manifest in manifests:
-        for key in ("files", "core_paths"):
+        for key in ("files", "core_paths", "file_globs"):
             markers.update(manifest["detection"].get(key, ()))
-    patterns = {pattern for manifest in manifests for pattern in manifest["detection"].get("file_globs", ())}
 
     try:
         listed = subprocess.run(["git", "-C", str(top), "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
@@ -139,21 +147,22 @@ def application_roots(top, manifests):
         return [top, *(child for child in sorted(top.iterdir()) if child.is_dir() and not child.is_symlink()
                        and child.name not in SKIPPED and not child.name.startswith("."))]
 
-    markers = sorted((Path(marker).parts for marker in markers), key=len, reverse=True)
+    markers = sorted(((Path(marker).parts, "*" in marker) for marker in markers),
+                     key=lambda item: (len(item[0]), item[0]), reverse=True)
     for name in os.fsdecode(listed).split("\0"):
         path = Path(name)
-        if any(part in SKIPPED or part.startswith(".") for part in path.parts[:-1]):
-            continue
-        if any(fnmatchcase(path.name, pattern) for pattern in patterns):
-            directory = top / path.parent
-            if directory.resolve() == directory and (top / path).is_file():
-                roots.add(directory)
-        for parts in markers:
-            if path.parts[-len(parts):] == parts:
-                directory = top.joinpath(*path.parts[:-len(parts)])
-                if directory.resolve() == directory and (directory.joinpath(*parts)).is_file():
+        for parts, glob in markers:
+            suffix = path.parts[-len(parts):]
+            matches = suffix == parts or (glob and len(suffix) == len(parts)
+                                          and all(fnmatchcase(real, expected) for real, expected in zip(suffix, parts)))
+            if not matches:
+                continue
+            ancestors = path.parts[:-len(parts)]
+            if not any(part in SKIPPED or part.startswith(".") for part in ancestors):
+                directory = top.joinpath(*ancestors)
+                if directory.resolve() == directory and (top / path).is_file():
                     roots.add(directory)
-                break
+            break
     return sorted(roots)
 
 
@@ -194,5 +203,5 @@ def detect(top):
         if (manifest.get("detection") or {}).get("frameworks"):
             result["framework"] = framework(application, manifest)
 
-    result["runner"] = result["runner"] or ("local" if result["profile"] == FALLBACK else runner(top, application))
+    result["runner"] = result["runner"] or profile_runner_name(result["profile"], top, application)
     return result

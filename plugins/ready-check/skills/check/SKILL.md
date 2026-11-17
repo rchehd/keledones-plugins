@@ -121,6 +121,10 @@ with the agreed `--base` or `--commits`. Use the available Python 3 interpreter 
 command timeout: run them in the background or with the maximum timeout, wait for completion, and never kill
 or rerun them while running. Follow the current harness's normal command permissions.
 
+When separate profiles cover different paths in the same root, pass each profile's affected paths via
+repeated `--path <application-relative file or directory>` arguments. Keep the same path selection in
+doctor, static and freshness checks. Include shared paths when they need verification by several profiles.
+
 If required prerequisites are unavailable, list the exact missing tools or setup questions for that pair
 and mark it `INCOMPLETE`. Continue other applicable pairs. Do not install dependencies or switch runners
 to conceal a failure. Once a pair's prerequisites are available, run `scripts/ready-check.py static` with

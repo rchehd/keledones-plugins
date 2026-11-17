@@ -145,7 +145,7 @@ def configured_profiles(top):
                 raise ValueError("Invalid profiles list in project configuration")
             return config["profiles"]
         if "profile" in config:
-            from detect import FALLBACK, runner
+            from detect import profile_runner_name
             legacy = shared | stored
             profile = legacy["profile"]
             application = legacy.get("application", ".")
@@ -153,7 +153,7 @@ def configured_profiles(top):
                 application = PurePosixPath(application).as_posix()
             if not valid("profile", profile) or not valid("application", application):
                 raise ValueError("Invalid profile or application in project configuration")
-            selected_runner = legacy.get("runner") or ("local" if profile == FALLBACK else runner(top, top / application))
+            selected_runner = legacy.get("runner") or profile_runner_name(profile, top, top / application)
             if not valid("runner", selected_runner):
                 raise ValueError("Invalid runner in project configuration")
             return [dict(profile=profile, application=application, runner=selected_runner)]

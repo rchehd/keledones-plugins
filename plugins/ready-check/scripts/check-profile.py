@@ -22,6 +22,7 @@ def main():
     scope = parser.add_mutually_exclusive_group(required=True)
     scope.add_argument("--base")
     scope.add_argument("--commits", nargs="+")
+    parser.add_argument("--path", action="append", help="Limit results to a path relative to the application")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--timeout", type=int, default=180)
     args = parser.parse_args()
@@ -62,6 +63,7 @@ def main():
         if output:
             argv += ["--evidence-dir", str(output.parent / "evidence")]
         argv += ["--base", args.base] if args.base else ["--commits", *args.commits]
+        argv.extend(f"--path={path}" for path in args.path or [])
         process = subprocess.run(argv,
                                  cwd=project, capture_output=True, text=True, encoding="utf-8",
                                  env=dict(os.environ, PYTHONIOENCODING="utf-8"))

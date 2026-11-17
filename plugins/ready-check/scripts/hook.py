@@ -13,7 +13,7 @@ import rules
 import settings
 import tasks
 from dependency_support import PLUGIN, asset_id, bundle_path, data_root, installed
-from detect import FALLBACK
+from detect import has_managed_tools
 from fingerprint import last_checked, work_fingerprint
 from profile_selection import argument, discover
 from project import toplevel
@@ -104,7 +104,7 @@ def question(selected, conflicts, values, status, confirmed):
         downloads.append("Playwright and Chromium (about 200 MB, once per machine)")
 
     if not confirmed and values["install"] != "never":
-        checkers = sorted({item["name"] for item in selected if item["profile"] != FALLBACK})
+        checkers = sorted({item["name"] for item in selected if has_managed_tools(item["profile"])})
         if checkers:
             downloads.append(f"the {', '.join(checkers)} checkers if they are not installed yet")
 

@@ -1,13 +1,10 @@
 import json
 import os
 import re
-import sys
 from pathlib import Path, PurePosixPath
 from types import SimpleNamespace
 
 from process_support import find_command
-
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 from yaml_checks import is_yaml, yaml_plan, yaml_run
 
 

@@ -110,7 +110,7 @@ def profiles(root):
             require(type(check.get("required")) is bool, f"Check required flag must be boolean: {child.name}")
             ids.add(check["id"])
         found.append(child.name)
-    missing = (set(PROFILE_TOOLS) | {"generic"}) - set(found)
+    missing = (set(PROFILE_TOOLS) | {"generic", "devops"}) - set(found)
     require(not missing, "A required profile is missing: " + ", ".join(sorted(missing)))
     return found
 
@@ -215,7 +215,7 @@ def entry_points(root):
     for name in ("CONTRIBUTING.md", "templates/improvement.md", "templates/bug.md"):
         resource(root, root, name)
     require(read_json(root / ".mcp.json").get("mcpServers", {}).get("ready-playwright"), "Claude must bundle the ready-playwright MCP server")
-    for name in ("core_runner.py", "core_scope.py", "core_toolchain.py", "core_checks.py", "core_main.py", "core_setup.py"):
+    for name in ("core_runner.py", "core_scope.py", "core_toolchain.py", "core_checks.py", "core_main.py", "core_setup.py", "yaml_checks.py"):
         resource(root, root, "profiles/_shared/core/" + name)
     for name in ("php_runtime.py", "php_toolchain.py", "php_lint.py", "php_provider.py", "php_setup.py"):
         resource(root, root, "profiles/_shared/php/" + name)

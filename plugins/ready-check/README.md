@@ -234,6 +234,9 @@ advisory checks report findings or missing tools without blocking the static gat
 - **[TypeScript](profiles/typescript/static.md)** — profile ID: `typescript`.
   - TypeScript type checking with project configs and references, and ESLint for changed TypeScript files.
     Uses project tools and configs first. The managed fallback includes official typescript-eslint rules.
+- **[DevOps](profiles/devops/static.md)** — profile ID: `devops`.
+  - GitHub Actions with actionlint, Docker Compose, DDEV and Nginx validation, and GitLab YAML syntax.
+    Uses installed tools. GitLab CI Lint adds provider checks for the effective pipeline and its includes.
 
 Project tools and configs take priority over pinned tools installed outside the project. Projects can use
 several profiles in one directory or across application roots. When no specific profile matches, Ready Check
@@ -273,6 +276,7 @@ Project tools and configs (`vendor/bin`, `phpcs.xml`, `phpstan.neon`, `pint.json
 - For Go checks: Go 1.26+ in the runner (the pinned golangci-lint needs it); Node.js 20+ for asset checks.
 - For TypeScript checks: Node.js in the runner. Managed setup requires Node.js 20+ and npm.
 - For YAML checks in Generic: `yamllint` in the selected runner.
+- For DevOps: the tools that match the changed files, as listed in the [DevOps profile](profiles/devops/static.md).
 
 ## Documentation
 

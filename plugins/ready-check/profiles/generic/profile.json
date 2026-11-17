@@ -3,6 +3,7 @@
   "id": "generic",
   "name": "Generic",
   "version": "0.1.0",
+  "managed_tools": false,
   "detection": {},
   "instructions": {
     "requirements": "requirements.md",

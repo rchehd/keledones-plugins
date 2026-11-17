@@ -28,7 +28,7 @@ and the same application, base, profile and profile version as the task report. 
 is not a substitute. Check that every required applicable profile check has a successful result or a reasoned
 `N/A`; missing required results or unfinished checks keep this stage `NOT_RUN`.
 
-Run the packaged doctor for each pair with the same scope, runner settings, and current environment,
+Run the packaged doctor for each pair with the same scope (including any `--path` arguments), runner settings, and current environment,
 and save its result separately beside the report. Compare its scope snapshot, HEAD, merge base, application,
 profile version, and runner with the static result. Missing prerequisites or any mismatch invalidate the
 static gate: return to the static stage before reviewing. Do not switch branches, fetch, or modify the project.

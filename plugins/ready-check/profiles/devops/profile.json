@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "id": "devops",
+  "name": "DevOps",
+  "version": "0.1.0",
+  "priority": 90,
+  "default_runner": "local",
+  "managed_tools": false,
+  "detection": {
+    "files": [".ddev/config.yaml", ".gitlab-ci.yml", ".gitlab-ci.yaml", "nginx.conf"],
+    "file_globs": [
+      ".github/workflows/*.yml", ".github/workflows/*.yaml",
+      ".gitlab/ci/*.yml", ".gitlab/ci/*.yaml",
+      "compose.*yml", "compose.*yaml", "docker-compose.*yml", "docker-compose.*yaml",
+      "nginx/*.conf", "nginx/conf.d/*.conf", "Dockerfile", "Dockerfile.*"
+    ]
+  },
+  "instructions": {
+    "requirements": "requirements.md", "static": "static.md", "review": "review.md", "qa": "qa.md"
+  },
+  "scripts": {"doctor": "scripts/checks.py", "static": "scripts/checks.py", "setup": "scripts/setup.py"},
+  "checks": [
+    {"id": "diff", "required": true},
+    {"id": "actionlint", "required": true},
+    {"id": "compose", "required": true},
+    {"id": "ddev", "required": true},
+    {"id": "ddev-compose-yaml", "required": true},
+    {"id": "nginx", "required": true},
+    {"id": "gitlab-yaml", "required": true}
+  ]
+}
