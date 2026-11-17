@@ -1,5 +1,7 @@
 import json
+import os
 import re
+import subprocess
 from pathlib import Path
 
 PROFILES = Path(__file__).resolve().parent.parent / "profiles"
@@ -34,15 +36,20 @@ def profile_name(profile):
     return manifest.get("name") if manifest and manifest.get("name") else str(profile).capitalize()
 
 
-def matches(directory, manifest):
+def evidence(directory, manifest):
     rules = manifest["detection"]
     required = (read_json(directory / "composer.json") or {}).get("require")
     packages = set(rules.get("composer_packages") or [])
 
-    if isinstance(required, dict) and packages & set(required):
-        return True
+    markers = [path for path in (*(rules.get("files") or []), *(rules.get("core_paths") or []))
+               if (directory / path).is_file()]
+    if isinstance(required, dict):
+        markers.extend(f"composer.json require {package}" for package in sorted(packages & required.keys()))
+    return markers
 
-    return any((directory / path).is_file() for path in (*(rules.get("files") or []), *(rules.get("core_paths") or [])))
+
+def matches(directory, manifest):
+    return bool(evidence(directory, manifest))
 
 
 def detected(directory):
@@ -107,6 +114,34 @@ def candidates(top):
 
     return [child.name for child in children
             if not child.name.startswith(".") and child.name not in SKIPPED and detected(child)]
+
+
+def application_roots(top, manifests):
+    roots = {top}
+    markers = {"composer.json"}
+    for manifest in manifests:
+        for key in ("files", "core_paths"):
+            markers.update(manifest["detection"].get(key, ()))
+
+    try:
+        listed = subprocess.run(["git", "-C", str(top), "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+                                check=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return [top, *(child for child in sorted(top.iterdir()) if child.is_dir() and not child.is_symlink()
+                       and child.name not in SKIPPED and not child.name.startswith("."))]
+
+    markers = sorted((Path(marker).parts for marker in markers), key=len, reverse=True)
+    for name in os.fsdecode(listed).split("\0"):
+        path = Path(name)
+        if any(part in SKIPPED or part.startswith(".") for part in path.parts[:-1]):
+            continue
+        for parts in markers:
+            if path.parts[-len(parts):] == parts:
+                directory = top.joinpath(*path.parts[:-len(parts)])
+                if directory.resolve() == directory and (directory.joinpath(*parts)).is_file():
+                    roots.add(directory)
+                break
+    return sorted(roots)
 
 
 def detect(top):

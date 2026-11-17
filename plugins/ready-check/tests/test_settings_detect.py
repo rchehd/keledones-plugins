@@ -30,6 +30,48 @@ class SettingsTest(RepoTest):
         self.assertFalse(settings.valid("profile", "nope"))
 
 
+class ProfileSelectionTest(RepoTest):
+    def select(self, project=None, code=0):
+        return self.entry_json("profiles", "--project", str(project or self.repo), code=code)
+
+    def test_composes_profiles_at_the_same_and_nested_roots(self):
+        (self.repo / "go.mod").write_text("module example.com/app\n")
+        (self.repo / "pyproject.toml").write_text("[project]\nname = 'app'\n")
+        child = self.repo / "apps" / "site"
+        child.mkdir(parents=True)
+        (child / "composer.json").write_text('{"require":{"drupal/core":"^10"}}')
+        (child / "compose.yaml").write_text("services: {}\n")
+
+        views = {(item["application"], item["profile"]): item for item in self.select()["profiles"]}
+        self.assertEqual(set(views), {(".", "go"), (".", "python"), ("apps/site", "drupal")})
+        self.assertEqual(views[("apps/site", "drupal")]["runner"], "compose")
+        self.assertEqual(views[("apps/site", "drupal")]["evidence"], ["composer.json require drupal/core"])
+        self.assertEqual(self.select(child)["profiles"], [views[("apps/site", "drupal")]])
+
+    def test_legacy_config_is_one_explicit_selection(self):
+        child = self.repo / "apps"
+        child.mkdir()
+        (self.repo / "go.mod").write_text("module example.com/app\n")
+        self.entry_json("config", "set", "profile", "python", "--project", str(self.repo))
+        self.entry_json("config", "set", "application", "apps", "--project", str(self.repo))
+        self.entry_json("config", "set", "runner", "local", "--project", str(self.repo))
+        selected, = self.select()["profiles"]
+        self.assertEqual((selected["profile"], selected["application"], selected["source"]), ("python", "apps", "config"))
+
+    def test_conflicting_php_frameworks_require_explicit_selection(self):
+        (self.repo / "composer.json").write_text('{"require":{"laravel/framework":"^11","drupal/core":"^10"}}')
+        result = self.select(code=2)
+        self.assertEqual(result["conflicts"], [{"application": ".", "profiles": ["drupal", "laravel"]}])
+
+    def test_multi_profile_config_validates_structure(self):
+        item = dict(profile="python", application=".", runner="local")
+        for invalid in ([item, item], [dict(item, application="../project")], [dict(item, runner=["local"])]):
+            self.entry_json("config", "set", "profiles", json.dumps(invalid), "--project", str(self.repo), code=2)
+        selected = [item, dict(item, profile="go")]
+        self.entry_json("config", "set", "profiles", json.dumps(selected), "--project", str(self.repo))
+        self.assertEqual([item["profile"] for item in self.select()["profiles"]], ["python", "go"])
+
+
 class DetectTest(RepoTest):
     def write(self, relative, data):
         path = self.repo / relative

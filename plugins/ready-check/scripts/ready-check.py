@@ -23,11 +23,11 @@ def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description="Ready Check native entry point for Linux, macOS, Windows and WSL.")
-    parser.add_argument("action", choices=("setup", "doctor", "static", "playwright", "mcp", "validate-package", "reports", "config", "tasks", "hook", "mark-checked", "consent", "uninstall", "rules", "a11y", "customize", "summary", "feedback", "reflect-collect"))
+    parser.add_argument("action", choices=("setup", "profiles", "doctor", "static", "playwright", "mcp", "validate-package", "reports", "config", "tasks", "hook", "mark-checked", "consent", "uninstall", "rules", "a11y", "customize", "summary", "feedback", "reflect-collect"))
     args = parser.parse_args(sys.argv[1:2])
     remaining = sys.argv[2:]
     root = Path(__file__).resolve().parent
-    filename = {"doctor": "check-profile.py", "static": "check-profile.py", "config": "settings.py", "mark-checked": "fingerprint.py", "reflect-collect": "reflect_collect.py"}.get(args.action, args.action + ".py")
+    filename = {"doctor": "check-profile.py", "static": "check-profile.py", "config": "settings.py", "profiles": "profile_selection.py", "mark-checked": "fingerprint.py", "reflect-collect": "reflect_collect.py"}.get(args.action, args.action + ".py")
     spec = importlib.util.spec_from_file_location("ready_check_entry", root / filename)
     module = importlib.util.module_from_spec(spec)
 

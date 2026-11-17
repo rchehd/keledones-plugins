@@ -3,7 +3,7 @@ import argparse
 import json
 import re
 import sys
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 sys.dont_write_bytecode = True
 import logs
@@ -15,7 +15,8 @@ CHOICES = {"browser": {"ask", "visible", "background"}, "install": {"ask", "auto
            "runner": {"local", "ddev", "compose"}}
 BOOLEAN = {"captureTasks", "remind"}
 USER_ONLY = {"install"}
-PROJECT_ONLY = {"profile", "runner", "application"}
+SCALAR_SELECTION = {"profile", "runner", "application"}
+PROJECT_ONLY = SCALAR_SELECTION | {"profiles"}
 KEYS = set(DEFAULTS) | PROJECT_ONLY
 
 
@@ -32,7 +33,7 @@ def valid(key, value):
         return isinstance(value, bool)
 
     if key in CHOICES:
-        return value in CHOICES[key]
+        return isinstance(value, str) and value in CHOICES[key]
 
     if key == "profile":
         return (isinstance(value, str) and re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", value) is not None and
@@ -43,7 +44,24 @@ def valid(key, value):
 
     if key == "application":
         path = PurePosixPath(value) if isinstance(value, str) else None
-        return path is not None and not path.is_absolute() and ".." not in path.parts and "\\" not in value
+        return (path is not None and bool(value) and path.as_posix() == value and not path.is_absolute()
+                and not PureWindowsPath(value).drive and ".." not in path.parts and "\\" not in value
+                and all(character.isprintable() for character in value))
+
+    if key == "profiles":
+        if not isinstance(value, list) or not value:
+            return False
+        keys = set()
+        for item in value:
+            if not isinstance(item, dict) or item.keys() != SCALAR_SELECTION:
+                return False
+            if not all(valid(field, entry) for field, entry in item.items()):
+                return False
+            identity = item["application"], item["profile"]
+            if identity in keys:
+                return False
+            keys.add(identity)
+        return True
 
     return False
 
@@ -93,6 +111,11 @@ def store(key, value, top=None):
     project = bool(top) and key not in USER_ONLY
     path = project_path(top) if project else user_path()
     data = read(path)
+    if key == "profiles":
+        for field in SCALAR_SELECTION:
+            data.pop(field, None)
+    elif key in SCALAR_SELECTION and "profiles" in data:
+        raise ValueError("Replace the profiles list to change a configured selection")
     data[key] = value
     write_json(path, data, Path(top) if project else data_root())
 
@@ -100,17 +123,71 @@ def store(key, value, top=None):
         ensure_excluded(Path(top))
 
 
-def project_config(application):
+def shared_config(application):
     application = Path(application)
     path = application / ".ready-check.json"
-    config = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    config = json.loads(path.read_text(encoding="utf-8-sig")) if path.is_file() else {}
 
     if not isinstance(config, dict):
         raise ValueError("Project configuration must be an object")
 
+    return config
+
+
+def configured_profiles(top):
+    shared = shared_config(top)
+    stored = read(project_path(top))
+    for config in (stored, shared):
+        if "profiles" in config:
+            if not valid("profiles", config["profiles"]):
+                raise ValueError("Invalid profiles list in project configuration")
+            return config["profiles"]
+        if "profile" in config:
+            from detect import FALLBACK, runner
+            legacy = shared | stored
+            profile = legacy["profile"]
+            application = legacy.get("application", ".")
+            if isinstance(application, str):
+                application = PurePosixPath(application).as_posix()
+            if not valid("profile", profile) or not valid("application", application):
+                raise ValueError("Invalid profile or application in project configuration")
+            selected_runner = legacy.get("runner") or ("local" if profile == FALLBACK else runner(top, top / application))
+            if not valid("runner", selected_runner):
+                raise ValueError("Invalid runner in project configuration")
+            return [dict(profile=profile, application=application, runner=selected_runner)]
+    return []
+
+
+def application_root(top, application):
+    if not valid("application", application):
+        raise ValueError(f"Invalid application root: {application!r}")
+    path = (top / application).resolve()
+    if not path.is_relative_to(top) or not path.is_dir() or path != top / application:
+        raise ValueError(f"Application must be a directory inside the project: {application}")
+    return path
+
+
+def project_config(application, profile=None):
+    application = Path(application).resolve()
+    config = shared_config(application)
     top = toplevel(application)
-    stored = read(project_path(top)) if top else {}
-    config.update({key: stored[key] for key in ("profile", "runner") if valid(key, stored.get(key))})
+    selections = configured_profiles(top or application)
+
+    if selections:
+        relative = application.relative_to(top or application).as_posix()
+        matching = [item for item in selections if item["application"] == relative
+                    and (profile is None or item["profile"] == profile)]
+        if profile is not None and not matching:
+            raise ValueError("Selected profile and application conflict with project configuration")
+        if len(matching) == 1:
+            config.update(matching[0])
+    elif top:
+        stored = read(project_path(top))
+        if valid("runner", stored.get("runner")):
+            config["runner"] = stored["runner"]
+
+    if profile is not None and config.get("profile", profile) != profile:
+        raise ValueError("Selected profile conflicts with project configuration")
     return config
 
 
@@ -144,7 +221,7 @@ def main():
         if args.operation == "set":
             if args.key is None or args.value is None:
                 raise ValueError("config set needs a key and a value")
-            store(args.key, parse(args.value), top)
+            store(args.key, json.loads(args.value) if args.key == "profiles" else parse(args.value), top)
 
         values = load(top)
         result.update(status="PASS", settings={args.key: values.get(args.key)} if args.key else values)
