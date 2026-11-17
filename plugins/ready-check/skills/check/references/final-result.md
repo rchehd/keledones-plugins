@@ -57,9 +57,11 @@ it does not include publication or an assurance about untested environments.
 After the verdict, ask once in the user's language whether to prepare the PR title and description. Write them
 only after a yes (or when the user already asked for them); on no, finish without a draft. Then produce a concise
 title describing the resulting change and a summary explaining what changed and why, using the template below.
-Use only supported claims from the current diff. In `Testing`, list checks and flows actually completed,
-their outcomes, and relevant roles/environment. Distinguish successful code review from runtime proof.
-Do not say “all tests pass” when checks were skipped, advisory checks failed, or only a subset ran.
+Use only supported claims from the current diff and report. In `How to verify (QA)`, give the relevant
+environment, role or test data, concise actions and the expected observable result. Link to a shareable
+QA plan when it already has the steps. For a technical change, give the applicable command or observable
+behavior. If no QA scenario applies, give the reason. Record completed runs and their evidence in the Ready
+Check report. Keep planned steps clearly identified when the verification is still pending.
 
 In `Limitations`, include meaningful uncovered areas, advisory failures, and relevant scope exclusions;
 use `None` only when there are none to disclose. Link internal evidence in the local report, keeping tokens,
@@ -72,8 +74,10 @@ PR title: <Concise English title>
 ## Summary
 - <Delivered behavior and reason>
 
-## Testing
-- <Completed check or observed flow, result, and relevant context>
+## How to verify (QA)
+- **Setup** <Environment, role and fixture when relevant>
+- **Steps** <Actions or link to the verification plan>
+- **Expected result** <Observable outcome>
 
 ## Limitations
 - <Material limitation, or None>

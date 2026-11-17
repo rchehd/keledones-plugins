@@ -192,9 +192,10 @@ PR title: [Supported concise title, or NOT_RUN]
 
 [Actual delivered changes and reason, or NOT_RUN]
 
-### Testing
+### How to verify (QA)
 
-[Only completed checks/flows and their results, or NOT_RUN]
+[Environment, role and preconditions when relevant, brief steps or a shareable QA plan link, and expected
+result. Mark pending verification when applicable. If no scenario applies, give the reason.]
 
 ### Limitations
 

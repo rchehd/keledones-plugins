@@ -208,8 +208,8 @@ Follow [final result guidance](references/final-result.md). Check complete RC co
 unresolved questions, and uncovered required scope before deciding readiness. `READY TO PUSH` describes
 the fully checked state; it does not authorize a push. A successful partial run produces PARTIAL CHECK COMPLETE
 and explicit unselected stages, never readiness. Return the report's absolute link, then ask whether to prepare the
-PR title and description; on a yes write them in English from the template, using only the actual diff and
-completed checks and keeping material limitations.
+PR title and description; on a yes write them in English from the template. Use the actual diff and report
+for the summary, give reproducible QA steps and expected results, and keep material limitations visible.
 
 Whenever a run reaches a final result (any verdict), record it with `scripts/ready-check.py mark-checked --project <app>`
 so the end-of-turn reminder stays quiet until the code changes again.
