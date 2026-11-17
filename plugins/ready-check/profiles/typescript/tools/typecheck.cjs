@@ -5,6 +5,7 @@ const diagnostics = [];
 const files = new Set();
 const outputs = new Map();
 const directories = new Set();
+let typeCheckingDisabled = false;
 
 const canonical = file => {
   const normalized = ts.sys.resolvePath(file);
@@ -40,9 +41,11 @@ const host = ts.createSolutionBuilderHost(system, undefined, item => {
   });
 });
 host.afterProgramEmitAndDiagnostics = builder => {
-  for (const file of builder.getProgram().getSourceFiles()) {
+  const program = builder.getProgram();
+  if (program.getCompilerOptions().noCheck) typeCheckingDisabled = true;
+  for (const file of program.getSourceFiles()) {
     files.add(path.resolve(file.fileName));
   }
 };
 const status = ts.createSolutionBuilder(host, [config], { force: true }).build();
-process.stdout.write(JSON.stringify({ status, diagnostics, files: [...files] }));
+process.stdout.write(JSON.stringify({ status, diagnostics, files: [...files], typeCheckingDisabled }));

@@ -87,12 +87,14 @@ def typecheck_run(lint):
     for target in lint.selected["targets"]:
         config = lint.runner.path(target["config"])
         expected.update(file for file in target["inputs"] if ts_source(Path(file)))
-        code, out, err = lint.call(["node", helper, target["compiler"], config])
+        code, out, _ = lint.call(["node", helper, target["compiler"], config])
         if code:
             lint.incomplete.append(f"TypeScript compiler failed to run for {target['config']}; see log")
             continue
         result = json.loads(out)
         compiled.update(lint.relative(file) for file in result["files"])
+        if result["typeCheckingDisabled"]:
+            lint.incomplete.append(f"TypeScript type checking is disabled in the project graph for {target['config']}")
         if result["status"] and not result["diagnostics"]:
             lint.incomplete.append(f"TypeScript returned no diagnostic for {target['config']}; see log")
         for item in result["diagnostics"]:
