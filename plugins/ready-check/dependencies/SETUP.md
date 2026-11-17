@@ -20,7 +20,7 @@ when something is missing, what will be downloaded. Downloads are agreed once pe
 - No: `consent no` sets `install` to `never`. Nothing is downloaded and the question is not repeated; review,
   reminders and task records keep working, and a check offers the install once when it needs a missing tool.
 - A stopped DDEV/Compose runner is not started: the browser installs now, the profile checkers at the first
-  static check. An unsupported stack gets only the browser.
+  static check. The Generic profile uses the current runtimes and has no separate tool bundle.
 - With `install` = `auto`, later updates (for example after a plugin update) run in the chat without a question.
 
 Manual paths stay available through the `setup` skill: `/ready:setup` (Claude Code), `/setup` (Cursor),

@@ -189,7 +189,7 @@ and a hash of its full name, so similarly named branches keep separate reports.
 
 ## Supported profiles
 
-Each profile supplies detection rules, setup, static checks, and framework-specific review/QA guidance.
+Each profile supplies detection rules, setup, static checks, and review/QA guidance for its scope.
 Shared skills load these rules from the selected profile. Required checks run when their inputs apply;
 advisory checks report findings or missing tools without blocking the static gate.
 
@@ -228,10 +228,15 @@ advisory checks report findings or missing tools without blocking the static gat
     gosec, govet, ineffassign, unused), `go build`, debug leftovers (`spew.Dump`, `"DEBUG` prints,
     `println`), diff.
   - Advisory: **govulncheck**, jscpd.
+- **[Generic](profiles/generic/static.md)** — profile ID: `generic`; any language or a mixed-language repository.
+  - Git diff checks, syntax checks for Python, plain JSON and POSIX sh/Bash, and project-specific lint and test
+    commands recorded by the check skill. Profile setup uses the existing tools on the selected host.
 
 Project tools/configs take priority over managed defaults; managed tools are pinned and live outside the
 project. A framework profile wins over a generic language match (a Laravel app with a `requirements.txt` is
-Laravel). New profiles belong under `profiles/<id>/` and reuse `profiles/_shared/` ([adding a
+Laravel). When no specific profile matches an unambiguous application, Ready Check selects `generic`.
+Select `generic` explicitly to check a mixed-language repository as a whole. New profiles belong under
+`profiles/<id>/` and reuse `profiles/_shared/` ([adding a
 profile](dependencies/SETUP.md#adding-another-profile)).
 
 ## Configuration
@@ -243,7 +248,7 @@ can commit an optional `.ready-check.json` in the application root instead:
 {"profile": "drupal", "runner": "ddev"}
 ```
 
-`profile` is one of `drupal`, `laravel`, `symfony`, `python`, `go`. `runner` can be `local`, `ddev` or `compose`;
+`profile` is one of `drupal`, `laravel`, `symfony`, `python`, `go`, `generic`. `runner` can be `local`, `ddev` or `compose`;
 without it the runner is detected (`LINT_SERVICE` and `LINT_CONTAINER_ROOT` pick the Compose service and root).
 Project tools and configs (`vendor/bin`, `phpcs.xml`, `phpstan.neon`, `pint.json`, `.php-cs-fixer.dist.php`,
 `[tool.ruff]`, `.golangci.yml`, ESLint/Stylelint configs) take priority over the managed ones.

@@ -13,7 +13,7 @@ import rules
 import settings
 import tasks
 from dependency_support import PLUGIN, asset_id, bundle_path, data_root, installed
-from detect import detect, profile_name
+from detect import FALLBACK, detect, profile_name
 from fingerprint import last_checked, work_fingerprint
 from project import toplevel
 
@@ -111,7 +111,7 @@ def question(found, values, status, confirmed):
     if status != "ready" and values["install"] != "never":
         downloads.append("Playwright and Chromium (about 200 MB, once per machine)")
 
-    if not confirmed and found["profile"] and values["install"] != "never":
+    if not confirmed and found["profile"] and found["profile"] != FALLBACK and values["install"] != "never":
         downloads.append(f"the {found['profile'].capitalize()} checkers if they are not installed yet")
 
     if confirmed and values["install"] == "auto":

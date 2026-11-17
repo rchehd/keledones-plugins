@@ -109,7 +109,8 @@ def profiles(root):
             require(type(check.get("required")) is bool, f"Check required flag must be boolean: {child.name}")
             ids.add(check["id"])
         found.append(child.name)
-    require(set(PROFILE_TOOLS) <= set(found), "A required profile is missing: " + ", ".join(sorted(set(PROFILE_TOOLS) - set(found))))
+    missing = (set(PROFILE_TOOLS) | {"generic"}) - set(found)
+    require(not missing, "A required profile is missing: " + ", ".join(sorted(missing)))
     return found
 
 

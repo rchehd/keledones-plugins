@@ -13,7 +13,7 @@ class Runner:
     def __init__(self, project, config, defaults):
         self.project = project
         self.compose = next((name for name in COMPOSE_FILES if (project / name).is_file()), "")
-        automatic = "ddev" if (project / ".ddev/config.yaml").is_file() else "compose" if self.compose else "local"
+        automatic = defaults.get("name") or ("ddev" if (project / ".ddev/config.yaml").is_file() else "compose" if self.compose else "local")
         self.name = os.environ.get("LINT_RUNNER") or config.get("runner") or automatic
 
         if self.name not in {"local", "ddev", "compose"}:

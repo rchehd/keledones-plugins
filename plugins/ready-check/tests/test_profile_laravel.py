@@ -77,9 +77,9 @@ class DetectionTest(unittest.TestCase):
         self.assertTrue(found["ambiguous"])
         self.assertIsNone(found["profile"])
 
-    def test_unrelated_project_has_no_profile(self):
+    def test_unrelated_project_uses_the_generic_profile(self):
         self.write("package.json", {"name": "x"})
-        self.assertIsNone(detect.detect(self.root)["profile"])
+        self.assertEqual(detect.detect(self.root)["profile"], "generic")
 
 
 class SpecTest(unittest.TestCase):

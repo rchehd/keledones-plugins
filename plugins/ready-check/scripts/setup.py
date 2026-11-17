@@ -12,6 +12,7 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 from process_support import execute, find_command, node_entry
 from dependency_support import PLUGIN, asset_files, bundle_path, data_root, installed, outside_repositories, release_lock, take_lock, write_marker
+from detect import detect
 from managed_storage import prepare_storage
 from settings import project_config
 
@@ -138,7 +139,7 @@ def install(project, profile, components, progress=lambda message: None, browser
     result = dict(schema_version=1, action="setup", status="INCOMPLETE", data_directory=str(root), components=[])
 
     if "profile" in components and profile:
-        progress(f"Installing {profile.capitalize()} checkers…")
+        progress(f"Preparing {profile.capitalize()} checks…")
 
         try:
             result["components"].append(profile_setup(project, root, profile, runner_data_dir, dry_run, timeout))
@@ -164,7 +165,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="Install Ready Check browser tools and framework-profile checkers outside the project.")
     parser.add_argument("--project", type=Path, required=True)
-    parser.add_argument("--profile", default="drupal")
+    parser.add_argument("--profile")
     parser.add_argument("--component", choices=("all", "browser", "profile"), default="all")
     parser.add_argument("--browser", choices=("chromium", "firefox", "webkit"), default="chromium")
     parser.add_argument("--data-dir", type=Path, default=data_root())
@@ -175,7 +176,19 @@ def main():
     components = ("browser", "profile") if args.component == "all" else (args.component,)
 
     try:
-        result = install(args.project, args.profile, components, browser=args.browser, root=args.data_dir,
+        project, profile = args.project, args.profile
+        if not profile and "profile" in components:
+            profile = project_config(project).get("profile")
+            if not profile:
+                found = detect(project)
+                if not found["profile"]:
+                    raise ValueError("Several applications match; pass --project and --profile for the intended application")
+                application = (project / found["application"]).resolve()
+                if not application.is_relative_to(project.resolve()):
+                    raise ValueError("The detected application must be inside the selected project")
+                project, profile = application, found["profile"]
+
+        result = install(project, profile, components, browser=args.browser, root=args.data_dir,
                          runner_data_dir=args.runner_data_dir, dry_run=args.dry_run, timeout=args.timeout)
     except (OSError, ValueError) as error:
         result = dict(schema_version=1, action="setup", status="INCOMPLETE", components=[], reason=str(error))

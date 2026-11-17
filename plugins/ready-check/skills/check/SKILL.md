@@ -54,12 +54,13 @@ is an unresolved setup issue; only `schema_version: 1` is supported. Do not sile
 the config.
 
 Without explicit configuration, discover the packaged profiles and compare the application with their
-detection rules. For a candidate profile, read its requirements guidance through the relative
+detection rules. Use `generic` as the fallback when the application is clear and no specific profile matches.
+Use it for a mixed-language project when the user selects it. For a candidate profile, read its requirements guidance through the relative
 path in `instructions.requirements`. If detection conflicts with the selected profile or identifies multiple
 applications, ask the user to resolve the application root and profile before proceeding with dependent work.
 
-If the framework is unsupported, record `INCOMPLETE` and the reason. Preserve any requirements already
-collected, but do not present the task as ready or run an incompatible profile's checks.
+When using `generic`, identify the languages and tools affected by the task. Clarify required checks whose
+scope or prerequisites remain unresolved.
 
 ## 3. Establish the diff scope
 
@@ -111,7 +112,7 @@ The report's TODO section is the persisted copy for resuming; keep both in sync.
 Run this stage only when selected and the task requirements, acceptance conditions, application root, profile, and base are sufficiently
 specified. Save the report using step 9 first. Read the profile's `instructions.static` file, then run the
 shared Python entry point `scripts/ready-check.py doctor` with `--profile`, `--project`, and `--base` or `--commits` from the resolved context. Use the available Python 3 interpreter (`python3` on Unix,
-`py -3` or `python` on native Windows); Bash and WSL are not prerequisites. Save its JSON
+`py -3` or `python` on native Windows). A shell syntax check needs the script's interpreter. Save the JSON
 with `--output` into the reports directory (step 9). Doctor and static can outlive the harness's default
 command timeout: run them in the background or with the maximum timeout, wait for completion, and never kill
 or rerun them while running. Follow the current harness's normal command permissions.
@@ -131,14 +132,16 @@ Codex). A successful install is not a static pass. A broken project tool or conf
 setup never changes project dependencies.
 
 Use the static JSON's check results, findings, reasons, logs, scope, and snapshot to update the report.
+For `generic`, also follow the project-command guidance in its `instructions.static`. Include required
+project commands in the static gate and record their individual outcomes before proceeding to review or QA.
 `FAIL` blocks the task and leaves the static TODO open. `INCOMPLETE` means verification could not finish.
 Ask about any ambiguity affecting setup or a finding. Keep later selected review and QA `NOT_RUN` until the static
 result has `can_proceed: true`; do not waive required checks or treat an absent result as success.
 
 After a fix (by the user or an approved agent fix), repeat the doctor and static checks for the current
 diff, refresh the evidence, and retain earlier findings as resolved history where useful. Do not reuse a
-green result after code or configuration changes. Static checks report only findings on task lines and no
-longer catch breakage in unchanged callers; review traces them. Explicitly retain uncovered changes outside the selected application.
+green result after code or configuration changes. Line-level checks use the task lines and syntax checks use
+the relevant changed files. Review traces breakage in unchanged callers. Explicitly retain uncovered changes outside the selected application.
 
 ## 6. Review requirements, framework/stack practices and security
 

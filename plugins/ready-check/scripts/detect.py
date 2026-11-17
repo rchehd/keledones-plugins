@@ -6,6 +6,7 @@ PROFILES = Path(__file__).resolve().parent.parent / "profiles"
 COMPOSE = ("docker-compose.dev.yml", "docker-compose.yml", "docker-compose.yaml", "compose.yaml", "compose.yml")
 SKIPPED = {"vendor", "node_modules"}
 DEFAULT_PRIORITY = 50
+FALLBACK = "generic"
 
 
 def read_json(path):
@@ -121,11 +122,19 @@ def detect(top):
     config = read_json(top / ".ready-check.json")
 
     if config is not None:
-        result.update(source="config", ambiguous=False)
+        result["source"] = "config"
 
         for key in ("profile", "runner", "application"):
             if isinstance(config.get(key), str) and config[key]:
                 result[key] = config[key]
+                if key in {"profile", "application"}:
+                    result["ambiguous"] = False
+
+        if config.get("application") and not config.get("profile"):
+            result["profile"] = detected(top / result["application"])
+
+    if not result["profile"] and not result["ambiguous"]:
+        result["profile"] = FALLBACK
 
     application = top / result["application"]
 
@@ -137,5 +146,5 @@ def detect(top):
         if (manifest.get("detection") or {}).get("frameworks"):
             result["framework"] = framework(application, manifest)
 
-    result["runner"] = result["runner"] or runner(top, application)
+    result["runner"] = result["runner"] or ("local" if result["profile"] == FALLBACK else runner(top, application))
     return result

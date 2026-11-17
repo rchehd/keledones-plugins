@@ -54,7 +54,18 @@ class DetectTest(RepoTest):
 
     def test_non_drupal_project(self):
         self.write("package.json", {"name": "x"})
-        self.assertEqual((detect.detect(self.repo)["profile"], detect.detect(self.repo)["runner"]), (None, "local"))
+        self.write("compose.yml", "services: {}\n")
+        self.assertEqual((detect.detect(self.repo)["profile"], detect.detect(self.repo)["runner"]), ("generic", "local"))
+
+    def test_explicit_unknown_profile_is_preserved(self):
+        self.write(".ready-check.json", {"profile": "unavailable"})
+        self.assertEqual(detect.detect(self.repo)["profile"], "unavailable")
+
+    def test_generic_can_be_selected_for_a_mixed_project(self):
+        self.write("go.mod", "module example.com/tool\n")
+        self.write("pyproject.toml", '[project]\nname = "tool"\n')
+        self.write(".ready-check.json", {"profile": "generic"})
+        self.assertEqual(detect.detect(self.repo)["profile"], "generic")
 
 
 if __name__ == "__main__":
