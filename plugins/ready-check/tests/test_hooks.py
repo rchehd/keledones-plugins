@@ -60,6 +60,23 @@ class HookTest(RepoTest):
         self.assertIn("Ready Check detected: Go, local.", text)
         self.assertNotIn("PHP", text)
 
+    def test_first_run_confirms_all_detected_profiles_in_one_prompt(self):
+        (self.repo / "go.mod").write_text("module example.com/app\n")
+        (self.repo / "pyproject.toml").write_text("[project]\nname = 'app'\n")
+        payload = {"cwd": str(self.repo), "session_id": "multi"}
+        text = self.hook("session-start", "claude", payload)["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("Ready Check detected: Go, local; Python, local.", text)
+        self.assertIn("--selection go:local:. --selection python:local:.", text)
+        self.assertIn("go.mod", text)
+        self.assertIn("pyproject.toml", text)
+
+        self.run_entry("consent", "no", "--project", str(self.repo), "--selection", "go:local:.",
+                       "--selection", "python:local:.").check_returncode()
+        selected = self.entry_json("profiles", "--project", str(self.repo))["profiles"]
+        self.assertEqual({item["profile"] for item in selected}, {"go", "python"})
+        text = self.hook("session-start", "claude", payload)["hookSpecificOutput"]["additionalContext"]
+        self.assertNotIn("consent yes", text)
+
     def test_stop_reminds_once_per_change_and_respects_checks(self):
         payload = {"cwd": str(self.repo), "session_id": "s"}
         self.hook("session-start", "claude", payload)

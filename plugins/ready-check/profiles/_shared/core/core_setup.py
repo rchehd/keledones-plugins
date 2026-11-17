@@ -23,7 +23,7 @@ def file_digest(runner, path):
 
 def setup(project, host_root, override, dry_run, timeout, spec, ecosystems=()):
     source = spec.bundle_source
-    runner = Runner(project, project_config(project), spec.runner)
+    runner = Runner(project, project_config(project, spec.id), spec.runner)
     root = runner_data_root(runner, override or os.environ.get("READY_CHECK_RUNNER_DATA_DIR")
                             or (str(host_root) if runner.name == "local" else None))
     path_type = Path if runner.name == "local" else PurePosixPath

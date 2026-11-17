@@ -88,7 +88,7 @@ def main(spec):
         core = spec.core_prefixes
         scope = snapshot(project, spec, args.base, args.commits)
         result["scope"] = scope
-        runner = Runner(project, project_config(project), spec.runner)
+        runner = Runner(project, project_config(project, spec.id), spec.runner)
         result["runner"] = runner.name
         files = lint_files(scope["files"], core, spec)
         scope["excluded_files"] = sorted(set(scope["files"]) - set(files))
@@ -139,7 +139,7 @@ def main(spec):
             status = "MISSING" if "MISSING" in required else "READY"
         else:
             status = "FAIL" if "FAIL" in required else "INCOMPLETE" if "INCOMPLETE" in required else "PASS" if "PASS" in required else "N/A"
-        fresh_runner = Runner(project, project_config(project), spec.runner)
+        fresh_runner = Runner(project, project_config(project, spec.id), spec.runner)
         current_plans = {}
 
         for check in result["checks"]:

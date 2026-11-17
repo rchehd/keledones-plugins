@@ -48,28 +48,30 @@ def project_items(top, reports, custom):
     return items
 
 
-def runner_item(top):
-    stored = settings.read(settings.project_path(top))
-    profile, application = stored.get("profile"), top / stored.get("application", ".")
+def runner_items(top):
+    seen = set()
+    for item in settings.configured_profiles(top):
+        if item["runner"] == "local":
+            continue
+        application = item["application"]
+        try:
+            directory = settings.application_root(top, application)
+            runner = profile_runner(directory, item["profile"])[0]
+            from core_toolchain import runner_data_root
 
-    if stored.get("runner") in {None, "local"} or not profile:
-        return None
-
-    try:
-        runner = profile_runner(application, profile)[0]
-        from core_toolchain import runner_data_root
-
-        if not runner.available():
-            return dict(path=f"{runner.name}:(not running)", kind="runner-data", action="keep")
-
-        root = runner_data_root(runner)
-
-        if runner.exists(root + "/" + MARKER):
-            return dict(path=f"{runner.name}:{root}", kind="runner-data", action="remove", runner=runner)
-    except (ImportError, OSError, ValueError):
-        return None
-
-    return None
+            identity = directory, runner.name, runner.service
+            if runner.name == "local" or identity in seen:
+                continue
+            seen.add(identity)
+            if not runner.available():
+                yield dict(path=f"{runner.name}:(not running)", application=application, kind="runner-data", action="keep")
+                continue
+            root = runner_data_root(runner)
+            if runner.exists(root + "/" + MARKER):
+                yield dict(path=f"{runner.name}:{root}", application=application,
+                           kind="runner-data", action="remove", runner=runner)
+        except (ImportError, OSError, ValueError):
+            continue
 
 
 def data_items(custom):
@@ -93,8 +95,9 @@ def plan(project, reports, data, custom=False):
     items = project_items(top, reports, custom) if top else []
 
     if data:
-        extra = runner_item(top) if top else None
-        items += ([extra] if extra else []) + data_items(custom)
+        if top:
+            items.extend(runner_items(top))
+        items.extend(data_items(custom))
 
     return items
 

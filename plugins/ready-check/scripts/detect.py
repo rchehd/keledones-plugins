@@ -36,13 +36,18 @@ def profile_name(profile):
     return manifest.get("name") if manifest and manifest.get("name") else str(profile).capitalize()
 
 
-def evidence(directory, manifest):
+def evidence(directory, manifest, top=None):
     rules = manifest["detection"]
     required = (read_json(directory / "composer.json") or {}).get("require")
     packages = set(rules.get("composer_packages") or [])
 
-    markers = [path for path in (*(rules.get("files") or []), *(rules.get("core_paths") or []))
-               if (directory / path).is_file()]
+    core_paths = rules.get("core_paths") or []
+    markers = [path for path in rules.get("files") or [] if (directory / path).is_file()]
+    for path in core_paths:
+        marker = directory / path
+        if marker.is_file() and not any(marker.relative_to(parent).as_posix() in core_paths
+                                        for parent in directory.parents if top and parent.is_relative_to(top)):
+            markers.append(path)
     if isinstance(required, dict):
         markers.extend(f"composer.json require {package}" for package in sorted(packages & required.keys()))
     return markers
@@ -118,7 +123,7 @@ def candidates(top):
 
 def application_roots(top, manifests):
     roots = {top}
-    markers = {"composer.json"}
+    markers = {"composer.json", ".ready-check.json"}
     for manifest in manifests:
         for key in ("files", "core_paths"):
             markers.update(manifest["detection"].get(key, ()))

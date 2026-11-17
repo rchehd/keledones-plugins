@@ -94,6 +94,7 @@ def shell_run(lint):
 
 
 SPEC = SimpleNamespace(
+    id="generic",
     directory=Path(__file__).resolve().parent.parent,
     providers=(),
     core_configs=(),

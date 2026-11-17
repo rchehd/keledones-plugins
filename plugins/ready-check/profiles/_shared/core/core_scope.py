@@ -97,7 +97,7 @@ def snapshot(project, spec, base=None, commits=None):
     if not part["changed_files"]:
         raise ValueError("No changes found; clarify the application and scope")
     digest = hashlib.sha256(part["seed"])
-    digest.update(json.dumps(project_config(project), sort_keys=True).encode())
+    digest.update(json.dumps(project_config(project, spec.id), sort_keys=True).encode())
     digest.update(spec.directory.joinpath("profile.json").read_bytes())
 
     for folder in (spec.directory / "scripts", CORE, *(p.directory for p in spec.providers)):

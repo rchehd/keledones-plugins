@@ -190,7 +190,7 @@ and a hash of its full name, so similarly named branches keep separate reports.
 ## Supported profiles
 
 Each profile supplies detection rules, setup, static checks, and review/QA guidance for its scope.
-Shared skills load these rules from the selected profile. Required checks run when their inputs apply;
+Shared skills load these rules from each applicable profile. Required checks run when their inputs apply;
 advisory checks report findings or missing tools without blocking the static gate.
 
 - **[Drupal 10/11](profiles/drupal/static.md)** — profile ID: `drupal`.
@@ -232,24 +232,30 @@ advisory checks report findings or missing tools without blocking the static gat
   - Git diff checks, syntax checks for Python, plain JSON and POSIX sh/Bash, and project-specific lint and test
     commands recorded by the check skill. Profile setup uses the existing tools on the selected host.
 
-Project tools/configs take priority over managed defaults; managed tools are pinned and live outside the
-project. A framework profile wins over a generic language match (a Laravel app with a `requirements.txt` is
-Laravel). When no specific profile matches an unambiguous application, Ready Check selects `generic`.
-Select `generic` explicitly to check a mixed-language repository as a whole. New profiles belong under
+Project tools and configs take priority over pinned tools installed outside the project. Projects can use
+several profiles in one directory or across application roots. When no specific profile matches, Ready Check
+uses `generic`. You can also select `generic` explicitly. New profiles belong under
 `profiles/<id>/` and reuse `profiles/_shared/` ([adding a
 profile](dependencies/SETUP.md#adding-another-profile)).
 
 ## Configuration
 
-The project type you confirm at first run is stored in `ai/ready-check/settings.json` (git-excluded). A team
-can commit an optional `.ready-check.json` in the application root instead:
+The profiles you confirm at first run are stored in `ai/ready-check/settings.json` (git-excluded) and take
+precedence over the repository's optional `.ready-check.json`. To share selections with your team, use:
 
 ```json
-{"profile": "drupal", "runner": "ddev"}
+{
+  "profiles": [
+    {"profile": "drupal", "runner": "ddev", "application": "."},
+    {"profile": "python", "runner": "local", "application": "tools"}
+  ]
+}
 ```
 
-`profile` is one of `drupal`, `laravel`, `symfony`, `python`, `go`, `generic`. `runner` can be `local`, `ddev` or `compose`;
-without it the runner is detected (`LINT_SERVICE` and `LINT_CONTAINER_ROOT` pick the Compose service and root).
+`application` is relative to the repository root. `runner` can be `local`, `ddev` or `compose`.
+Existing scalar `profile`, `runner` and `application` settings still define one selection. When the legacy
+runner is omitted, it is detected from project markers. `LINT_SERVICE` and `LINT_CONTAINER_ROOT` pick the
+Compose service and root. The `ready-check.py profiles --project <repo>` command shows selections and evidence.
 Project tools and configs (`vendor/bin`, `phpcs.xml`, `phpstan.neon`, `pint.json`, `.php-cs-fixer.dist.php`,
 `[tool.ruff]`, `.golangci.yml`, ESLint/Stylelint configs) take priority over the managed ones.
 

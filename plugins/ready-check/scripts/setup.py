@@ -12,9 +12,9 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 from process_support import execute, find_command, node_entry
 from dependency_support import PLUGIN, asset_files, bundle_path, data_root, installed, outside_repositories, release_lock, take_lock, write_marker
-from detect import detect
 from managed_storage import prepare_storage
-from settings import project_config
+from profile_selection import discover
+from settings import application_root, project_config
 
 
 def command(argv, cwd, env, timeout):
@@ -105,8 +105,7 @@ def profile_setup(project, root, profile_id, runner_data_dir, dry_run, timeout):
     if profile.get("schema_version") != 1 or profile.get("id") != profile_id:
         raise ValueError("Unsupported profile manifest")
 
-    if project_config(project).get("profile", profile_id) != profile_id:
-        raise ValueError("Selected profile conflicts with project configuration")
+    project_config(project, profile_id)
 
     entry = (folder / profile["scripts"]["setup"]).resolve(strict=True)
 
@@ -159,6 +158,42 @@ def install(project, profile, components, progress=lambda message: None, browser
     return result
 
 
+def install_selected(top, selections, components, progress=lambda message: None, browser="chromium", root=None,
+                     runner_data_dir=None, dry_run=False, timeout=900):
+    if timeout <= 0:
+        raise ValueError("A positive timeout is required")
+    root = outside_repositories(Path(root or data_root()).expanduser().resolve(), top)
+    result = dict(schema_version=1, action="setup", status="INCOMPLETE", data_directory=str(root), components=[])
+    for item in selections if "profile" in components else []:
+        profile, application = item["profile"], item["application"]
+        project = application_root(top, application)
+        progress(f"Preparing {profile.capitalize()} checks in {application}…")
+        argv = [sys.executable, str(Path(__file__).resolve()), "--project", str(project), "--profile", profile,
+                "--component", "profile", "--data-dir", str(root), "--timeout", str(timeout)]
+        if runner_data_dir:
+            argv += ["--runner-data-dir", runner_data_dir]
+        if dry_run:
+            argv.append("--dry-run")
+        try:
+            process = subprocess.run(argv, capture_output=True, encoding="utf-8", cwd=project)
+            child = json.loads(process.stdout)
+            if process.returncode not in {0, 2} or len(child["components"]) != 1:
+                raise ValueError(child.get("reason") or process.stderr.strip() or "Profile setup returned no result")
+            part, = child["components"]
+        except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
+            part = dict(component=profile, status="INCOMPLETE", reason=str(error))
+        result["components"].append(dict(part, application=application, runner=part.get("runner", item["runner"])))
+
+    if "browser" in components:
+        shared = install(top, None, ("browser",), progress, browser, root, dry_run=dry_run, timeout=timeout)
+        result["components"].extend(shared["components"])
+
+    statuses = {part["status"] for part in result["components"]}
+    if statuses and "INCOMPLETE" not in statuses:
+        result["status"] = "PLANNED" if dry_run else "PASS"
+    return result
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -176,20 +211,17 @@ def main():
     components = ("browser", "profile") if args.component == "all" else (args.component,)
 
     try:
-        project, profile = args.project, args.profile
-        if not profile and "profile" in components:
-            profile = project_config(project).get("profile")
-            if not profile:
-                found = detect(project)
-                if not found["profile"]:
-                    raise ValueError("Several applications match; pass --project and --profile for the intended application")
-                application = (project / found["application"]).resolve()
-                if not application.is_relative_to(project.resolve()):
-                    raise ValueError("The detected application must be inside the selected project")
-                project, profile = application, found["profile"]
-
-        result = install(project, profile, components, browser=args.browser, root=args.data_dir,
-                         runner_data_dir=args.runner_data_dir, dry_run=args.dry_run, timeout=args.timeout)
+        options = dict(browser=args.browser, root=args.data_dir, runner_data_dir=args.runner_data_dir,
+                       dry_run=args.dry_run, timeout=args.timeout)
+        if args.profile or "profile" not in components:
+            result = install(args.project, args.profile, components, **options)
+        else:
+            top, selected, conflicts = discover(args.project)
+            if conflicts:
+                raise ValueError("Several profiles match the same application; use profiles and confirm selections first")
+            if not selected:
+                raise ValueError("No configured profile for the requested scope")
+            result = install_selected(top, selected, components, **options)
     except (OSError, ValueError) as error:
         result = dict(schema_version=1, action="setup", status="INCOMPLETE", components=[], reason=str(error))
 

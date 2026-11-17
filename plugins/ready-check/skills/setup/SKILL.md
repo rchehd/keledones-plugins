@@ -7,8 +7,8 @@ description: Install, reinstall or diagnose Ready Check tools (Playwright, the b
 
 Respond in the user's language. The command is `/ready:setup` in Claude Code, `/setup` (or the skill picker) in
 Cursor and `$setup` in Codex. Normally nobody needs it: on the first session in a project the plugin's session
-hook asks once whether to install and confirms the project type. Use this skill when the user asks to install,
-reinstall, repair or diagnose the tools, to change the earlier install decision, or to correct the project type.
+hook asks once whether to install and confirms the profiles. Use this skill when the user asks to install,
+reinstall, repair or diagnose the tools, to change the earlier install decision, or to correct the selections.
 
 ## Resolve the application and plugin
 
@@ -19,18 +19,25 @@ if none is open, ask which local project to prepare. The plugin directory is nev
 Detect the host Python 3 interpreter: `python3` on Linux/macOS/WSL, `py -3` or `python` on native Windows.
 Use the portable entry point `<plugin>/scripts/ready-check.py`; Bash and WSL are not required.
 
+Run `ready-check.py profiles --project <repo>` to get the detected or configured profiles, application roots
+relative to the repository, runners and detection evidence. Keep independent matches, including several
+profiles in one root. When the result lists conflicts, clarify those selections before persisting or installing.
+
 ## Choose the action
 
 - **First install, or changing a declined decision:**
-  `ready-check.py consent yes --project <app> [--profile <id>] [--runner local|ddev|compose] [--application <rel>]`.
-  It records the project type and the install decision, installs in the foreground, prints one line per
+  `ready-check.py consent yes --project <repo> [--selection PROFILE:RUNNER:APPLICATION ...]`.
+  Repeat `--selection` for every confirmed entry, using `.` for the repository root. Without selection
+  arguments the command uses the same discovery results. The single-profile flags remain available.
+  It records the selections and the install decision, installs in the foreground, prints one line per
   component and ends with `Ready Check is ready: …` or `Ready Check setup incomplete: …`.
-- **Decline downloads:** `ready-check.py consent no --project <app>`.
+- **Decline downloads:** use `consent no` with the same project and selections.
 - **Reinstall or a single component:** preview with
   `ready-check.py setup --project <app> --profile <id> --component all|browser|profile --dry-run`, show the
-  components, runner and data locations, then run the same command without `--dry-run`.
-- **Project type only:** `ready-check.py config set profile <id> --project <app>` and
-  `config set runner <name> --project <app>`.
+  components, runner and data locations, then run the same command without `--dry-run`. Omit `--profile`
+  to set up all selections under the given directory. The browser component is shared.
+- **Selections only:** `ready-check.py config set profiles '<JSON array>' --project <repo>`. Each entry
+  has `profile`, `runner` and `application` keys. This does not change the install decision.
 
 An explicit setup request authorizes these commands under the harness's normal permissions; do not ask for a
 second blanket approval. Show the command output in the chat and finish with the installer's final line.
@@ -55,7 +62,7 @@ the session rule or first-run question never appears there, tell the user to tru
 
 ## Finish
 
-Report the application, profile, runner, components, versions and remaining prerequisites. Setup results are
+Report the profiles with their application roots and runners, the components, versions and remaining prerequisites. Setup results are
 not a task-readiness verdict. If the user also asked to check a task, continue with the packaged
 [check skill](../check/SKILL.md) in this chat; otherwise show the `check` command as the next step.
 

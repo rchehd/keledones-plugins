@@ -7,16 +7,18 @@ agrees. Tools go to managed data directories, never into the project's Composer/
 
 ## First run
 
-On a session start in a project without a confirmed project type, the session hook detects it from files only
-(the profile from each profile's `detection` rules, for example `drupal/core` or `laravel/framework` in
-`composer.json`, `manage.py`, `go.mod`; framework profiles win over language ones; the runner from
-`.ddev/config.yaml` or a Compose file) and asks the agent to show one question before answering the first message: the detected type and,
-when something is missing, what will be downloaded. Downloads are agreed once per machine (setting `install`:
-`ask`, `auto`, `never`); the project type once per project (`ai/ready-check/settings.json`).
+On a session start in a project without confirmed selections, the hook uses `profiles` discovery. It matches
+packaged detection rules to repository files and selects a runner for each application from its own DDEV or
+Compose markers. The first prompt shows the candidate profiles, roots, runners, detection evidence and
+missing downloads. Independent matches can coexist at the same root. Conflicting framework candidates for
+one root need confirmation. The install decision (`ask`, `auto`, `never`) is stored once per machine, and
+the selections are stored once per project in `ai/ready-check/settings.json`.
 
 - Yes: `ready-check.py consent yes` records both and installs in the foreground, one line per component, ending
   with `Ready Check is ready: …` or `Ready Check setup incomplete: …`. If the agent cannot run commands, the user
   runs the shown command (in Claude Code by typing `!` before it).
+- Repeat `--selection PROFILE:RUNNER:APPLICATION` to pass every confirmed selection to either consent
+  command. Use a repository-relative application path, or `.` for its root.
 - No: `consent no` sets `install` to `never`. Nothing is downloaded and the question is not repeated; review,
   reminders and task records keep working, and a check offers the install once when it needs a missing tool.
 - A stopped DDEV/Compose runner is not started: the browser installs now, the profile checkers at the first
@@ -61,7 +63,11 @@ User settings live in `<data root>/settings.json`, project overrides in `ai/read
 | `captureTasks` | `true` (default), `false` | user, project |
 | `remind` | `true` (default), `false` | user, project |
 | `artifactLanguage` | `English` (default) or another language name, for example `Ukrainian`; language of reports, QA plans and handoffs (PR drafts and the report's key lines stay English) | user, project |
-| `profile`, `runner`, `application` | confirmed project type | project |
+| `profiles` | confirmed selections as a JSON array of objects with `profile`, `runner`, `application` keys | project |
+| `profile`, `runner`, `application` | legacy single selection | project |
+
+`ready-check.py profiles --project <repo>` displays the configured or detected selections and marker evidence.
+Use `ready-check.py config set profiles '<JSON array>' --project <repo>` to replace the list.
 
 ## Coding rules
 
@@ -114,8 +120,10 @@ Native Windows uses Windows Python, Git and Node.js. WSL 2 uses the Linux tools 
 When running your coding client inside WSL, use the `python3` command above with Linux paths for the plugin
 and project, such as `/home/me/projects/my-drupal`.
 
-`--component browser` prepares Playwright CLI, official MCP and the browser; `--component profile` prepares only
-the selected profile's tools. The default is `all`. `--browser chromium|firefox|webkit` selects the browser (default Chromium).
+`--component browser` prepares Playwright CLI, official MCP and the browser once. `--component profile` prepares
+profile tools. Without `--profile`, setup uses all confirmed or detected selections under `--project`.
+With `--profile`, `--project` must point to that application's root. The default component is `all`.
+`--browser chromium|firefox|webkit` selects the browser (default Chromium).
 
 `--timeout 900` controls each installation command's timeout in seconds. Setup prints JSON and returns
 exit `0` for `PASS` or dry-run `PLANNED`, and `2` for `INCOMPLETE`. With multiple components, successful

@@ -54,8 +54,7 @@ def main():
         profile = json.loads((folder / "profile.json").read_text(encoding="utf-8"))
         if not isinstance(profile, dict) or profile.get("schema_version") != 1 or profile.get("id") != args.profile:
             raise ValueError("Unsupported or inconsistent profile manifest")
-        if project_config(project).get("profile", args.profile) != args.profile:
-            raise ValueError("Selected profile conflicts with the project's Ready Check configuration")
+        project_config(project, args.profile)
         entry = (folder / profile["scripts"][args.action]).resolve(strict=True)
         if not entry.is_relative_to(folder.resolve()) or entry.suffix != ".py":
             raise ValueError("Profile entry point must be a Python file inside the profile")

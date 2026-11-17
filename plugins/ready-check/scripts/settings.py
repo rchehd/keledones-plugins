@@ -112,6 +112,8 @@ def store(key, value, top=None):
     path = project_path(top) if project else user_path()
     data = read(path)
     if key == "profiles":
+        for item in value:
+            application_root(top, item["application"])
         for field in SCALAR_SELECTION:
             data.pop(field, None)
     elif key in SCALAR_SELECTION and "profiles" in data:
@@ -183,8 +185,10 @@ def project_config(application, profile=None):
             config.update(matching[0])
     elif top:
         stored = read(project_path(top))
-        if valid("runner", stored.get("runner")):
-            config["runner"] = stored["runner"]
+        if "runner" not in config:
+            runner = (shared_config(top) | stored).get("runner")
+            if valid("runner", runner):
+                config["runner"] = runner
 
     if profile is not None and config.get("profile", profile) != profile:
         raise ValueError("Selected profile conflicts with project configuration")

@@ -51,6 +51,17 @@ class SetupTest(unittest.TestCase):
         self.assertEqual(result["status"], "INCOMPLETE", result)
         self.assertFalse((self.project / "tools").exists())
 
+    def test_setup_previews_multiple_profiles_and_one_browser_bundle(self):
+        (self.project / ".ready-check.json").write_text(json.dumps({"profiles": [
+            dict(profile="drupal", application=".", runner="local"),
+            dict(profile="generic", application=".", runner="local"),
+        ]}))
+        result = self.run_setup("--dry-run")
+        self.assertEqual(result["status"], "PLANNED", result)
+        self.assertEqual({part["component"] for part in result["components"]}, {"drupal", "generic", "browser"})
+        self.assertEqual(len(result["components"]), 3)
+        self.assertFalse((self.root / "data").exists())
+
     def test_unknown_profile_is_rejected_without_installing_browser(self):
         result = self.run_setup("--profile", "unknown")
         self.assertEqual(result["status"], "INCOMPLETE", result)

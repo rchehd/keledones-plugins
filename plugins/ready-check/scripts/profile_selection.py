@@ -15,6 +15,17 @@ def selection(item):
     return {key: item[key] for key in FIELDS}
 
 
+def argument(item):
+    return ":".join(item[key] for key in FIELDS)
+
+
+def parse_argument(value):
+    parts = value.split(":", 2)
+    if len(parts) != len(FIELDS):
+        raise ValueError("Use --selection PROFILE:RUNNER:APPLICATION")
+    return dict(zip(FIELDS, parts))
+
+
 def describe(top, item, source, manifest, evidence):
     directory = settings.application_root(top, item["application"])
     return dict(item, source=source, evidence=evidence, name=detect.profile_name(item["profile"]),
@@ -46,7 +57,7 @@ def discover(project):
         local = settings.shared_config(directory)
         matches = {}
         for profile, manifest in manifests.items():
-            evidence = detect.evidence(directory, manifest)
+            evidence = detect.evidence(directory, manifest, top if explicit is None else None)
             if evidence or local.get("profile") == profile:
                 matches[profile] = evidence
         php = [profile for profile in matches if manifests[profile]["detection"].get("composer_packages")]
