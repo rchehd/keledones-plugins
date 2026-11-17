@@ -64,29 +64,30 @@ Checks live in framework profiles. See [supported profiles](#supported-profiles)
 
 ## Install
 
-Ready Check lives in the [Keledones](https://github.com/rchehd/keledones) plugin catalog (`plugins/ready-check`).
+Ready Check lives in the [Keledones](https://github.com/rchehd/keledones-plugins) plugin catalog (`plugins/ready-check`).
 
 Claude Code:
 
 ```sh
-claude plugin marketplace add rchehd/keledones
+claude plugin marketplace add rchehd/keledones-plugins
 claude plugin install ready@keledones
 ```
 
 Codex:
 
 ```sh
-codex plugin marketplace add rchehd/keledones
+codex plugin marketplace add rchehd/keledones-plugins
 codex plugin add ready@keledones
 ```
 
 Then open `/hooks` in Codex and trust the plugin's three hooks; Codex runs them only after that and may ask
 again after each plugin update.
 
-Cursor: **Customize → From GitHub Repository** with `rchehd/keledones`, or a team admin adds it under
+Cursor: **Customize → From GitHub Repository** with `rchehd/keledones-plugins`, or a team admin adds it under
 **Dashboard → Plugins & MCPs → Add Marketplace → Import from Repo**.
 
-For development, add the local Keledones checkout path instead of `rchehd/keledones`.
+For development, add the local Keledones checkout path. To install Ready Check on its own, follow the
+[individual plugin instructions](https://github.com/rchehd/keledones-plugins#install-an-individual-plugin).
 
 ## Use
 

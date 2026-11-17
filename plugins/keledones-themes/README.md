@@ -10,9 +10,12 @@ Looks for the Claude desktop and mobile apps. The terminal and editor integratio
 Install from the Keledones catalog:
 
 ```sh
-claude plugin marketplace add rchehd/keledones
+claude plugin marketplace add rchehd/keledones-plugins
 claude plugin install keledones-themes@keledones
 ```
+
+You can also download the `keledones-themes-*.zip` from [GitHub Releases](https://github.com/rchehd/keledones-plugins/releases)
+and upload it from **Customize → Plugins** in Claude Desktop.
 
 | Command | Effect |
 | --- | --- |

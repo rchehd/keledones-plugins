@@ -84,18 +84,21 @@ so later runs read only new or changed files.
 Claude Code:
 
 ```sh
-claude plugin marketplace add rchehd/keledones
+claude plugin marketplace add rchehd/keledones-plugins
 claude plugin install gnothi@keledones
 ```
 
 Codex:
 
 ```sh
-codex plugin marketplace add rchehd/keledones
+codex plugin marketplace add rchehd/keledones-plugins
 codex plugin add gnothi@keledones
 ```
 
-Cursor: **Customize → From GitHub Repository** with `rchehd/keledones`.
+Cursor: **Customize → From GitHub Repository** with `rchehd/keledones-plugins`.
+
+To install Gnothi on its own, follow the
+[individual plugin instructions](https://github.com/rchehd/keledones-plugins#install-an-individual-plugin).
 
 Gnothi needs Python 3.9 or newer and nothing else.
 
