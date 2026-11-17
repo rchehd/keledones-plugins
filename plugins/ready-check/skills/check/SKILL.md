@@ -1,6 +1,6 @@
 ---
 name: check
-description: Check whether a task is ready to push through profile-based static analysis, framework/stack practices and security review, and user-approved browser, API, CLI or CI QA. Report scope and readiness. Use when the user asks to check before pushing, validate the task or changes, or confirm it is ready to push, merge or open a PR, for example "check before push", "pre-push check", "validate this", "validate my changes", "is it ready to push?", "make sure it's ready for review". When triggered by such a phrase rather than the explicit command, ask first whether to run Ready Check.
+description: Check whether a task is ready to push through profile-based static analysis, framework/stack practices and security review, and user-approved browser, mobile, API, CLI or CI QA. Report scope and readiness. Use when the user asks to check before pushing, validate the task or changes, or confirm it is ready to push, merge or open a PR, for example "check before push", "pre-push check", "validate this", "validate my changes", "is it ready to push?", "make sure it's ready for review". When triggered by such a phrase rather than the explicit command, ask first whether to run Ready Check.
 ---
 
 # Ready Check
@@ -188,11 +188,12 @@ or clarification. General validation consent does not approve an unseen QA plan.
 approved scenario IDs and the human decision; a material plan change needs renewed approval before its cases run.
 The skill reads applicable QA guidance per scenario and checks the relevant runtime. Browser scenarios use
 visible (bundled Playwright MCP) or background (Playwright CLI) mode from the `browser` setting or the user's
-answer. API, CLI and CI scenarios use the project's tools, test environment and current provider evidence.
+answer. Mobile cases use the project's device tests or Maestro. API, CLI and CI scenarios use the project's
+tools, test environment and current provider evidence.
 No second user invocation is needed.
 
 Keep scenarios, expected/actual outcomes, role and environment evidence, findings, and technical verification
-in the same report. Clarify consequential ambiguities as they appear. Applicable API, CLI and CI cases count
+in the same report. Clarify consequential ambiguities as they appear. Applicable mobile, API, CLI and CI cases count
 toward the QA gate. An unavailable tool, runtime or required evidence keeps the affected case `INCOMPLETE`.
 Use whole-stage `N/A` only when no QA scenario applies and current evidence covers every acceptance condition.
 Missing setup never becomes an implicit installation request.

@@ -29,7 +29,7 @@ An absent result is treated as `NOT_RUN`. `PASS` and `FAIL` need evidence. `N/A`
 }
 ```
 
-`browser`, `api`, `cli` and `ci` use the same gate. An optional `verified_requirements` object can map an
+`browser`, `mobile`, `api`, `cli` and `ci` use the same gate. An optional `verified_requirements` object can map an
 RC ID to already-current evidence when that evidence covers every acceptance condition for that RC.
 
 Save the command's JSON output with the round. Exit `1` means a required scenario failed. Exit `2` means

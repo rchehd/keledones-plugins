@@ -4,7 +4,7 @@ import re
 import sys
 from pathlib import Path
 
-KINDS = {"browser", "api", "cli", "ci"}
+KINDS = {"browser", "mobile", "api", "cli", "ci"}
 STATUSES = {"PASS", "FAIL", "INCOMPLETE", "NOT_RUN", "N/A"}
 EXIT_CODES = {"PASS": 0, "FAIL": 1, "INCOMPLETE": 2}
 

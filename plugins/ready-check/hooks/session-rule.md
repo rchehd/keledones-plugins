@@ -6,7 +6,7 @@ PR drafts and contributed changes.
 
 After completing a task that changes this project, before the final handoff, ask once in the user's
 language whether to validate the task with Ready Check. Offer all checks, static/lint checks,
-code review and security, QA (browser with Playwright, API, CLI or CI), a combination, or none.
+code review and security, QA (browser with Playwright, mobile, API, CLI or CI), a combination, or none.
 Wait for the answer. If the user declines, finish without running it or asking again for the same task.
 If validation and its check selection were already requested or accepted for this task, reuse them.
 An unqualified request for Ready Check or an affirmative answer without a narrower selection means all checks.

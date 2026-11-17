@@ -62,3 +62,10 @@ class QAGateTest(RepoTest):
         self.assertIn("QA-004 needs an evidence reference", result["reason"])
         self.plan["results"][-1]["evidence"] = "evidence/QA-004-browser.png"
         self.assertEqual(self.gate(0)["scenarios"][-1]["kind"], "browser")
+
+    def test_native_mobile_case_needs_a_device_result(self):
+        self.plan["scenarios"][0]["kind"] = "mobile"
+        self.plan["results"][0] = {"id": "QA-001", "status": "INCOMPLETE", "reason": "Test device unavailable"}
+        self.assertEqual(self.gate(2)["pending_required"], ["QA-001"])
+        self.plan["results"][0] = {"id": "QA-001", "status": "PASS", "evidence": "evidence/QA-001-maestro.xml"}
+        self.assertEqual(self.gate(0)["scenarios"][0]["kind"], "mobile")

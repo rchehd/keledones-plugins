@@ -70,6 +70,9 @@ delivery paths. Record the shared items in the same practices/security table. Re
 covered the same concern. Link unanswered runtime assertions to their RCs or regression labels and describe
 the action and observable outcome for QA.
 
+For an affected UI with an agreed design, apply the [UI design checklist](references/ui-design.md).
+Keep design evidence linked to its frame, variant and acceptance condition.
+
 Add the user's and team's extra checklist items: `scripts/ready-check.py customize list --kind review --profile <id>
 --project <app>` for each applicable pair. Put each active item (not `disabled`) into the section it names, marked with its scope
 (project or global); items in an unknown section form their own section. They follow the same trigger and

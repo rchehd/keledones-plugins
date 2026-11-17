@@ -1,6 +1,6 @@
 ---
 name: qa
-description: Plan risk-based QA for browser, API, CLI and CI behavior from the task's requirements, get the user's approval, run cases with the project's tools or Playwright, and record their evidence in the Ready Check report.
+description: Plan risk-based QA for browser, native mobile, API, CLI and CI behavior from the task's requirements, get the user's approval, run cases with the project's tools, Playwright or Maestro as applicable, and record evidence in the Ready Check report.
 ---
 
 # QA
@@ -49,7 +49,7 @@ requirements or the plan changed, or when the user asks for a full retest.
 
 ## 2. Environment
 
-Resolve the URL, routes, roles, commands, provider runs or fixtures needed by the selected scenarios.
+Resolve the URL, routes, roles, commands, app builds, devices, provider runs or fixtures needed by the selected scenarios.
 For a scenario spanning applications, record the runtime identity of each application it reaches.
 A responding URL or the same HEAD does not prove that the container, built assets, active configuration
 and database reflect the working code; record the evidence the profile asks for. An unknown or mismatched
@@ -71,11 +71,13 @@ risk (likelihood × impact). For every RC choose the techniques that fit (equiva
 boundary values, state transitions including an invalid one, decision tables, error guessing from the profile's
 familiar problems) and the oracle (the RC's expected result first, otherwise HICCUPPS). Cover every RC acceptance
 condition and every concrete runtime question from `QA_REQUIRED` review rows. Select the entry point that
-can prove each outcome. Use [API, CLI and CI guidance](references/technical-qa.md) for technical scenarios.
+can prove each outcome. Use [API, CLI and CI guidance](references/technical-qa.md) for technical scenarios
+and [mobile guidance](references/mobile-qa.md) for native cases. When an agreed design defines the expected
+UI, use the [UI design checklist](../review/references/ui-design.md).
 
 ## 4. Plan and approval
 
-Give each scenario a stable `QA-001` ID with: kind (browser, API, CLI or CI), RC IDs (or a regression label), required or optional, risk,
+Give each scenario a stable `QA-001` ID with: kind (browser, mobile, API, CLI or CI), RC IDs (or a regression label), required or optional, risk,
 technique, role, preconditions, steps, expected result, oracle, and the profile/root pairs and files or components
 it depends on (used by later rounds). For a shared scenario, list all covered pairs and record one result.
 Order by risk. Include test-data actions and identify the command, request or provider evidence needed for
@@ -104,8 +106,9 @@ to `check`, which handles installation.
 
 ## 6. Execute
 
-For API, CLI and CI scenarios, follow [the technical QA guidance](references/technical-qa.md) and compare
-the observed evidence with the approved result. Put these cases in the same scenario table as browser cases.
+For API, CLI and CI scenarios, follow [the technical QA guidance](references/technical-qa.md). For native mobile
+scenarios, follow [the mobile QA guidance](references/mobile-qa.md). Compare evidence with the approved outcome
+and use the same scenario table for all kinds.
 Apply the following steps to browser scenarios:
 
 Locate elements the way users see them: role, label, text, then test id; CSS only as a last resort. Use normal UI
