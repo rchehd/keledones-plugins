@@ -19,6 +19,7 @@ PROFILE_TOOLS = {
                               "phpmd/phpmd", "symfony/yaml"}, node=NODE_TOOLS),
     "python": dict(pip={"ruff", "mypy", "bandit", "pip-audit"}, node=NODE_TOOLS),
     "go": dict(go={"golangci-lint", "govulncheck"}, node=NODE_TOOLS),
+    "typescript": dict(node={"eslint", "typescript", "typescript-eslint"}),
 }
 SKILLS = {"setup", "check", "review", "qa", "uninstall", "customize", "feedback", "reflect", "contribute"}
 
@@ -172,19 +173,22 @@ def dependencies(root):
         tools = resource(root, root, f"profiles/{name}/tools", directory=True)
         folders.append(tools)
         npm_lock(root, tools)
+        require(need["node"] <= read_json(tools / "package.json")["dependencies"].keys(), f"{name} Node tools are missing")
+
+        if name == "typescript":
+            for relative in ("eslint.config.mjs", "typecheck.cjs"):
+                resource(root, tools, relative)
+            continue
 
         if "go" in need:
             go_tools(root, tools, need)
-            require(need["node"] <= read_json(tools / "package.json")["dependencies"].keys(), f"{name} Node tools are missing")
             continue
 
         if "pip" in need:
             pip_tools(root, tools, need)
-            require(need["node"] <= read_json(tools / "package.json")["dependencies"].keys(), f"{name} Node tools are missing")
             continue
         manifest = read_json(resource(root, tools, "composer.json"))
         require(need["composer"] <= manifest.get("require", {}).keys(), f"{name} Composer tools are missing")
-        require(need["node"] <= read_json(tools / "package.json")["dependencies"].keys(), f"{name} Node tools are missing")
         for relative in ("eslint.config.mjs", "stylelint.config.json"):
             resource(root, tools, relative)
         lock = read_json(resource(root, tools, "composer.lock"))

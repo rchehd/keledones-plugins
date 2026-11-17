@@ -1,0 +1,10 @@
+{
+  "name": "ready-check-typescript-tools",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "eslint": "9.39.5",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.73.0"
+  }
+}

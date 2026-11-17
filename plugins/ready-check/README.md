@@ -229,8 +229,11 @@ advisory checks report findings or missing tools without blocking the static gat
     `println`), diff.
   - Advisory: **govulncheck**, jscpd.
 - **[Generic](profiles/generic/static.md)** — profile ID: `generic`; any language or a mixed-language repository.
-  - Git diff checks, syntax checks for Python, plain JSON and POSIX sh/Bash, and project-specific lint and test
+  - Git diff checks, syntax checks for Python, plain JSON, YAML and POSIX sh/Bash, and project-specific lint and test
     commands recorded by the check skill. Profile setup uses the existing tools on the selected host.
+- **[TypeScript](profiles/typescript/static.md)** — profile ID: `typescript`.
+  - TypeScript type checking with project configs and references, and ESLint for changed TypeScript files.
+    Uses project tools and configs first. The managed fallback includes official typescript-eslint rules.
 
 Project tools and configs take priority over pinned tools installed outside the project. Projects can use
 several profiles in one directory or across application roots. When no specific profile matches, Ready Check
@@ -268,12 +271,15 @@ Project tools and configs (`vendor/bin`, `phpcs.xml`, `phpstan.neon`, `pint.json
 - For Python checks: Python 3.10+ in the runner for the managed tools; the project's own interpreter for
   Django checks.
 - For Go checks: Go 1.26+ in the runner (the pinned golangci-lint needs it); Node.js 20+ for asset checks.
+- For TypeScript checks: Node.js in the runner. Managed setup requires Node.js 20+ and npm.
+- For YAML checks in Generic: `yamllint` in the selected runner.
 
 ## Documentation
 
 - [Setup details](dependencies/SETUP.md)
 - Static checks: [Drupal](profiles/drupal/static.md), [Laravel](profiles/laravel/static.md),
-  [Symfony](profiles/symfony/static.md), [Python](profiles/python/static.md), [Go](profiles/go/static.md)
+  [Symfony](profiles/symfony/static.md), [Python](profiles/python/static.md), [Go](profiles/go/static.md),
+  [TypeScript](profiles/typescript/static.md)
 - [Report template](skills/check/references/report-template.md)
 
 ## Development

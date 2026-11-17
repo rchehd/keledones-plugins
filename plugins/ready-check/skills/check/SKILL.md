@@ -77,7 +77,9 @@ commits plus uncommitted changes inside their files; other uncommitted changes a
 Map the task paths and acceptance conditions to the affected profile and root pairs. Use paths within each
 root, the profile guidance and ownership of affected code, configuration and runtime behavior. A shared
 configuration or integration change can affect several profiles. Two profiles at the same root can apply
-to different paths. Record an exclusion reason for any candidate the task does not affect.
+to different paths. When the same profile is detected at a package and its ancestor, prefer the package
+for changes owned there. Include the ancestor when it owns affected files or its workspace config needs
+verification. Record an exclusion reason for any candidate the task does not affect.
 
 If there is no Git repository, no HEAD, no usable base, or no detected changes, record the situation and
 clarify the intended scope. Report changes the union of applicable selections leaves uncovered. Preserve
@@ -138,7 +140,7 @@ Record each pair's check results, findings, reasons, logs, scope, and snapshot i
 Use repository-relative paths when comparing results. Deduplicate the same finding at the same location
 with the same underlying cause and retain references to each originating result. A path reported outside
 one application can be covered by another pair. Report paths left uncovered by the applicable pairs.
-For `generic`, also follow the project-command guidance in its `instructions.static`. Include required
+For each profile, follow any project-command guidance in its `instructions.static`. Include required
 project commands in the static gate and record their individual outcomes before proceeding to review or QA.
 Aggregate the static stage as `FAIL` if any required check failed, otherwise `INCOMPLETE` if any required
 result is missing, stale, or incomplete. Use `PASS` when all applicable pairs can proceed and at least one

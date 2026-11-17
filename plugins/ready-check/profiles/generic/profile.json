@@ -18,6 +18,7 @@
   "checks": [
     {"id": "diff", "required": true},
     {"id": "syntax", "required": true},
-    {"id": "shell", "required": true}
+    {"id": "shell", "required": true},
+    {"id": "yaml", "required": true}
   ]
 }

@@ -2,6 +2,7 @@ import json
 import os
 import re
 import subprocess
+from fnmatch import fnmatchcase
 from pathlib import Path
 
 PROFILES = Path(__file__).resolve().parent.parent / "profiles"
@@ -43,6 +44,8 @@ def evidence(directory, manifest, top=None):
 
     core_paths = rules.get("core_paths") or []
     markers = [path for path in rules.get("files") or [] if (directory / path).is_file()]
+    markers.extend(path.name for pattern in rules.get("file_globs", ())
+                   for path in sorted(directory.glob(pattern)) if path.is_file())
     for path in core_paths:
         marker = directory / path
         if marker.is_file() and not any(marker.relative_to(parent).as_posix() in core_paths
@@ -127,6 +130,7 @@ def application_roots(top, manifests):
     for manifest in manifests:
         for key in ("files", "core_paths"):
             markers.update(manifest["detection"].get(key, ()))
+    patterns = {pattern for manifest in manifests for pattern in manifest["detection"].get("file_globs", ())}
 
     try:
         listed = subprocess.run(["git", "-C", str(top), "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
@@ -140,6 +144,10 @@ def application_roots(top, manifests):
         path = Path(name)
         if any(part in SKIPPED or part.startswith(".") for part in path.parts[:-1]):
             continue
+        if any(fnmatchcase(path.name, pattern) for pattern in patterns):
+            directory = top / path.parent
+            if directory.resolve() == directory and (top / path).is_file():
+                roots.add(directory)
         for parts in markers:
             if path.parts[-len(parts):] == parts:
                 directory = top.joinpath(*path.parts[:-len(parts)])
