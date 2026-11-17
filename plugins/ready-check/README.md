@@ -24,8 +24,8 @@ The diagram source is [assets/workflow.drawio](assets/workflow.drawio); edit it 
    comments, errors, dead code), reviews tests when the change has them, confirms a bug fix removes the cause,
    and applies your own coding rules. Findings are labelled `issue (blocking)`, `suggestion`, `nitpick` or
    `question`; only issues block.
-4. **QA** ranks changed areas by risk, designs cases with standard techniques, shows the plan for approval, runs
-   it in a visible or background browser, adds a short exploratory session and an accessibility check.
+4. **QA** ranks changed areas by risk and shows the plan for approval. It verifies browser, API, CLI or
+   CI outcomes as applicable, with accessibility and exploration for browser cases.
 5. **Verdict.** `READY TO PUSH` only after every stage passed, then an offer to write the PR title and
    description in English from a template; otherwise
    `BLOCKED`, `INCOMPLETE` or `PARTIAL CHECK COMPLETE`. Findings come with a fix offer; after a fix or "retest",
@@ -38,7 +38,7 @@ after one consent, records your prompts per branch and passes your coding rules 
 | --- | --- | --- |
 | `check` | `/ready:check` · `/check` · `$check` | Whole flow from task to verdict |
 | `review` | `/ready:review` · `/review` · `$review` | Requirements, framework practices, security, coding rules |
-| `qa` | `/ready:qa` · `/qa` · `$qa` | Risk-based browser QA with approval |
+| `qa` | `/ready:qa` · `/qa` · `$qa` | Risk-based browser, API, CLI and CI QA with approval |
 | `setup` | `/ready:setup` · `/setup` · `$setup` | Install, repair, change decisions |
 | `customize` | `/ready:customize` · `/customize` · `$customize` | Add, list or disable your rules and checklist items |
 | `feedback` | `/ready:feedback` · `/feedback` · `$feedback` | Record that a checked task was returned after review |
@@ -60,6 +60,7 @@ Checks live in framework profiles. See [supported profiles](#supported-profiles)
 | QA oracles and exploration | HICCUPPS consistency oracles ([Bolton](https://developsense.com/resource/Oracles.pdf)), SFDPOT and session-based exploratory testing with charters |
 | Bug reports | RIMGEA (Kaner's bug advocacy): replicate, isolate, maximize, generalize, externalize; steps, expected and actual result, severity, evidence |
 | Browser automation | [Playwright best practices](https://playwright.dev/docs/best-practices): user-facing locators, web-first waits, isolated sessions; official Playwright CLI and MCP |
+| Technical QA | Project tests and fixtures, [OpenAPI](https://spec.openapis.org/oas/latest.html) for API contracts, and [CI run evidence](skills/qa/references/technical-qa.md#ci-and-artifacts) tied to the tested revision |
 | Learning from use | Cursor's [`/reflect`](https://github.com/cursor/plugins/blob/main/pstack/skills/reflect/SKILL.md) and [Continual Learning](https://github.com/cursor/plugins/tree/main/continual-learning), [CodeRabbit Learnings](https://www.coderabbit.ai/blog/context-engineering-ai-code-reviews): proposals backed by evidence, applied only after approval |
 | Accessibility | [axe-core](https://github.com/dequelabs/axe-core) on changed pages plus manual keyboard and focus checks, since automated rules find only part of WCAG issues ([Deque coverage study](https://www.deque.com/blog/automated-testing-study-identifies-57-percent-of-digital-accessibility-issues)) |
 
@@ -106,16 +107,17 @@ Codex, trust the plugin's hooks once in `/hooks`. Cursor gets the rule at sessio
 reminder.
 
 **QA.** The agent ranks changed areas by risk, designs cases with standard techniques (equivalence classes,
-boundary values, state transitions, decision tables), shows the plan for approval, then runs it, adds a short
-exploratory session and an accessibility check (bundled axe-core plus keyboard and focus by hand). It stops for
+boundary values, state transitions, decision tables), shows the plan for approval, then runs it. Browser cases
+use Playwright, axe-core and manual keyboard and focus checks. API and CLI cases use project tools or direct
+tests, and CI cases inspect the matching run, job and artifact. All results go into the same report. It stops for
 you only when the task is unclear, for plan approval, for a login, when it is unsure whether something is a bug,
 and when it finds one. For bugs it offers: fix in this session, fix with a subagent (where the client supports
 it), or you fix it. After a fix, or when you say "retest", the next round reruns only what the change can
 affect: static checks, review of changed code and its callers, failed and related QA cases and each RC's main
 flow; shared-code changes or "full recheck" run everything.
 
-**Browser.** QA runs in a **visible** browser (bundled Playwright MCP; you watch and can log in yourself) or in
-the **background** (Playwright CLI). The agent asks before QA unless you set a default:
+**Browser.** Browser scenarios run in a **visible** browser (bundled Playwright MCP; you watch and can log in yourself) or in
+the **background** (Playwright CLI). The agent asks for a mode unless you set a default:
 `config set browser visible|background`. In Drupal the agent logs in through `drush uli`, in Symfony through `login_link` when configured, elsewhere
 with a local test user it creates and keeps in `ai/ready-check/qa-accounts.json`; it never asks for or types
 real credentials. A visible browser needs a graphical session.

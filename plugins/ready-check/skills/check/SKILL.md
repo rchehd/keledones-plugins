@@ -1,6 +1,6 @@
 ---
 name: check
-description: Check whether a task is ready to push through profile-based static analysis, framework/stack practices and security review, and user-approved Playwright QA; report scope and readiness. Use when the user asks to check before pushing, validate the task or changes, or confirm it is ready to push, merge or open a PR, for example "check before push", "pre-push check", "validate this", "validate my changes", "is it ready to push?", "make sure it's ready for review". When triggered by such a phrase rather than the explicit command, ask first whether to run Ready Check.
+description: Check whether a task is ready to push through profile-based static analysis, framework/stack practices and security review, and user-approved browser, API, CLI or CI QA. Report scope and readiness. Use when the user asks to check before pushing, validate the task or changes, or confirm it is ready to push, merge or open a PR, for example "check before push", "pre-push check", "validate this", "validate my changes", "is it ready to push?", "make sure it's ready for review". When triggered by such a phrase rather than the explicit command, ask first whether to run Ready Check.
 ---
 
 # Ready Check
@@ -130,7 +130,8 @@ and mark it `INCOMPLETE`. Continue other applicable pairs. Do not install depend
 to conceal a failure. Once a pair's prerequisites are available, run `scripts/ready-check.py static` with
 the same scope and save its corresponding static JSON. Doctor `READY` alone never completes the static TODO.
 
-For missing managed dependencies (doctor `MISSING`, or no usable managed browser for selected QA), read the
+For missing managed dependencies (doctor `MISSING`, or no usable managed browser for an applicable selected
+browser scenario), read the
 user's install decision with `scripts/ready-check.py config get install`. With `auto`, install now in the
 foreground without asking: `scripts/ready-check.py setup --project <app> --profile <id> --component profile`
 (or `--component browser`), show the result, then rerun doctor/static. With `ask` or `never`, the user started
@@ -185,14 +186,16 @@ task history and human answers, distinguishing feature acceptance from bug repro
 coverage. Show RCs, steps, expected outcomes, roles and test-data scope, then wait for explicit approval
 or clarification. General validation consent does not approve an unseen QA plan. Persist plan revision,
 approved scenario IDs and the human decision; a material plan change needs renewed approval before its cases run.
-The skill reads applicable QA guidance per scenario, checks the relevant runtime, and uses the visible (bundled Playwright
-MCP) or background (Playwright CLI) mode from the `browser` setting or the user's answer. No second user
-invocation is needed.
+The skill reads applicable QA guidance per scenario and checks the relevant runtime. Browser scenarios use
+visible (bundled Playwright MCP) or background (Playwright CLI) mode from the `browser` setting or the user's
+answer. API, CLI and CI scenarios use the project's tools, test environment and current provider evidence.
+No second user invocation is needed.
 
 Keep scenarios, expected/actual outcomes, role and environment evidence, findings, and technical verification
-in the same report. Clarify consequential ambiguities as they appear. A required browser case
-without a usable browser is `INCOMPLETE`, not `N/A`. A non-browser change needs a justified `N/A` and current
-technical verification covering every RC. Missing setup never becomes an implicit installation request.
+in the same report. Clarify consequential ambiguities as they appear. Applicable API, CLI and CI cases count
+toward the QA gate. An unavailable tool, runtime or required evidence keeps the affected case `INCOMPLETE`.
+Use whole-stage `N/A` only when no QA scenario applies and current evidence covers every acceptance condition.
+Missing setup never becomes an implicit installation request.
 
 A QA blocker leaves the QA TODO open. After a code fix repeat selected statics, revisit selected review paths,
 and rerun failed and related QA cases. Changes to runtime preparation or criteria invalidate affected

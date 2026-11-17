@@ -26,11 +26,10 @@ Check the following before marking the task ready:
 - Review includes applicable framework/stack practices from every applicable profile for actual installed versions and security paths,
   with code evidence and no missing essential coverage or unresolved blocking finding.
 - QA has a matching `PASS` or justified whole-stage `N/A` gate, environment evidence, and current coverage
-  for every RC acceptance condition through scenarios or the necessary technical verification.
-  For whole-stage `N/A`, record why no running browser environment is needed instead of inventing one.
-- For applicable browser QA, the user approved the current requirements/scenario plan, with approved
-  revision and scenario coverage recorded. General validation consent is insufficient. A justified whole-stage
-  N/A needs its current technical evidence instead of approval of nonexistent browser scenarios.
+  for every RC acceptance condition. Include each applicable kind of scenario (browser, API, CLI or CI).
+  For whole-stage `N/A`, record why no QA scenario applies and cite current evidence for every condition.
+- The user approved the current QA plan when scenarios apply. The report records the approved revision,
+  each required result and the QA gate output. General validation consent is insufficient.
 - No current blocking finding or unresolved question remains. Proposed regressions are not silently promoted
   into requirements, and an explicit RC violation is not downgraded to a cosmetic advisory.
 - Required work in the agreed task scope is covered. Changes outside the union of applicable profiles and roots are visible;

@@ -111,16 +111,17 @@ QA plan revision: [Increment when scenarios, criteria, roles or data scope chang
 Plan approval: [PENDING / APPROVED / REJECTED; human response and approved revision/RC revision/scenario IDs; not needed for justified whole-stage N/A or NOT_SELECTED]
 Task type and source: [Feature acceptance or bug trigger/corrected expectation/regressions, from session/task/human]
 Time: [Execution start/end or not run]
-Environment: [Local URL, application/site mapping evidence, code/assets/config/data preparation, and identity]
-Browser mode: [Requested and actual: visible (MCP) or background (CLI); browser/version, viewport, GUI limitations, approved fallback]
+Environment: [Target URL, runner, fixture or CI run; application and scope mapping, data and revision identity]
+Browser mode: [If applicable, requested and actual mode, browser/version, viewport, GUI limitations and approved fallback]
 Risk map: [Changed areas with likelihood × impact (H/M/L) and the change types they come from]
 Role sessions: [Actual test roles/accounts and isolation; no credentials or authentication links]
 Browser readiness: [Actual launch/navigation evidence, missing dependency, or reasoned N/A]
 Scope evidence: [Before/after doctor JSON paths and runtime correspondence checks]
+QA gate evidence: [Path to qa-gate output for the current approved plan, or reason no scenario applies]
 
-| Scenario | RC / regression | Required, risk | Technique | Oracle | Depends on | Role and preconditions | Steps | Expected | Actual | Status (round) | Evidence / time |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| QA-001 | RC-001 | [Required/optional, H/M/L and why] | [Boundary values, state transition…] | [RC expected result or HICCUPPS item] | [Profile/root pairs and files/components] | [Context] | [Exact safe steps] | [Observable outcome] | [Observed outcome or not run] | PASS (round 1) / FAIL / INCOMPLETE / NOT_RUN / N/A | [Screenshot/snapshot, console/network/state proof, and time] |
+| Scenario | Kind | RC / regression | Required, risk | Technique | Oracle | Depends on | Role and preconditions | Steps | Expected | Actual | Status (round) | Evidence / time |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| QA-001 | Browser / API / CLI / CI | RC-001 | [Required/optional, H/M/L and why] | [Boundary values, state transition…] | [RC expected result or HICCUPPS item] | [Profile/root pairs and files/components] | [Context] | [UI actions, request, command or job] | [Observable outcome] | [Observed outcome or not run] | PASS (round 1) / FAIL / INCOMPLETE / NOT_RUN / N/A | [Redacted response, exit/log, job/artifact, screenshot or state proof and time] |
 
 ### Exploratory session
 
