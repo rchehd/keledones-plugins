@@ -188,18 +188,8 @@ and files the agent changed]
 
 PR title: [Supported concise title, or NOT_RUN]
 
-### Summary
-
-[Actual delivered changes and reason, or NOT_RUN]
-
-### How to verify (QA)
-
-[Environment, role and preconditions when relevant, brief steps or a shareable QA plan link, and expected
-result. Mark pending verification when applicable. If no scenario applies, give the reason.]
-
-### Limitations
-
-[Meaningful uncovered areas/advisories, or None; exclude private authentication data and local paths]
+[Paste the English body using the effective PR template, or NOT_RUN. Describe the actual change and include
+material limitations. The default body has Summary, How to verify (QA), and Limitations.]
 
 ## Next step
 

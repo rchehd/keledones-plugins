@@ -1,11 +1,12 @@
 ---
 name: customize
-description: Add, list, disable or remove the user's Ready Check coding rules and extra review or QA checklist items, for this project or globally. Use when the user asks to add a review rule, remember a check for the project, add a QA scenario to the checklist, show their rules, or disable a rule; also used by reflect to apply approved proposals.
+description: Manage Ready Check coding rules, review or QA checklist items, and commit or PR draft templates for this project or globally. Also used by reflect to apply approved proposals.
 ---
 
 # Customize Ready Check
 
-Respond in the user's language. All writes go through one script; never edit the plugin package.
+Respond in the user's language. Use the installed Ready Check entry point to update settings and checklist
+items. Keep customizations outside the installed plugin package.
 Resolve the plugin root two directories above this file's directory. Python: `python3`, or `py -3` on Windows.
 
 ## What can be customized
@@ -34,3 +35,11 @@ Scopes: `project` (`<repo>/ai/ready-check/…`, git-excluded) or `global` (the u
    `git add -f ai/ready-check/rules.md ai/ready-check/extensions` (then commit as usual).
 
 An item that already exists is not added twice. A remove that matches several items asks for a more specific text.
+
+## Draft templates
+
+For a commit message use `commitTemplate`. For a PR body use `pullRequestTemplate`.
+Set the requested file with `ready-check.py config set <key> <path> [--project <repo>]`. Use
+`config unset <key> [--project <repo>]` to remove the override. Follow the requested scope and reuse any
+scope already given. Show the effective source with `ready-check.py template commit|pr [--project <repo>]`.
+See [template settings](../../dependencies/SETUP.md#commit-and-pr-templates) for path and fallback rules.

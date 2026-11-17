@@ -79,15 +79,19 @@ def quote(value):
     return value
 
 
+def shell_command(parts):
+    line = " ".join(quote(part) for part in parts)
+    # PowerShell runs a quoted executable path only through the call operator.
+    return "& " + line if os.name == "nt" and line.startswith("'") else line
+
+
 def command(top, decision, selected):
     parts = [sys.executable, PLUGIN / "scripts/ready-check.py", "consent", decision, "--project", top]
 
     for item in selected:
         parts += ["--selection", argument(item)]
 
-    line = " ".join(quote(part) for part in parts)
-    # PowerShell runs a quoted executable path only through the call operator.
-    return "& " + line if os.name == "nt" and line.startswith("'") else line
+    return shell_command(parts)
 
 
 def describe(found):
@@ -167,8 +171,11 @@ def session_start(client, payload):
     values = settings.load(top)
     hook_state.prune()
     status = browser_status()
-    rules_command = f"{quote(sys.executable)} {quote(PLUGIN / 'scripts/ready-check.py')} rules add"
-    parts = [template("session-rule.md", check=CHECK[client], rules=rules_command, language=values["artifactLanguage"]),
+    entry = [sys.executable, PLUGIN / "scripts/ready-check.py"]
+    rules_command = shell_command([*entry, "rules", "add"])
+    template_command = shell_command([*entry, "template"])
+    parts = [template("session-rule.md", check=CHECK[client], rules=rules_command, template_command=template_command,
+                      language=values["artifactLanguage"]),
              status_line(status, client)]
     coding_rules = rules.context(top)
 

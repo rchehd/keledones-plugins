@@ -4,6 +4,10 @@ Write Ready Check files (reports, QA plans and handoffs) in {language}; keep cha
 These stay in English everywhere: the report's `task_id:`, `Round:` and `Verdict:` lines, finding labels and IDs,
 PR drafts and contributed changes.
 
+When drafting a commit message or preparing an authorized commit, run `{template_command} commit --project <repo>`.
+For a project PR description, run `{template_command} pr --project <repo>`.
+Use the selected content as layout and prompts for the draft. If it reports an error, show the cause.
+
 After completing a task that changes this project, before the final handoff, ask once in the user's
 language whether to validate the task with Ready Check. Offer all checks, static/lint checks,
 code review and security, QA (browser with Playwright, mobile, API, CLI or CI), a combination, or none.

@@ -128,6 +128,10 @@ real credentials. A visible browser needs a graphical session.
 **Language.** The agent talks in your language; reports, QA plans and handoffs are written in English unless you
 choose another language at first run or with `config set artifactLanguage Ukrainian`. PR drafts stay in English.
 
+**Draft templates.** Set `commitTemplate` and `pullRequestTemplate` to your own files, for all projects or a
+single repository. Ready Check also recognizes Git commit templates and repository PR templates. See the
+[template settings](dependencies/SETUP.md#commit-and-pr-templates).
+
 **Task memory.** Each prompt you send, and each answer you pick in the agent's questions, is saved with branch,
 commit and time in `ai/ready-check/tasks/<branch>/` (git-excluded, cut at 20 KB, kept 30 days). When the task is not in the chat, `check` proposes it from these
 records and asks you to confirm. Turn off with `config set captureTasks false`.

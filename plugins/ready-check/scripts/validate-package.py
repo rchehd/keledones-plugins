@@ -208,11 +208,12 @@ def entry_points(root):
     for name in ("doctor.sh", "check-static.sh", "check-profile.py", "setup.sh", "setup.py", "dependency_support.py", "profile_selection.py",
                  "process_support.py", "profile_runtime.py", "managed_storage.py", "git_exclude.py", "reports.py", "mcp.py", "mcp.mjs",
                  "ready-check.py", "playwright.sh", "playwright.py", "project.py", "settings.py", "detect.py", "logs.py",
-                 "tasks.py", "answers.py", "hook.py", "hook_state.py", "fingerprint.py", "consent.py", "uninstall.py", "rules.py", "a11y.py", "qa-gate.py", "customize.py", "summary.py", "feedback.py", "reflect_collect.py"):
+                 "tasks.py", "answers.py", "hook.py", "hook_state.py", "fingerprint.py", "consent.py", "uninstall.py", "rules.py", "a11y.py", "qa-gate.py", "customize.py", "draft_template.py", "summary.py", "feedback.py", "reflect_collect.py"):
         resource(root, root, "scripts/" + name)
     for name in ("session-rule.md", "first-run.md"):
         resource(root, root, "hooks/" + name)
-    for name in ("CONTRIBUTING.md", "templates/improvement.md", "templates/bug.md"):
+    for name in ("CONTRIBUTING.md", "templates/improvement.md", "templates/bug.md",
+                 "templates/commit-message.txt", "templates/pull-request.md"):
         resource(root, root, name)
     require(read_json(root / ".mcp.json").get("mcpServers", {}).get("ready-playwright"), "Claude must bundle the ready-playwright MCP server")
     for name in ("core_runner.py", "core_scope.py", "core_toolchain.py", "core_checks.py", "core_main.py", "core_setup.py", "yaml_checks.py"):

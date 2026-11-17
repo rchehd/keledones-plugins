@@ -37,6 +37,8 @@ class HookTest(RepoTest):
             self.assertIn("ask once in the user's", text)
             self.assertIn("Ready Check browser tools:", text)
             self.assertIn("consent yes", text)
+            self.assertIn("template commit --project <repo>", text)
+            self.assertIn("template pr --project <repo>", text)
             self.assertIn("Do not investigate or fix the reported problem until the user asks", text)
             self.assertIn("Never edit, copy or patch the Ready Check plugin", text)
 

@@ -53,7 +53,8 @@ No project instruction files (`AGENTS.md`, `CLAUDE.md`, `CLAUDE.local.md`) and n
 
 ## Settings
 
-`ready-check.py config get [key] [--project <app>]` and `config set <key> <value> [--project <app>]`.
+`ready-check.py config get [key] [--project <app>]`, `config set <key> <value> [--project <app>]` and
+`config unset <key> [--project <app>]`.
 User settings live in `<data root>/settings.json`, project overrides in `ai/ready-check/settings.json` (git-excluded).
 
 | Key | Values | Scope |
@@ -63,11 +64,38 @@ User settings live in `<data root>/settings.json`, project overrides in `ai/read
 | `captureTasks` | `true` (default), `false` | user, project |
 | `remind` | `true` (default), `false` | user, project |
 | `artifactLanguage` | `English` (default) or another language name, for example `Ukrainian`; language of reports, QA plans and handoffs (PR drafts and the report's key lines stay English) | user, project |
+| `commitTemplate` | Path to a UTF-8 commit message template | user, project |
+| `pullRequestTemplate` | Path to a UTF-8 PR body template | user, project |
 | `profiles` | confirmed selections as a JSON array of objects with `profile`, `runner`, `application` keys | project |
 | `profile`, `runner`, `application` | legacy single selection | project |
 
 `ready-check.py profiles --project <repo>` displays the configured or detected selections and marker evidence.
 Use `ready-check.py config set profiles '<JSON array>' --project <repo>` to replace the list.
+
+### Commit and PR templates
+
+Set either override independently. Paths passed with `--project` resolve inside the repository and relative
+paths start at its root. For user-wide settings, paths resolve from the current directory at setup time.
+
+```sh
+ready-check.py config set commitTemplate .gitmessage --project .
+ready-check.py config set pullRequestTemplate .github/qa-pr.md --project .
+ready-check.py config set commitTemplate /path/to/commit-message.txt
+ready-check.py template commit --project .
+ready-check.py template pr --project .
+ready-check.py config unset pullRequestTemplate --project .
+```
+
+Ready Check selects the project override first, then the repository's native template, then the user-wide
+Ready Check override. The commit fallback checks user-wide Git `commit.template` when a repository is supplied.
+The bundled templates are the final fallback.
+
+For commits, the native template comes from repository or worktree Git `commit.template`. For PRs, Ready Check
+checks the default GitHub template in `.github/`, the repository root and `docs/`, then the GitLab
+`.gitlab/merge_request_templates/Default.md` file. Use an explicit path to select a different template.
+The `template` command shows its source, path and contents. A configured file that is missing or unreadable
+is reported as an error. Ready Check uses these files to draft text. Git's editor template still uses Git's
+own configuration.
 
 ## Coding rules
 

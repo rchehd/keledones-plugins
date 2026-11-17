@@ -17,7 +17,8 @@ BOOLEAN = {"captureTasks", "remind"}
 USER_ONLY = {"install"}
 SCALAR_SELECTION = {"profile", "runner", "application"}
 PROJECT_ONLY = SCALAR_SELECTION | {"profiles"}
-KEYS = set(DEFAULTS) | PROJECT_ONLY
+TEMPLATE_KEYS = {"commitTemplate", "pullRequestTemplate"}
+KEYS = set(DEFAULTS) | PROJECT_ONLY | TEMPLATE_KEYS
 
 
 def user_path():
@@ -29,6 +30,9 @@ def project_path(top):
 
 
 def valid(key, value):
+    if key in TEMPLATE_KEYS:
+        return isinstance(value, str) and bool(value.strip()) and all(character.isprintable() for character in value)
+
     if key in BOOLEAN:
         return isinstance(value, bool)
 
@@ -98,18 +102,39 @@ def load(top=None):
     return result
 
 
-def store(key, value, top=None):
+def setting_location(key, top):
     if key not in KEYS:
         raise ValueError(f"Unknown setting: {key}")
-
-    if not valid(key, value):
-        raise ValueError(f"Invalid value for {key}: {value!r}")
 
     if key in PROJECT_ONLY and not top:
         raise ValueError(f"{key} is a project setting; pass --project")
 
-    project = bool(top) and key not in USER_ONLY
-    path = project_path(top) if project else user_path()
+    if top and key not in USER_ONLY:
+        return project_path(top), Path(top)
+    return user_path(), data_root()
+
+
+def template_path(value, top=None):
+    try:
+        path = Path(value).expanduser()
+        resolved = (top / path if top else path).resolve()
+    except RuntimeError as error:
+        raise ValueError(f"Cannot resolve template path {value!r}: {error}") from error
+    if top and not resolved.is_relative_to(top):
+        raise ValueError("A project template must be inside the repository")
+    return resolved
+
+
+def store(key, value, top=None):
+    path, root = setting_location(key, top)
+    if not valid(key, value):
+        raise ValueError(f"Invalid value for {key}: {value!r}")
+    if key in TEMPLATE_KEYS:
+        source = template_path(value, top)
+        if not source.is_file():
+            raise ValueError(f"Template file does not exist: {source}")
+        value = source.relative_to(top).as_posix() if top else str(source)
+
     data = read(path)
     if key == "profiles":
         for item in value:
@@ -119,10 +144,18 @@ def store(key, value, top=None):
     elif key in SCALAR_SELECTION and "profiles" in data:
         raise ValueError("Replace the profiles list to change a configured selection")
     data[key] = value
-    write_json(path, data, Path(top) if project else data_root())
+    write_json(path, data, root)
 
-    if project:
+    if top and key not in USER_ONLY:
         ensure_excluded(Path(top))
+
+
+def unset(key, top=None):
+    path, root = setting_location(key, top)
+    data = read(path)
+    if key in data:
+        del data[key]
+        write_json(path, data, root)
 
 
 def shared_config(application):
@@ -204,7 +237,7 @@ def main():
         sys.stdout.reconfigure(encoding="utf-8")
 
     parser = argparse.ArgumentParser(description="Read or change Ready Check settings.")
-    parser.add_argument("operation", choices=("get", "set"))
+    parser.add_argument("operation", choices=("get", "set", "unset"))
     parser.add_argument("key", nargs="?")
     parser.add_argument("value", nargs="?")
     parser.add_argument("--project", type=Path)
@@ -225,7 +258,15 @@ def main():
         if args.operation == "set":
             if args.key is None or args.value is None:
                 raise ValueError("config set needs a key and a value")
-            store(args.key, json.loads(args.value) if args.key == "profiles" else parse(args.value), top)
+            if args.key == "profiles":
+                value = json.loads(args.value)
+            else:
+                value = args.value if args.key in TEMPLATE_KEYS else parse(args.value)
+            store(args.key, value, top)
+        elif args.operation == "unset":
+            if args.key is None or args.value is not None:
+                raise ValueError("config unset needs one key")
+            unset(args.key, top)
 
         values = load(top)
         result.update(status="PASS", settings={args.key: values.get(args.key)} if args.key else values)

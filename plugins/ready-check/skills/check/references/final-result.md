@@ -55,33 +55,23 @@ it does not include publication or an assurance about untested environments.
 ## Draft the PR in English
 
 After the verdict, ask once in the user's language whether to prepare the PR title and description. Write them
-only after a yes (or when the user already asked for them); on no, finish without a draft. Then produce a concise
-title describing the resulting change and a summary explaining what changed and why, using the template below.
-Use only supported claims from the current diff and report. In `How to verify (QA)`, give the relevant
+only after a yes (or when the user already asked for them); on no, finish without a draft. Run the installed
+`scripts/ready-check.py template pr --project <repo>` and use its `content` as the body layout. Use the headings
+and prompts in the selected template as formatting guidance. If the command reports a configuration error,
+show the cause so the user can fix the template. Write a concise English title separately and describe what
+changed and why in the body. Use only supported claims from the current diff and report.
+
+In the [default template](../../../templates/pull-request.md), `How to verify (QA)` gives the relevant
 environment, role or test data, concise actions and the expected observable result. Link to a shareable
 QA plan when it already has the steps. For a technical change, give the applicable command or observable
 behavior. If no QA scenario applies, give the reason. Record completed runs and their evidence in the Ready
 Check report. Keep planned steps clearly identified when the verification is still pending.
 
-In `Limitations`, include meaningful uncovered areas, advisory failures, and relevant scope exclusions;
-use `None` only when there are none to disclose. Link internal evidence in the local report, keeping tokens,
-private login URLs, absolute local artifact paths, and test credentials out of the shareable PR text.
+Include meaningful uncovered areas, advisory failures, and relevant scope exclusions within the selected
+layout. The default `Limitations` section uses `None` only when there are none to disclose. Link internal
+evidence in the local report and keep tokens, private login URLs, absolute local artifact paths, and test
+credentials out of the shareable PR text.
 An incomplete/blocked draft, if requested, must retain that verdict and list unfinished checks explicitly.
-
-```markdown
-PR title: <Concise English title>
-
-## Summary
-- <Delivered behavior and reason>
-
-## How to verify (QA)
-- **Setup** <Environment, role and fixture when relevant>
-- **Steps** <Actions or link to the verification plan>
-- **Expected result** <Observable outcome>
-
-## Limitations
-- <Material limitation, or None>
-```
 
 Give the user a compact final response: verdict and reason, check/coverage summary, important findings or
 limitations, absolute report link, and the question about the PR title and description. When the user agrees,
