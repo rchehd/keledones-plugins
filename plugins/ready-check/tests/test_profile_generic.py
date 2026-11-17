@@ -45,8 +45,10 @@ class GenericTest(RepoTest):
     def test_compose_file_alone_leaves_generic_checks_local(self):
         self.write("compose.yml", "services: {}\n")
         self.write("scripts/task.py", "print('ready')\n")
+        bin_dir = self.root / "bin"
+        write_fake_command(bin_dir / "yamllint", "#!/usr/bin/env python3\nprint('yamllint 1.38.0')\n")
         doctor = self.entry_json("doctor", "--profile", "generic", "--project", str(self.repo), "--base", "main",
-                                 code=0 if shutil.which("yamllint") else 2)
+                                 env={"PATH": str(bin_dir) + os.pathsep + os.environ["PATH"]})
         self.assertEqual(doctor["runner"], "local")
 
     def test_helm_templates_are_not_sent_to_yamllint(self):
