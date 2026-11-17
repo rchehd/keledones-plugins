@@ -45,6 +45,12 @@ class PlatformTest(unittest.TestCase):
         self.assertEqual(json.loads(output), arguments)
         self.assertFalse((self.root / "nope").exists())
 
+    def test_explicit_data_dir_does_not_require_user_home(self):
+        directory = self.root / "données partagées"
+        with patch.dict(os.environ, {"READY_CHECK_DATA_DIR": str(directory)}, clear=True), \
+                patch.object(Path, "home", side_effect=RuntimeError("No home directory")):
+            self.assertEqual(dependency_support.data_root(), directory.resolve())
+
     def test_python_proxies_do_not_need_executable_mode_or_shebang_support(self):
         binary = self.write("vendor/bin/checker", '#!/usr/bin/env python3\nprint("portable")\n')
         code, output, _ = execute([str(binary)], self.root)

@@ -45,7 +45,7 @@ class StaticChecksTest(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix="ready-check-test.")
         self.addCleanup(self.temporary.cleanup)
-        self.root = Path(self.temporary.name)
+        self.root = Path(self.temporary.name).resolve()
         self.project = self.root / "project"
         self.project.mkdir()
         self.env = {k: v for k, v in os.environ.items() if not k.startswith(("LINT_", "READY_CHECK_TEST_"))}

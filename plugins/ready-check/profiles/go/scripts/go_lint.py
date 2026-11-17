@@ -12,8 +12,8 @@ import go_tools as tools
 
 GoCheck = namedtuple("GoCheck", "applies run plan")
 MODULE_FILES = {"go.mod", "go.sum"}
-POSITION = re.compile(r"^(vet: )?(?:\./)?([^\s:][^:\n]*\.go):(\d+)(?::\d+)?: (.*)$", re.M)
-DIFF_FILE = re.compile(r"^--- (.+?)\.orig(?:\t.*)?$", re.M)
+POSITION = re.compile(r"^(vet: )?(?:\./)?((?:[A-Za-z]:[\\/])?[^\s:][^:\r\n]*\.go):(\d+)(?::\d+)?: ([^\r\n]*)\r?$", re.M)
+DIFF_FILE = re.compile(r"^--- (.+?)\.orig(?:\t[^\r\n]*)?\r?$", re.M)
 HUNK = re.compile(r"^@@ -(\d+)", re.M)
 WARNING = {"warning", "info"}
 

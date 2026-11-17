@@ -145,7 +145,7 @@ def static_smoke(project, root, env, command, reports=None):
 
     write(".gitignore", "vendor/\nnode_modules/\nai/ready-check/\nCLAUDE.local.md\n")
     write("phpstan.neon", "parameters:\n  level: 0\n  paths:\n    - web/modules/custom\n")
-    for args in (("init", "-b", "main"), ("add", "."), ("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "Fixture")):
+    for args in (("add", "."), ("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "Fixture")):
         subprocess.run(["git", *args], cwd=project, env=env, check=True, capture_output=True)
     write("vendor/autoload.php", "<?php\n")
     write("web/modules/custom/demo/demo.php", "<?php\nfunction demo_portable() { ready_check_missing(); }\n")
@@ -187,7 +187,7 @@ def main():
             raise ValueError("Smoke reports must remain outside the plugin repository")
         reports.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="ready check smoke ") as folder:
-        root = Path(folder)
+        root = Path(folder).resolve()
         project, data = root / "Drupal site", root / "Managed tools"
         companion = root / "Companion toolkit"
         companion.mkdir()
@@ -207,6 +207,7 @@ def main():
                    COMPOSER_HOME=str(companion / "composer-home"), COMPOSER_CACHE_DIR=str(companion / "composer-cache"),
                    NPM_CONFIG_PREFIX=str(companion / "npm-prefix"), npm_config_cache=str(companion / "npm-cache"),
                    PLAYWRIGHT_BROWSERS_PATH=str(companion / "browsers"))
+        subprocess.run(["git", "init", "-b", "main"], cwd=project, env=env, check=True, capture_output=True)
         command = [sys.executable, "-B", str(PLUGIN / "scripts/ready-check.py")]
         for attempt in range(2):
             process = subprocess.run([*command, "setup", "--project", str(project)], env=env, capture_output=True, encoding="utf-8")

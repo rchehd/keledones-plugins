@@ -7,7 +7,10 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
+
+from helpers import write_fake_command
 
 PLUGIN = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PLUGIN / "scripts"))
@@ -210,7 +213,7 @@ class ValidatorTest(unittest.TestCase):
     def tools(self, **changes):
         folder = tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
-        root = Path(folder.name)
+        root = Path(folder.name).resolve()
         source = PLUGIN / "profiles/go/tools"
         tools = root / "tools"
         shutil.copytree(source, tools)
@@ -246,12 +249,28 @@ class ValidatorTest(unittest.TestCase):
             self.assertIn("- " + linter, text)
 
 
+class GofmtOutputTest(unittest.TestCase):
+    def test_windows_paths_and_line_endings_in_gofmt_output(self):
+        sys.path.insert(0, str(PLUGIN / "profiles/go/scripts"))
+        from go_lint import gofmt_report
+
+        file = r"C:\Users\Test User\project\app.go"
+        lint = Mock()
+        self.assertTrue(gofmt_report(lint, f"{file}:2:8: expected ')'\r\n"))
+        lint.add.assert_called_once_with(file, "2", "expected ')'", "error", "gofmt")
+
+        lint.reset_mock()
+        diff = f"--- {file}.orig\r\n+++ {file}\r\n@@ -2 +2 @@\r\n-x:=1\r\n+x := 1\r\n"
+        self.assertTrue(gofmt_report(lint, diff))
+        lint.add.assert_called_once_with(file, 2, "File is not formatted as gofmt would write it", "error", "gofmt")
+
+
 @unittest.skipUnless(shutil.which("git"), "Git is required")
 class FakeToolsTest(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory(prefix="ready-check-test.")
         self.addCleanup(temporary.cleanup)
-        self.root = Path(temporary.name)
+        self.root = Path(temporary.name).resolve()
         self.project = self.root / "project"
         self.bin = self.root / "bin"
         self.log = self.root / "calls.log"
@@ -259,10 +278,10 @@ class FakeToolsTest(unittest.TestCase):
         self.env.update(LINT_RUNNER="local", READY_CHECK_DATA_DIR=str(self.root / "data"), FAKE_LOG=str(self.log),
                         FAKE_GOROOT=str(self.root / "goroot"), FAKE_GOPATH=str(self.root / "gopath"),
                         PATH=str(self.bin) + os.pathsep + os.environ["PATH"])
-        self.executable(self.bin / "go", GO)
-        self.executable(self.root / "goroot/bin/gofmt", GOFMT)
-        self.executable(self.bin / "golangci-lint", GOLANGCI)
-        self.executable(self.bin / "govulncheck", GOVULNCHECK)
+        self.go = write_fake_command(self.bin / "go", GO)
+        self.gofmt = write_fake_command(self.root / "goroot/bin/gofmt", GOFMT)
+        write_fake_command(self.bin / "golangci-lint", GOLANGCI)
+        write_fake_command(self.bin / "govulncheck", GOVULNCHECK)
         self.write("go.mod", "module example.com/notes\n\ngo 1.26\n")
         self.write("app.go", "package main\n")
         self.write(".golangci.yml", 'version: "2"\n')
@@ -270,11 +289,6 @@ class FakeToolsTest(unittest.TestCase):
         self.git("init", "-b", "main")
         self.git("add", ".")
         self.git("-c", "user.name=F", "-c", "user.email=f@example.invalid", "commit", "-m", "Fixture")
-
-    def executable(self, path, content):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content)
-        path.chmod(0o755)
 
     def git(self, *args):
         return subprocess.run(["git", *args], cwd=self.project, capture_output=True, text=True, check=True).stdout
@@ -303,7 +317,7 @@ class FakeToolsTest(unittest.TestCase):
         self.assertEqual(gofmt["status"], "FAIL", gofmt)
         self.assertEqual([(f["file"], f["line"], f["source"]) for f in gofmt["findings"]], [("app.go", 4, "gofmt")])
         self.assertEqual(gofmt["tools"][0]["name"], "gofmt")
-        self.assertTrue(gofmt["tools"][0]["path"].endswith("goroot/bin/gofmt"))
+        self.assertEqual(Path(gofmt["tools"][0]["path"]).resolve(), self.gofmt)
 
     def test_formatted_and_unparsable_files(self):
         self.write("app.go", CHANGED)
@@ -358,7 +372,9 @@ class FakeToolsTest(unittest.TestCase):
         self.write("app.go", CHANGED)
         golangci = self.static()["golangci"]
         self.assertEqual(golangci["tools"][-1]["configuration"]["source"], "project")
-        self.assertIn("--config " + str(self.project / ".golangci.yml"), next(c for c in self.calls() if c.startswith("golangci")))
+        call = next(c for c in self.calls() if c.startswith("golangci"))
+        config = call.split("--config ", 1)[1].split(" --path-mode", 1)[0]
+        self.assertEqual(Path(config).resolve(), self.project / ".golangci.yml")
 
     def test_managed_default_configuration_needs_the_installed_bundle(self):
         (self.project / ".golangci.yml").unlink()
@@ -381,8 +397,9 @@ class FakeToolsTest(unittest.TestCase):
 
         with patch.object(go_tools, "project_tool", return_value="golangci-lint"), \
                 patch.object(go_tools, "versioned", versioned), patch.object(go_tools, "managed_bundle", return_value="/bundle"):
-            self.assertEqual(go_tools.tool(None, "golangci-lint", None, 2)["source"], "profile")
-            self.assertEqual(go_tools.tool(None, "golangci-lint", None)["source"], "project")
+            runner = SimpleNamespace(name="local")
+            self.assertEqual(go_tools.tool(runner, "golangci-lint", None, 2)["source"], "profile")
+            self.assertEqual(go_tools.tool(runner, "golangci-lint", None)["source"], "project")
 
     def test_typecheck_issues_surface_package_compile_errors(self):
         self.write("app.go", CHANGED)
@@ -426,10 +443,16 @@ class FakeToolsTest(unittest.TestCase):
 
     def test_missing_go_is_incomplete_not_pass(self):
         self.write("app.go", CHANGED)
-        (self.bin / "go").unlink()
-        (self.root / "git-only").mkdir()
-        (self.root / "git-only/git").symlink_to(shutil.which("git"))
-        vet = self.static(PATH=str(self.bin) + os.pathsep + str(self.root / "git-only"))["vet"]
+        self.go.unlink()
+        git = self.root / "git-only/git"
+        git_path = shutil.which("git")
+        if os.name == "nt":
+            write_fake_command(git, '#!/usr/bin/env python3\nimport subprocess, sys\n'
+                                    f'sys.exit(subprocess.call([{git_path!r}, *sys.argv[1:]]))\n')
+        else:
+            git.parent.mkdir()
+            git.symlink_to(git_path)
+        vet = self.static(PATH=str(self.bin) + os.pathsep + str(git.parent))["vet"]
         self.assertEqual(vet["status"], "INCOMPLETE", vet)
 
     def test_checks_are_not_applicable_when_inputs_did_not_change(self):

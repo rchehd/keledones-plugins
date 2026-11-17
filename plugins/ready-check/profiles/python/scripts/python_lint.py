@@ -16,7 +16,7 @@ SYNTAX = ("import ast, json, sys\nout = []\nfor name in sys.argv[1:]:\n    try:\
           "    except SyntaxError as error:\n        out.append({'file': name, 'line': error.lineno or 0, 'message': error.msg})\n"
           "    except (ValueError, OSError) as error:\n        out.append({'file': name, 'line': 0, 'message': str(error)})\n"
           "print(json.dumps(out))\n")
-DIFF_FILE = re.compile(r"^--- (.+?)(?:\t.*)?$", re.M)
+DIFF_FILE = re.compile(r"^--- ([^\r\n]+?)(?:\t[^\r\n]*)?\r?$", re.M)
 HUNK = re.compile(r"^@@ -(\d+)", re.M)
 MYPY_LINE = re.compile(r"^(.+?):(\d+)(?::\d+)?: (error|warning): (.*)$", re.M)
 DJANGO_ITEM = re.compile(r"^(\S[^:]*): \(([\w.]+)\) (.*)$")

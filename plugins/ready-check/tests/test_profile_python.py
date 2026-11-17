@@ -5,8 +5,11 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import venv
 from pathlib import Path
 from unittest.mock import patch
+
+from helpers import write_fake_command
 
 PLUGIN = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PLUGIN / "scripts"))
@@ -24,7 +27,8 @@ if "--version" in sys.argv:
     print("ruff 0.17.3")
     sys.exit(0)
 if sys.argv[1] == "format":
-    print("--- app.py\\n+++ app.py\\n@@ -1,3 +1,3 @@\\n x = 1\\n-import  os\\n+import os\\n print(x)")
+    diff = "--- app.py\\n+++ app.py\\n@@ -1,3 +1,3 @@\\n x = 1\\n-import  os\\n+import os\\n print(x)\\n"
+    sys.stdout.buffer.write(diff.replace("\\n", "\\r\\n").encode())
     sys.exit(1)
 root = os.getcwd()
 print(json.dumps([
@@ -190,7 +194,7 @@ class FakeToolsTest(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory(prefix="ready-check-test.")
         self.addCleanup(temporary.cleanup)
-        self.root = Path(temporary.name)
+        self.root = Path(temporary.name).resolve()
         self.project = self.root / "project"
         self.env = {k: v for k, v in os.environ.items() if not k.startswith(("LINT_", "READY_CHECK_", "FAKE_"))}
         self.env.update(LINT_RUNNER="local", READY_CHECK_DATA_DIR=str(self.root / "data"))
@@ -202,9 +206,14 @@ class FakeToolsTest(unittest.TestCase):
         self.git("init", "-b", "main")
         self.git("add", ".")
         self.git("-c", "user.name=F", "-c", "user.email=f@example.invalid", "commit", "-m", "Fixture")
-        wrapper = ('#!/bin/sh\nif [ "$1" = "-m" ]; then\n  tool=$2; shift 2\n  [ "$tool" = pip_audit ] && tool=pip-audit\n'
-                   '  exec "$(dirname "$0")/$tool" "$@"\nfi\n' + f'exec "{sys.executable}" "$@"\n')
-        self.write(".venv/bin/python", wrapper).chmod(0o755)
+        environment = self.project / ".venv"
+        venv.EnvBuilder(with_pip=False).create(environment)
+        windows = os.name == "nt"
+        self.bin = environment / ("Scripts" if windows else "bin")
+        python = self.bin / ("python.exe" if windows else "python")
+        self.site_packages = Path(subprocess.check_output(
+            [str(python), "-X", "utf8", "-c", "import sysconfig; print(sysconfig.get_path('purelib'))"],
+            text=True, encoding="utf-8").strip())
 
     def git(self, *args):
         return subprocess.run(["git", *args], cwd=self.project, capture_output=True, text=True, check=True).stdout
@@ -216,7 +225,8 @@ class FakeToolsTest(unittest.TestCase):
         return path
 
     def tool(self, name, source):
-        self.write(".venv/bin/" + name, source).chmod(0o755)
+        write_fake_command(self.bin / name, source)
+        (self.site_packages / (name.replace("-", "_") + ".py")).write_text(source, encoding="utf-8")
 
     def static(self, mode=None):
         env = dict(self.env, **({"FAKE_DJANGO": mode} if mode else {}))
@@ -244,7 +254,9 @@ class FakeToolsTest(unittest.TestCase):
         self.assertEqual((formatted["findings"][0]["file"], formatted["findings"][0]["line"]), ("app.py", 2))
 
     def test_unparsable_ruff_output_is_incomplete(self):
-        self.tool("ruff", '#!/bin/sh\n[ "$1" = "--version" ] && echo "ruff 0.17.3" && exit 0\necho nonsense\nexit 1\n')
+        self.tool("ruff", '#!/usr/bin/env python3\nimport sys\n'
+                          'if "--version" in sys.argv:\n    print("ruff 0.17.3")\n    sys.exit(0)\n'
+                          'print("nonsense")\nsys.exit(1)\n')
         self.write("app.py", CHANGED)
         self.assertEqual(self.static()["ruff"]["status"], "INCOMPLETE")
 

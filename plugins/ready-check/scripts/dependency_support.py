@@ -23,13 +23,16 @@ def asset_id(source):
 
 
 def data_root():
+    if "READY_CHECK_DATA_DIR" in os.environ:
+        return Path(os.environ["READY_CHECK_DATA_DIR"]).expanduser().resolve()
+
     if sys.platform == "win32":
         default = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData/Local") / "ReadyCheck"
     elif sys.platform == "darwin":
         default = Path.home() / "Library/Application Support/ReadyCheck"
     else:
         default = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local/share") / "ready-check"
-    return Path(os.environ.get("READY_CHECK_DATA_DIR", default)).expanduser().resolve()
+    return default.expanduser().resolve()
 
 
 def bundle_path(source, root, component):

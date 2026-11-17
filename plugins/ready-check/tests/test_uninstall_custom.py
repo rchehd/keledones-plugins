@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 
 from helpers import RepoTest
 import customize
@@ -7,7 +8,7 @@ import customize
 class UninstallCustomTest(RepoTest):
     def plan(self, *flags):
         result = self.entry_json("uninstall", "--project", str(self.repo), "--dry-run", *flags)
-        return {item["path"].rsplit("/", 1)[-1]: item for item in result["items"]}
+        return {Path(item["path"]).name: item for item in result["items"]}
 
     def setUp(self):
         super().setUp()

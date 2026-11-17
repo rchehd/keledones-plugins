@@ -13,6 +13,24 @@ sys.path.insert(0, str(PLUGIN / "scripts"))
 sys.dont_write_bytecode = True
 
 
+def write_fake_command(path, source):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if os.name == "nt":
+        from pip._vendor.distlib.scripts import ScriptMaker
+
+        with tempfile.TemporaryDirectory() as directory:
+            script = Path(directory) / (path.name + ".py")
+            script.write_text(source, encoding="utf-8")
+            maker = ScriptMaker(directory, str(path.parent))
+            maker.variants = {""}
+            maker.make(script.name)
+        return path.with_suffix(".exe")
+
+    path.write_text(source, encoding="utf-8")
+    path.chmod(0o755)
+    return path
+
+
 class RepoTest(unittest.TestCase):
     """A temporary Git repository and a private Ready Check data root."""
 

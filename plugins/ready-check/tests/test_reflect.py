@@ -36,7 +36,7 @@ class ReflectTest(RepoTest):
         branch_dir = Path(self.entry_json("reports", "--project", str(self.repo), "--task", "Seed")["directory"]).parent
         for child in branch_dir.iterdir():
             child.rmdir()
-        (branch_dir / "report.md").write_text("Вердикт **READY TO PUSH**\n")
+        (branch_dir / "report.md").write_text("Вердикт **READY TO PUSH**\n", encoding="utf-8")
         digest = self.entry_json("reflect-collect", "--project", str(self.repo))
         task = digest["tasks"][0]
         self.assertEqual((task["verdict"], task["rounds"], digest["totals"]["without_summary"]), ("READY TO PUSH", None, 1))

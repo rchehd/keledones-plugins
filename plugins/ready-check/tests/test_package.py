@@ -16,7 +16,7 @@ class PackageTest(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory(prefix="ready-check-package-test.")
         self.addCleanup(temporary.cleanup)
-        self.root = Path(temporary.name) / "package"
+        self.root = Path(temporary.name).resolve() / "package"
         skipped = PACKAGE.ignored(PLUGIN)
         shutil.copytree(PLUGIN, self.root, ignore=lambda folder, names: {
             name for name in names if name in {".git", "__pycache__"} or Path(folder) / name in skipped})
@@ -33,7 +33,8 @@ class PackageTest(unittest.TestCase):
         self.assertEqual(next(item for item in result["checks"] if item["id"] == check)["status"], "FAIL", result)
 
     def test_current_package_passes_from_another_directory(self):
-        self.assertEqual(PACKAGE.validate(self.root)["status"], "PASS")
+        result = PACKAGE.validate(self.root)
+        self.assertEqual(result["status"], "PASS", result)
 
     def test_version_mismatch_is_rejected(self):
         self.change_json(".codex-plugin/plugin.json", lambda data: data.update(version="9.9.9"))
