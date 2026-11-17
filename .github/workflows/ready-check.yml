@@ -56,6 +56,18 @@ jobs:
       PYTHONUNBUFFERED: '1'
     steps:
       - uses: actions/checkout@v7
+      - name: Check that no WSL distribution can run on the native Windows runner
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (Get-Command wsl.exe -ErrorAction SilentlyContinue) {
+            $PSNativeCommandUseErrorActionPreference = $false
+            wsl.exe --exec /bin/true *> $null
+            if ($LASTEXITCODE -eq 0) {
+              throw 'This job requires a Windows runner without a working WSL distribution.'
+            }
+            $global:LASTEXITCODE = 0
+          }
       - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
@@ -91,5 +103,39 @@ jobs:
         with:
           name: integration-${{ matrix.platform.name }}
           path: ${{ runner.temp }}/ready-check-integration
+          retention-days: 7
+          if-no-files-found: warn
+  wsl:
+    name: Tests and installation / Ubuntu 24.04 on WSL 2
+    runs-on: windows-2025
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install Ubuntu 24.04 in WSL 2
+        run: |
+          wsl.exe --set-default-version 2
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          wsl.exe --install --distribution Ubuntu-24.04 --web-download --no-launch
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          wsl.exe --list --verbose
+      - name: Run Ready Check inside Ubuntu
+        run: |
+          $reports = Join-Path $env:RUNNER_TEMP 'ready-check-wsl'
+          New-Item -ItemType Directory -Force -Path $reports | Out-Null
+          $guestReports = wsl.exe --distribution Ubuntu-24.04 --user root --exec wslpath -a -u $reports
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          wsl.exe --distribution Ubuntu-24.04 --user root --cd "$env:GITHUB_WORKSPACE" --exec bash .github/scripts/ready-check-wsl.sh $guestReports.Trim()
+      - name: Upload WSL installation reports and logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-WSL-2
+          path: ${{ runner.temp }}/ready-check-wsl
           retention-days: 7
           if-no-files-found: warn

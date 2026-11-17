@@ -110,6 +110,10 @@ On Windows PowerShell, replace `python3` with `py -3` (or `python`) and quote na
 py -3 "C:\Tools\ready-check\scripts\ready-check.py" setup --project "C:\Projects\My Drupal" --dry-run
 ```
 
+Native Windows uses Windows Python, Git and Node.js. WSL 2 uses the Linux tools installed in your distribution.
+When running your coding client inside WSL, use the `python3` command above with Linux paths for the plugin
+and project, such as `/home/me/projects/my-drupal`.
+
 `--component browser` prepares Playwright CLI, official MCP and the browser; `--component profile` prepares only
 the selected profile's tools. The default is `all`. `--browser chromium|firefox|webkit` selects the browser (default Chromium).
 

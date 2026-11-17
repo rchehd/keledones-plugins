@@ -62,6 +62,7 @@ Sign in to GitHub with access to the repository and download the ZIP you want fr
 ## CI and releases
 
 Pull requests run the catalog checks and the Ready Check and Gnothi test matrices on Linux, macOS and Windows.
+Ready Check also runs its package, regression and installation checks in Ubuntu 24.04 on WSL 2.
 To run the full suite on `main`, go to **Actions → CI → Run workflow** and select `main`.
 
 To release, push a new marketplace version tag such as `v0.1.0`. The **Plugin release** workflow runs the same
