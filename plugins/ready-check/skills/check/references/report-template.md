@@ -90,6 +90,15 @@ evidence and CHECKED / FINDING / N/A; or "Tests: N/A — no tests in the change 
 | --- | --- | --- | --- |
 | [Rule text (client settings / user / team)] | yes / no | [File and line] | CHECKED / FINDING / N/A |
 
+### Automated test coverage
+
+[Complete for changes to automated tests, their discovery, or shared test setup. Record code inspection here
+and execution evidence under QA.]
+
+| Requirement or regression | Technique and test condition | Expected outcome | Test and assertion evidence | Coverage | Gap or question |
+| --- | --- | --- | --- | --- | --- |
+| RC-001 | [Relevant ISTQB technique and condition] | [Observable result] | [File and line of the case and assertion, or explained absence] | COVERED / PARTIAL / MISSING / UNRESOLVED | [Specific gap, linked finding or question] |
+
 ### Findings
 
 [Label each finding: issue (blocking) / suggestion / nitpick / question. For each finding: ID, RC IDs or regression label, blocking/nonblocking, trigger, expected/code-inferred

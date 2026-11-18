@@ -122,7 +122,8 @@ the project's tests cover the changed code, review them as code:
 Record the section as not applicable with the reason when the change touches no tests and the project has none
 for this code.
 For added, changed or removed tests, including test-only tasks and changes to their config or fixtures,
-apply the [automated tests checklist](references/automated-tests.md) and hand off runnable cases to QA.
+apply the [automated tests checklist](references/automated-tests.md), record expected conditions and
+assertion evidence in the Automated test coverage table, and hand off runnable cases to QA.
 
 ## Bug fixes
 
