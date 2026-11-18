@@ -34,20 +34,28 @@ class PackageTest(unittest.TestCase):
         self.assertIn("$gnothi:portrait", prompt)
         self.assertLessEqual(len(prompt), 128)
 
-    def test_codex_import_requires_a_long_description(self):
+    def test_codex_import_metadata(self):
+        cases = (
+            ("longDescription", " \t\n", "must be non-blank text"),
+            ("longDescription", None, "must be non-blank text"),
+            ("capabilities", "Read", "must be a list of strings"),
+            ("capabilities", ["Read", 1], "must be a list of strings"),
+            ("capabilities", None, "must be a list of strings"),
+        )
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "gnothi"
             shutil.copytree(PLUGIN, root)
             path = root / ".codex-plugin/plugin.json"
             manifest = json.loads(path.read_text(encoding="utf-8"))
-            for description in (" \t\n", None):
-                with self.subTest(description=description):
-                    if description is None:
-                        del manifest["interface"]["longDescription"]
+            for field, value, message in cases:
+                with self.subTest(field=field, value=value):
+                    interface = manifest["interface"].copy()
+                    if value is None:
+                        del interface[field]
                     else:
-                        manifest["interface"]["longDescription"] = description
-                    path.write_text(json.dumps(manifest), encoding="utf-8")
-                    self.assertIn(".codex-plugin/plugin.json: interface.longDescription must be non-blank text",
+                        interface[field] = value
+                    path.write_text(json.dumps(dict(manifest, interface=interface)), encoding="utf-8")
+                    self.assertIn(f".codex-plugin/plugin.json: interface.{field} {message}",
                                   validate.check_manifests(root))
 
     def test_versions_match(self):

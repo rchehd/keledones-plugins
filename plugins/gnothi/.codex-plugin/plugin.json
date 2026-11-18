@@ -14,6 +14,7 @@
     "longDescription": "Analyzes your local AI sessions and builds a private HTML report on how you collaborate with AI, where you spend time, and which work patterns recur.",
     "developerName": "Roman Chekhaniuk",
     "category": "Productivity",
+    "capabilities": ["Interactive", "Read", "Write"],
     "brandColor": "#1F5673",
     "composerIcon": "./assets/logo.svg",
     "logo": "./assets/logo.svg",

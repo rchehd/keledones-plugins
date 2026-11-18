@@ -62,6 +62,9 @@ def manifests(root):
             description = interface.get("longDescription") if isinstance(interface, dict) else None
             require(isinstance(description, str) and bool(description.strip()),
                     f"{folder}/plugin.json: interface.longDescription must be non-blank text")
+            capabilities = interface.get("capabilities")
+            require(isinstance(capabilities, list) and all(isinstance(item, str) for item in capabilities),
+                    f"{folder}/plugin.json: interface.capabilities must be a list of strings")
             onboarding = resource(root, root, manifest.get("onboardingSkill"))
             require(onboarding == root / "skills/setup/SKILL.md", "Codex onboarding must invoke the packaged setup skill")
     require(len(versions) == 1, "Plugin manifest versions must agree across all harnesses")

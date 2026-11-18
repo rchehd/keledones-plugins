@@ -13,6 +13,7 @@
     "longDescription": "Checks task readiness against the requirements and Git diff with profile-based static analysis, code and security review, and approved QA scenarios.",
     "developerName": "Roman Chekhaniuk",
     "category": "Developer Tools",
+    "capabilities": ["Interactive", "Read", "Write"],
     "brandColor": "#16794C",
     "composerIcon": "./assets/logo.svg",
     "logo": "./assets/logo.svg",

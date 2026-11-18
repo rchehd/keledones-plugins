@@ -49,6 +49,9 @@ def check_manifests(root):
             if not isinstance(description, str) or not description.strip():
                 problems.append(f"{folder}/plugin.json: interface.longDescription must be non-blank text")
                 continue
+            capabilities = interface.get("capabilities")
+            if not isinstance(capabilities, list) or any(not isinstance(item, str) for item in capabilities):
+                problems.append(f"{folder}/plugin.json: interface.capabilities must be a list of strings")
 
         for relative in resources(manifest):
             target = (root / relative).resolve()
