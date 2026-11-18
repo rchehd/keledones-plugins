@@ -72,6 +72,7 @@ the action and observable outcome for QA.
 
 For an affected UI with an agreed design, apply the [UI design checklist](references/ui-design.md).
 Keep design evidence linked to its frame, variant and acceptance condition.
+For affected HTML, CSS or client-side browser behavior, apply the [web platform checklist](references/web-platform.md).
 
 Add the user's and team's extra checklist items: `scripts/ready-check.py customize list --kind review --profile <id>
 --project <app>` for each applicable pair. Put each active item (not `disabled`) into the section it names, marked with its scope
@@ -120,6 +121,8 @@ the project's tests cover the changed code, review them as code:
 
 Record the section as not applicable with the reason when the change touches no tests and the project has none
 for this code.
+For added, changed or removed tests, including test-only tasks and changes to their config or fixtures,
+apply the [automated tests checklist](references/automated-tests.md) and hand off runnable cases to QA.
 
 ## Bug fixes
 

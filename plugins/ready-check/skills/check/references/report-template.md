@@ -112,7 +112,7 @@ Plan approval: [PENDING / APPROVED / REJECTED; human response and approved revis
 Task type and source: [Feature acceptance or bug trigger/corrected expectation/regressions, from session/task/human]
 Time: [Execution start/end or not run]
 Environment: [Target URL, runner, fixture or CI run; application and scope mapping, data and revision identity]
-Browser mode: [If applicable, requested and actual mode, browser/version, viewport, GUI limitations and approved fallback]
+Browser execution: [If applicable, project runner and selected specs or interactive mode, browser/version, viewport and approved fallback]
 Mobile target: [If applicable, app ID, build and flavor, platform, device and OS, tool and version]
 Design reference: [If applicable, agreed Figma node or export, version, mapped viewport, variant and state]
 Risk map: [Changed areas with likelihood × impact (H/M/L) and the change types they come from]

@@ -129,8 +129,8 @@ and mark it `INCOMPLETE`. Continue other applicable pairs. Do not install depend
 to conceal a failure. Once a pair's prerequisites are available, run `scripts/ready-check.py static` with
 the same scope and save its corresponding static JSON. Doctor `READY` alone never completes the static TODO.
 
-For missing managed dependencies (doctor `MISSING`, or no usable managed browser for an applicable selected
-browser scenario), read the
+For missing managed dependencies (doctor `MISSING`, or no usable managed browser for a selected
+interactive browser scenario that needs it), read the
 user's install decision with `scripts/ready-check.py config get install`. With `auto`, install now in the
 foreground without asking: `scripts/ready-check.py setup --project <app> --profile <id> --component profile`
 (or `--component browser`), show the result, then rerun doctor/static. With `ask` or `never`, the user started
@@ -185,10 +185,12 @@ task history and human answers, distinguishing feature acceptance from bug repro
 coverage. Show RCs, steps, expected outcomes, roles and test-data scope, then wait for explicit approval
 or clarification. General validation consent does not approve an unseen QA plan. Persist plan revision,
 approved scenario IDs and the human decision; a material plan change needs renewed approval before its cases run.
-The skill reads applicable QA guidance per scenario and checks the relevant runtime. Browser scenarios use
-visible (bundled Playwright MCP) or background (Playwright CLI) mode from the `browser` setting or the user's
-answer. Mobile cases use the project's device tests or Maestro. API, CLI and CI scenarios use the project's
-tools, test environment and current provider evidence.
+The skill reads applicable QA guidance per scenario and checks the relevant runtime. When tests are a
+deliverable, include the affected cases in the plan and run them in the
+[project test runner](../qa/references/project-tests.md). Interactive browser scenarios use visible
+(bundled Playwright MCP) or background (Playwright CLI) mode from the `browser` setting or the user's answer.
+Mobile cases use the project's device tests or Maestro. API, CLI and CI scenarios use the project's tools,
+test environment and current provider evidence.
 No second user invocation is needed.
 
 Keep scenarios, expected/actual outcomes, role and environment evidence, findings, and technical verification
