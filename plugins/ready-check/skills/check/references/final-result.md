@@ -117,8 +117,11 @@ An incomplete/blocked draft, if requested, must retain that verdict and list unf
   whether a PR/MR already exists for the selected repository, source and target and reuse its link if it
   matches the verified changes. Stage and commit only approved files if a commit is needed. If task and
   unrelated changes cannot be separated safely, return the chat text and explain what needs resolving.
-  Push only the selected source ref if needed, using a normal push. Confirm its remote head and comparison
-  match the checked work before opening the PR/MR. Use explicit repository and branch arguments.
+  If needed, push only the selected source ref to the approved source repository, using a normal push.
+  A remote with multiple push URLs can send the branch to all of them. Address the approved push URL
+  directly in that case, or return the chat text if the destination cannot be resolved. Confirm that
+  its remote head and comparison match the checked work before opening the PR/MR. Use explicit repository
+  and branch arguments.
   With GitHub CLI, use `gh pr create --repo <destination> --head <source> --base <target>`
   with `--title` and `--body-file`. With GitLab CLI, use
   `glab mr create --repo <destination> --source-branch <source> --target-branch <target> --push=false --yes`
