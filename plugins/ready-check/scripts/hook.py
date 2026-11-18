@@ -22,7 +22,7 @@ EVENTS = ("session-start", "prompt", "answer", "stop")
 CLIENTS = ("claude", "cursor", "codex")
 CHECK = {"claude": "/ready:check", "cursor": "/check", "codex": "$check"}
 RUNNERS = {"ddev": "DDEV", "compose": "Docker Compose", "local": "local"}
-REMINDER = "If you have finished the user's task, ask once whether to run Ready Check ({check}); otherwise ignore this."
+REMINDER = "If you have finished the user's task, ask once whether to run Ready Check ({check}) with options for the task's scope; otherwise ignore this."
 
 
 def session_id(payload):
@@ -174,8 +174,9 @@ def session_start(client, payload):
     entry = [sys.executable, PLUGIN / "scripts/ready-check.py"]
     rules_command = shell_command([*entry, "rules", "add"])
     template_command = shell_command([*entry, "template"])
+    check_offer = (PLUGIN / "skills/check/references/check-offer.md").read_text(encoding="utf-8").strip()
     parts = [template("session-rule.md", check=CHECK[client], rules=rules_command, template_command=template_command,
-                      language=values["artifactLanguage"]),
+                      language=values["artifactLanguage"], check_offer=check_offer),
              status_line(status, client)]
     coding_rules = rules.context(top)
 

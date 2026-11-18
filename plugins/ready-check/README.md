@@ -26,10 +26,9 @@ The diagram source is [assets/workflow.drawio](assets/workflow.drawio); edit it 
    `question`; only issues block.
 4. **QA** ranks changed areas by risk and shows the plan for approval. It verifies browser, API, CLI or
    CI and native mobile outcomes as applicable, with accessibility and exploration for browser cases.
-5. **Verdict.** `READY TO PUSH` only after every stage passed, then an offer to write the PR title and
-   description in English from a template; otherwise
-   `BLOCKED`, `INCOMPLETE` or `PARTIAL CHECK COMPLETE`. Findings come with a fix offer; after a fix or "retest",
-   the next round reruns only what the change can affect.
+5. **Verdict.** `READY TO PUSH` requires complete current validation and opens the delivery choice.
+   Other runs report `BLOCKED`, `INCOMPLETE` or `PARTIAL CHECK COMPLETE`. Findings come with a fix offer.
+   After a fix or "retest", the next round reruns only what the change can affect.
 
 Plugin hooks do the rest without being asked: the agent offers a check after finishing a task, installs tools
 after one consent, records your prompts per branch and passes your coding rules into every session.
@@ -103,8 +102,10 @@ framework checkers. Confirm or correct the project type; on yes the tools instal
 with "Ready Check is ready". Downloads are agreed once per machine, the project type once per project. On no,
 nothing is downloaded and the question is not repeated; review, reminders and task records still work.
 
-After you finish a task that changed the project, the agent asks once which checks to run. You can also start
-a check yourself with the commands in [How it works](#how-it-works).
+After you finish a task that changed the project, the agent offers checks based on the changed behavior,
+paths and applicable profiles. A workflow change can get CI QA, while a changed web flow and API can get both
+Playwright and API QA. Choose all applicable checks, a subset or skip. You can also start a check yourself
+with the commands in [How it works](#how-it-works).
 
 Ready Check works through plugin hooks and does not write `AGENTS.md`, `CLAUDE.md` or project MCP configs. In
 Codex, trust the plugin's hooks once in `/hooks`. Cursor gets the rule at session start but no end-of-turn
@@ -129,7 +130,13 @@ with a local test user it creates and keeps in `ai/ready-check/qa-accounts.json`
 real credentials. A visible browser needs a graphical session.
 
 **Language.** The agent talks in your language; reports, QA plans and handoffs are written in English unless you
-choose another language at first run or with `config set artifactLanguage Ukrainian`. PR drafts stay in English.
+choose another language at first run or with `config set artifactLanguage Ukrainian`. Commit messages and
+PR/MR text stay in English.
+
+**Delivery.** After `READY TO PUSH`, choose to see the English commit message and PR/MR title and body in chat
+or open a PR/MR into a proposed target branch. Creation is available when `gh`, `glab` or a connector in
+your client can access the repository and create the request. The agent shows the repository, branches and
+any required commit or push before you choose. With no matching integration, you can still use the chat text.
 
 **Draft templates.** Set `commitTemplate` and `pullRequestTemplate` to your own files, for all projects or a
 single repository. Ready Check also recognizes Git commit templates and repository PR templates. See the
@@ -185,7 +192,8 @@ static, review, or QA. To check specific commits instead of the whole branch, na
 > /check — check commits a1b2c3d and e4f5a6b against TASK.md
 
 The agent asks when something is unclear and pauses for your approval of the QA plan. When it finds a
-problem, it asks whether to fix it or leave it to you, then rechecks after the fix. It never commits or pushes.
+problem, it asks whether to fix it or leave it to you, then rechecks after the fix. Commit and push are part
+of delivery only when you select creation with those operations.
 
 **Report:** `ai/ready-check/reports/<branch>/report.md` at the repository root. It is git-excluded.
 A later chat on the same branch continues from it. The directory name combines a readable branch slug

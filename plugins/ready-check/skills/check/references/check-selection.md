@@ -1,6 +1,6 @@
 # Check selection
 
-Record the selected stages before running checks. Offer these choices when making the post-task offer;
+Record the selected stages before running checks. Use the [scope-specific offer](check-offer.md) and
 reuse an explicit choice already in the conversation. An unqualified `check` request or a plain yes
 to the offer means `full`. A later instruction to narrow or expand the selection updates the report.
 
@@ -43,7 +43,7 @@ and list all unselected stages and remaining limitations. Never say READY TO PUS
 all checks pass for a partial selection. A whole-stage justified N/A counts as assessed only for its stated scope.
 
 Only `full` with all current gates, review dimensions, approved QA coverage (or reasoned whole-stage N/A),
-and no unresolved required question can produce READY TO PUSH and the normal English PR draft.
-An explicitly requested PR draft from a partial run must retain its partial scope and unperformed checks.
+and no unresolved required question can produce READY TO PUSH and the PR/MR delivery offer.
+An explicitly requested draft from a partial run must retain its partial scope and unperformed checks.
 Expanding to full validation requires every full-workflow prerequisite and current evidence; a partial
 assessment is not a shortcut around a failing or stale gate.

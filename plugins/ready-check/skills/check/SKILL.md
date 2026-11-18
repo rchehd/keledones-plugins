@@ -6,8 +6,8 @@ description: Check whether a task is ready to push through profile-based static 
 # Ready Check
 
 Verify a task in the current harness. Respond in the user's language; write the report in the Ready Check file
-language from the session context (English unless the user chose another); write the PR title and summary in
-English. One invocation continues through preparation, statics, review, QA, and the final result, pausing
+language from the session context (English unless the user chose another); write the commit message and
+PR/MR title and body in English. One invocation continues through preparation, statics, review, QA, and the final result, pausing
 for missing answers, QA-plan approval or fixes when needed. Never edit, copy or patch the Ready Check plugin,
 its scripts or its installed copy, not even in a temporary folder, to work around an error. When a Ready Check
 command fails, show the command and its error, mark the affected stage INCOMPLETE and offer to report the bug
@@ -16,9 +16,8 @@ from the plugin's `templates/bug.md`. Follow
 and keep unselected stages NOT_SELECTED. Only a full successful run can establish readiness to push.
 
 If this skill was selected from a natural-language request (such as "check before push" or "validate this")
-rather than the explicit `check` command or an accepted Ready Check offer, do not start yet: ask once in the
-user's language whether to run the Ready Check check and which checks (all, static, review and security, QA, or
-a combination). Continue only after a yes; on no, answer the request without Ready Check.
+rather than the explicit `check` command or an accepted Ready Check offer, use the
+[scope-specific offer](references/check-offer.md) and wait for the user's selection before running any checks.
 
 ## 1. Establish the task
 
@@ -202,17 +201,18 @@ A QA blocker leaves the QA TODO open. After a code fix repeat selected statics, 
 and rerun failed and related QA cases. Changes to runtime preparation or criteria invalidate affected
 results even without a new Git diff. Only a current successful QA gate proceeds to the final result.
 
-## 8. Produce the verdict and PR draft
+## 8. Produce the verdict and offer delivery
 
 Follow [final result guidance](references/final-result.md). Check complete RC coverage, current gates,
-unresolved questions, and uncovered required scope before deciding readiness. `READY TO PUSH` describes
-the fully checked state; it does not authorize a push. A successful partial run produces PARTIAL CHECK COMPLETE
-and explicit unselected stages, never readiness. Return the report's absolute link, then ask whether to prepare the
-PR title and description; on a yes write them in English from the template. Use the actual diff and report
-for the summary, give reproducible QA steps and expected results, and keep material limitations visible.
+unresolved questions, and uncovered required scope before deciding readiness. A successful partial run
+produces PARTIAL CHECK COMPLETE with explicit unselected stages. Return the report's absolute link.
+For `READY TO PUSH`, discover the available GitHub/GitLab CLI or connector and offer creation with the
+proposed target branch or drafts in chat. Follow the user's choice and reuse explicit authorization for the
+same delivery. Use the actual diff, report and effective templates for the English commit message and PR/MR.
 
 Whenever a run reaches a final result (any verdict), record it with `scripts/ready-check.py mark-checked --project <app>`
-so the end-of-turn reminder stays quiet until the code changes again.
+so the end-of-turn reminder stays quiet until the code changes again. If authorized delivery commits the same
+verified contents, record the resulting state again once that equivalence is confirmed.
 
 When an earlier stage blocks, save and report `BLOCKED` or `INCOMPLETE` with its next action instead of
 running later stages. Keep their TODO items open; a paused run is not complete. For a confirmed blocker,
@@ -284,13 +284,14 @@ Mark preparation TODO items complete when requirements, selection and scope are 
 stages NOT_SELECTED. Mark QA-plan approval complete only after the human confirms its current revision.
 Mark selected static checks complete after a current `PASS` or justified `N/A` for every applicable pair.
 Mark review complete after its `PASS` gate.
-Mark QA complete only after its current `PASS` or justified whole-stage `N/A` gate. The final TODO is
-complete after the scope-appropriate verdict and the PR question (with the English draft when the user agreed). Confirmed current blockers yield
+Mark QA complete only after its current `PASS` or justified whole-stage `N/A` gate. Complete the final TODO
+after the scope-appropriate verdict and any selected delivery action. Confirmed current blockers yield
 `BLOCKED`; missing evidence or unresolved required questions yield `INCOMPLETE`. All required gates and
 acceptance conditions must be current and covered before `READY TO PUSH`.
 
-Ready Check writes only under `ai/ready-check/` (git-excluded), authorized QA test data, and fixes the
-user approved through the fix offer. Environment preparation and cleanup require an established scope, as
-described by the QA skill. Do not otherwise edit project code, use auto-fix, install dependencies outside
-the install decision described in step 5, commit, push, publish a PR/comment, or start another AI harness.
+Ready Check writes under `ai/ready-check/` (git-excluded), in authorized QA test data, and in files
+approved through the fix offer. Environment preparation and cleanup require an established scope, as
+described by the QA skill. Commit, push and open a PR/MR only within the delivery the user authorized in
+step 8. Do not otherwise edit project code, use auto-fix, install dependencies outside the install
+decision in step 5, send comments, merge, or start another AI harness.
 A subagent may be started only for the fix the user chose in the fix offer.

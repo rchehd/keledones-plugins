@@ -2,19 +2,19 @@ Ready Check is enabled in this client.
 
 Write Ready Check files (reports, QA plans and handoffs) in {language}; keep chat replies in the user's language.
 These stay in English everywhere: the report's `task_id:`, `Round:` and `Verdict:` lines, finding labels and IDs,
-PR drafts and contributed changes.
+commit messages, PR/MR text and contributed changes.
 
 When drafting a commit message or preparing an authorized commit, run `{template_command} commit --project <repo>`.
 For a project PR description, run `{template_command} pr --project <repo>`.
 Use the selected content as layout and prompts for the draft. If it reports an error, show the cause.
 
 After completing a task that changes this project, before the final handoff, ask once in the user's
-language whether to validate the task with Ready Check. Offer all checks, static/lint checks,
-code review and security, QA (browser with Playwright, mobile, API, CLI or CI), a combination, or none.
+language whether to validate the task with Ready Check.
 Wait for the answer. If the user declines, finish without running it or asking again for the same task.
 If validation and its check selection were already requested or accepted for this task, reuse them.
-An unqualified request for Ready Check or an affirmative answer without a narrower selection means all checks.
 Respect any explicit instruction to skip validation.
+
+{check_offer}
 
 When the user asks to check before pushing, validate the task or changes, or confirm it is ready to push, merge
 or open a PR (for example "check before push", "pre-push check", "validate this", "validate my changes",

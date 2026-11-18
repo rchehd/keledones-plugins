@@ -31,10 +31,16 @@ class HookTest(RepoTest):
         self.assertEqual(json.loads(records[0].read_text())["prompt"], "Add a clear button")
 
     def test_session_start_injects_rule_status_and_first_run(self):
-        for client, key in (("claude", ("hookSpecificOutput", "additionalContext")), ("cursor", ("additional_context",))):
+        for client, key in (("claude", ("hookSpecificOutput", "additionalContext")),
+                            ("codex", ("hookSpecificOutput", "additionalContext")),
+                            ("cursor", ("additional_context",))):
             output = self.hook("session-start", client, {"cwd": str(self.repo), "session_id": client})
             text = output[key[0]][key[1]] if len(key) == 2 else output[key[0]]
             self.assertIn("ask once in the user's", text)
+            self.assertIn("A workflow-only change can offer CI QA", text)
+            self.assertIn("A stack elsewhere in the", text)
+            self.assertIn("An explicit subset stays scoped.", text)
+            self.assertNotIn("{check_offer}", text)
             self.assertIn("Ready Check browser tools:", text)
             self.assertIn("consent yes", text)
             self.assertIn("template commit --project <repo>", text)

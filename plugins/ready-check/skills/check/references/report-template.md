@@ -1,7 +1,7 @@
 # Ready Check report template
 
 Write the report in the Ready Check file language from the session context (English unless the user chose another),
-with the PR draft in English. Replace bracketed fields with known facts or an explicit unknown;
+with the commit message and PR/MR text in English. Replace bracketed fields with known facts or an explicit unknown;
 keep unresolved preparation items open. Maintain the same report as answers arrive.
 
 ```markdown
@@ -162,10 +162,10 @@ created/modified data IDs, remaining cleanup and its agreed scope, session clean
 - [ ] Review RC implementation, version-aware framework/stack practices and security using the applicable profiles.
 - [ ] Show QA requirements/scenarios and obtain explicit approval of the current plan.
 - [ ] Run applicable QA scenarios.
-- [ ] Produce the verdict and ask whether to prepare the English PR title and description.
+- [ ] Produce the verdict and complete the selected delivery action if applicable.
 
 [Persisted copy of the harness task list; keep it in sync. Keep unselected stages NOT_SELECTED; do not tick
-them as completed. Partial runs end with a scoped verdict; the English PR draft is written only after the user agrees.]
+them as completed. Partial runs end with a scoped verdict and provide drafts on request.]
 
 ## Open questions
 
@@ -182,16 +182,19 @@ and files the agent changed]
 - Static checks: [NOT_RUN, or status, JSON path, per-check findings/reasons, and log evidence]
 - Requirements review: [NOT_RUN, or stage status, findings and matrix coverage]
 - QA: [NOT_RUN, or stage result, coverage and evidence; reason if N/A]
-- PR title and description: [NOT_REQUESTED, DECLINED or DRAFTED; a draft is not published]
+- Delivery: [NOT_REQUESTED, DECLINED, DRAFTED, CREATED, ALREADY_EXISTS or FAILED; record any commit/push performed]
+- Destination repository, source and target branches, PR/MR URL: [if applicable]
 
-## PR draft (English)
+## Commit and PR/MR (English)
 
-PR title: [Supported concise title, or NOT_RUN]
+Commit message: [Proposed or used message from the effective commit template, or NOT_RUN]
+
+PR/MR title: [Supported concise title, or NOT_RUN]
 
 [Paste the English body using the effective PR template, or NOT_RUN. Describe the actual change and include
 material limitations. The default body has Summary, How to verify (QA), and Limitations.]
 
 ## Next step
 
-[Resolve a question, fix a finding and rerun affected stages, perform QA, or review the completed PR draft]
+[Resolve a question, fix a finding and rerun affected stages, perform QA, or review the delivery result]
 ```
