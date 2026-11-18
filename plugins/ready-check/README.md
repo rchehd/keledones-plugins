@@ -2,7 +2,7 @@
   <img src="assets/logo.png" alt="Ready Check" width="96">
 </p>
 
-# Ready Check
+# Ready Check · Review & QA
 
 A plugin for Cursor, Claude Code and Codex that checks whether a task is ready to push: the code meets the task's
 requirements, passes the project's checkers, follows the framework's practices, is safe, and works in a browser.
@@ -19,17 +19,16 @@ The diagram source is [assets/workflow.drawio](assets/workflow.drawio); edit it 
    for the branch, asks only what changes the expected result, and writes requirements `RC-001`, `RC-002`, … with
    acceptance conditions. Progress is tracked in the client's own task list and in a report.
 2. **Static checks** run the framework profile's checkers on the task's lines only.
-3. **Review** traces every requirement through the code, walks the profile's checklist for the kinds of
+3. **Review** traces every requirement through the code, applies shared and profile checklists for the kinds of
    changes found (configuration, forms, cache, access…), checks code quality (design fit, simplicity, names,
    comments, errors, dead code), reviews tests when the change has them, confirms a bug fix removes the cause,
    and applies your own coding rules. Findings are labelled `issue (blocking)`, `suggestion`, `nitpick` or
    `question`; only issues block.
-4. **QA** ranks changed areas by risk, designs cases with standard techniques, shows the plan for approval, runs
-   it in a visible or background browser, adds a short exploratory session and an accessibility check.
-5. **Verdict.** `READY TO PUSH` only after every stage passed, then an offer to write the PR title and
-   description in English from a template; otherwise
-   `BLOCKED`, `INCOMPLETE` or `PARTIAL CHECK COMPLETE`. Findings come with a fix offer; after a fix or "retest",
-   the next round reruns only what the change can affect.
+4. **QA** ranks changed areas by risk and shows the plan for approval. It verifies browser, API, CLI or
+   CI and native mobile outcomes as applicable, with accessibility and exploration for browser cases.
+5. **Verdict.** `READY TO PUSH` requires complete current validation and opens the delivery choice.
+   Other runs report `BLOCKED`, `INCOMPLETE` or `PARTIAL CHECK COMPLETE`. Findings come with a fix offer.
+   After a fix or "retest", the next round reruns only what the change can affect.
 
 Plugin hooks do the rest without being asked: the agent offers a check after finishing a task, installs tools
 after one consent, records your prompts per branch and passes your coding rules into every session.
@@ -38,7 +37,7 @@ after one consent, records your prompts per branch and passes your coding rules 
 | --- | --- | --- |
 | `check` | `/ready:check` · `/check` · `$check` | Whole flow from task to verdict |
 | `review` | `/ready:review` · `/review` · `$review` | Requirements, framework practices, security, coding rules |
-| `qa` | `/ready:qa` · `/qa` · `$qa` | Risk-based browser QA with approval |
+| `qa` | `/ready:qa` · `/qa` · `$qa` | Risk-based browser, mobile, API, CLI and CI QA with approval |
 | `setup` | `/ready:setup` · `/setup` · `$setup` | Install, repair, change decisions |
 | `customize` | `/ready:customize` · `/customize` · `$customize` | Add, list or disable your rules and checklist items |
 | `feedback` | `/ready:feedback` · `/feedback` · `$feedback` | Record that a checked task was returned after review |
@@ -54,11 +53,17 @@ Checks live in framework profiles. See [supported profiles](#supported-profiles)
 | --- | --- |
 | Requirements | Acceptance conditions per requirement and traceability from requirement to evidence, as in requirement-based testing |
 | Static checks | The project's own linters first, then the framework's established tools: Drupal Coder (PHPCS) and phpstan-drupal; Pint and Larastan; PHP-CS-Fixer `@Symfony`, phpstan-symfony and the `bin/console` linters; Ruff, mypy, Bandit and Django system checks; gofmt, go vet, golangci-lint (staticcheck, errcheck, gosec) and govulncheck; ESLint and Stylelint for assets |
+| TypeScript and YAML | [TypeScript Compiler API](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API) and [project references](https://www.typescriptlang.org/docs/handbook/project-references.html) for type checking, [typescript-eslint](https://typescript-eslint.io/getting-started/) for linting, and [yamllint](https://yamllint.readthedocs.io/en/stable/configuration.html) for plain YAML |
+| Infrastructure checks | [actionlint](https://github.com/rhysd/actionlint/blob/main/docs/usage.md) for GitHub Actions, [Compose config](https://docs.docker.com/reference/cli/docker/compose/config/), [DDEV utilities](https://docs.ddev.com/en/stable/users/usage/commands/) and [Nginx configuration testing](https://nginx.org/en/docs/switches.html). [GitLab CI Lint](https://docs.gitlab.com/ci/yaml/lint/) validates the effective pipeline and its includes on GitLab. |
+| Flutter checks | [Flutter CLI](https://docs.flutter.dev/reference/flutter-cli) for analysis and project tests, and [Dart format](https://dart.dev/tools/dart-format) for formatting checks |
 | Review | [Google code review guide](https://google.github.io/eng-practices/review/reviewer/looking-for.html) (functionality, design, complexity, tests, naming, comments), [Conventional Comments](https://conventionalcomments.org/) (finding labels), [ub-mode](https://github.com/unclebob/ub-mode) (fix the root cause, tests that test behavior, one source of truth), [OWASP Code Review Guide](https://owasp.org/www-project-code-review-guide/) (trace input to access, validation, storage and output), framework security guides ([OWASP Laravel](https://cheatsheetseries.owasp.org/cheatsheets/Laravel_Cheat_Sheet.html), [OWASP Symfony](https://cheatsheetseries.owasp.org/cheatsheets/Symfony_Cheat_Sheet.html), [OWASP Django](https://cheatsheetseries.owasp.org/cheatsheets/Django_Security_Cheat_Sheet.html), [Django deployment checklist](https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/), [Go security best practices](https://go.dev/doc/security/best-practices)), version-matched Drupal documentation ([updating configuration](https://www.drupal.org/docs/drupal-apis/update-api/updating-configuration), [render cacheability](https://www.drupal.org/docs/drupal-apis/render-api/cacheability-of-render-arrays), [writing secure code](https://www.drupal.org/docs/administering-a-drupal-site/security-in-drupal/writing-secure-code-for-drupal)); deterministic checks run before the model, and every blocking finding needs file, line and cause |
+| Shared review checklists | [OWASP ASVS](https://asvs.owasp.org/) for web and API security, [Parallel Change](https://martinfowler.com/bliki/ParallelChange.html) for staged migrations, and [AWS Builders' Library](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/) for idempotent retries |
 | QA design | ISTQB / ISO/IEC/IEEE 29119-4 techniques: equivalence partitioning, boundary values, state transitions, decision tables, error guessing; risk-based testing (likelihood × impact) |
 | QA oracles and exploration | HICCUPPS consistency oracles ([Bolton](https://developsense.com/resource/Oracles.pdf)), SFDPOT and session-based exploratory testing with charters |
 | Bug reports | RIMGEA (Kaner's bug advocacy): replicate, isolate, maximize, generalize, externalize; steps, expected and actual result, severity, evidence |
 | Browser automation | [Playwright best practices](https://playwright.dev/docs/best-practices): user-facing locators, web-first waits, isolated sessions; official Playwright CLI and MCP |
+| Technical QA | Project tests and fixtures, [OpenAPI](https://spec.openapis.org/oas/latest.html) for API contracts, and [CI run evidence](skills/qa/references/technical-qa.md#ci-and-artifacts) tied to the tested revision |
+| Design and native QA | [Figma Dev Mode and MCP](https://developers.figma.com/docs/figma-mcp-server/tools-and-prompts/) for agreed design references, existing [Flutter integration tests](https://docs.flutter.dev/cookbook/testing/integration/introduction), [Maestro](https://docs.maestro.dev/get-started/supported-platform/flutter) for device flows, and [OWASP MASVS](https://mas.owasp.org/MASVS/) for mobile security |
 | Learning from use | Cursor's [`/reflect`](https://github.com/cursor/plugins/blob/main/pstack/skills/reflect/SKILL.md) and [Continual Learning](https://github.com/cursor/plugins/tree/main/continual-learning), [CodeRabbit Learnings](https://www.coderabbit.ai/blog/context-engineering-ai-code-reviews): proposals backed by evidence, applied only after approval |
 | Accessibility | [axe-core](https://github.com/dequelabs/axe-core) on changed pages plus manual keyboard and focus checks, since automated rules find only part of WCAG issues ([Deque coverage study](https://www.deque.com/blog/automated-testing-study-identifies-57-percent-of-digital-accessibility-issues)) |
 
@@ -97,30 +102,45 @@ framework checkers. Confirm or correct the project type; on yes the tools instal
 with "Ready Check is ready". Downloads are agreed once per machine, the project type once per project. On no,
 nothing is downloaded and the question is not repeated; review, reminders and task records still work.
 
-After you finish a task that changed the project, the agent asks once which checks to run. You can also start
-a check yourself with the commands in [How it works](#how-it-works).
+After you finish a task that changed the project, the agent offers checks based on the changed behavior,
+paths and applicable profiles. A workflow change can get CI QA, while a changed web flow and API can get both
+Playwright and API QA. Choose all applicable checks, a subset or skip. You can also start a check yourself
+with the commands in [How it works](#how-it-works).
 
 Ready Check works through plugin hooks and does not write `AGENTS.md`, `CLAUDE.md` or project MCP configs. In
 Codex, trust the plugin's hooks once in `/hooks`. Cursor gets the rule at session start but no end-of-turn
 reminder.
 
 **QA.** The agent ranks changed areas by risk, designs cases with standard techniques (equivalence classes,
-boundary values, state transitions, decision tables), shows the plan for approval, then runs it, adds a short
-exploratory session and an accessibility check (bundled axe-core plus keyboard and focus by hand). It stops for
+boundary values, state transitions, decision tables), shows the plan for approval, then runs it. Browser cases
+use Playwright, axe-core and manual keyboard and focus checks. API and CLI cases use project tools or direct
+tests, and CI cases inspect the matching run, job and artifact. Native mobile cases use existing device tests
+or Maestro on the provisioned target. When a task has an agreed Figma reference, QA compares the matching
+viewport, variant and state against that reference. All results go into the same report. It stops for
 you only when the task is unclear, for plan approval, for a login, when it is unsure whether something is a bug,
 and when it finds one. For bugs it offers: fix in this session, fix with a subagent (where the client supports
 it), or you fix it. After a fix, or when you say "retest", the next round reruns only what the change can
 affect: static checks, review of changed code and its callers, failed and related QA cases and each RC's main
 flow; shared-code changes or "full recheck" run everything.
 
-**Browser.** QA runs in a **visible** browser (bundled Playwright MCP; you watch and can log in yourself) or in
-the **background** (Playwright CLI). The agent asks before QA unless you set a default:
+**Browser.** Browser scenarios run in a **visible** browser (bundled Playwright MCP; you watch and can log in yourself) or in
+the **background** (Playwright CLI). The agent asks for a mode unless you set a default:
 `config set browser visible|background`. In Drupal the agent logs in through `drush uli`, in Symfony through `login_link` when configured, elsewhere
 with a local test user it creates and keeps in `ai/ready-check/qa-accounts.json`; it never asks for or types
 real credentials. A visible browser needs a graphical session.
 
 **Language.** The agent talks in your language; reports, QA plans and handoffs are written in English unless you
-choose another language at first run or with `config set artifactLanguage Ukrainian`. PR drafts stay in English.
+choose another language at first run or with `config set artifactLanguage Ukrainian`. Commit messages and
+PR/MR text stay in English.
+
+**Delivery.** After `READY TO PUSH`, choose to see the English commit message and PR/MR title and body in chat
+or open a PR/MR into a proposed target branch. Creation is available when `gh`, `glab` or a connector in
+your client can access the repository and create the request. The agent shows the repository, branches and
+any required commit or push before you choose. With no matching integration, you can still use the chat text.
+
+**Draft templates.** Set `commitTemplate` and `pullRequestTemplate` to your own files, for all projects or a
+single repository. Ready Check also recognizes Git commit templates and repository PR templates. See the
+[template settings](dependencies/SETUP.md#commit-and-pr-templates).
 
 **Task memory.** Each prompt you send, and each answer you pick in the agent's questions, is saved with branch,
 commit and time in `ai/ready-check/tasks/<branch>/` (git-excluded, cut at 20 KB, kept 30 days). When the task is not in the chat, `check` proposes it from these
@@ -172,7 +192,8 @@ static, review, or QA. To check specific commits instead of the whole branch, na
 > /check — check commits a1b2c3d and e4f5a6b against TASK.md
 
 The agent asks when something is unclear and pauses for your approval of the QA plan. When it finds a
-problem, it asks whether to fix it or leave it to you, then rechecks after the fix. It never commits or pushes.
+problem, it asks whether to fix it or leave it to you, then rechecks after the fix. Commit and push are part
+of delivery only when you select creation with those operations.
 
 **Report:** `ai/ready-check/reports/<branch>/report.md` at the repository root. It is git-excluded.
 A later chat on the same branch continues from it. The directory name combines a readable branch slug
@@ -190,7 +211,7 @@ and a hash of its full name, so similarly named branches keep separate reports.
 ## Supported profiles
 
 Each profile supplies detection rules, setup, static checks, and review/QA guidance for its scope.
-Shared skills load these rules from the selected profile. Required checks run when their inputs apply;
+Shared skills load these rules from each applicable profile. Required checks run when their inputs apply;
 advisory checks report findings or missing tools without blocking the static gate.
 
 - **[Drupal 10/11](profiles/drupal/static.md)** — profile ID: `drupal`.
@@ -229,27 +250,42 @@ advisory checks report findings or missing tools without blocking the static gat
     `println`), diff.
   - Advisory: **govulncheck**, jscpd.
 - **[Generic](profiles/generic/static.md)** — profile ID: `generic`; any language or a mixed-language repository.
-  - Git diff checks, syntax checks for Python, plain JSON and POSIX sh/Bash, and project-specific lint and test
+  - Git diff checks, syntax checks for Python, plain JSON, YAML and POSIX sh/Bash, and project-specific lint and test
     commands recorded by the check skill. Profile setup uses the existing tools on the selected host.
+- **[TypeScript](profiles/typescript/static.md)** — profile ID: `typescript`.
+  - TypeScript type checking with project configs and references, and ESLint for changed TypeScript files.
+    Uses project tools and configs first. The managed fallback includes official typescript-eslint rules.
+- **[DevOps](profiles/devops/static.md)** — profile ID: `devops`.
+  - GitHub Actions with actionlint, Docker Compose, DDEV and Nginx validation, and GitLab YAML syntax.
+    Uses installed tools. GitLab CI Lint adds provider checks for the effective pipeline and its includes.
+- **[Flutter](profiles/flutter/static.md)** — profile ID: `flutter`.
+  - Uses the project's Flutter SDK for analysis and the bundled Dart formatter. QA reuses the project's
+    unit, widget and device tests, with Maestro for applicable native flows.
 
-Project tools/configs take priority over managed defaults; managed tools are pinned and live outside the
-project. A framework profile wins over a generic language match (a Laravel app with a `requirements.txt` is
-Laravel). When no specific profile matches an unambiguous application, Ready Check selects `generic`.
-Select `generic` explicitly to check a mixed-language repository as a whole. New profiles belong under
+Project tools and configs take priority over pinned tools installed outside the project. Projects can use
+several profiles in one directory or across application roots. When no specific profile matches, Ready Check
+uses `generic`. You can also select `generic` explicitly. New profiles belong under
 `profiles/<id>/` and reuse `profiles/_shared/` ([adding a
 profile](dependencies/SETUP.md#adding-another-profile)).
 
 ## Configuration
 
-The project type you confirm at first run is stored in `ai/ready-check/settings.json` (git-excluded). A team
-can commit an optional `.ready-check.json` in the application root instead:
+The profiles you confirm at first run are stored in `ai/ready-check/settings.json` (git-excluded) and take
+precedence over the repository's optional `.ready-check.json`. To share selections with your team, use:
 
 ```json
-{"profile": "drupal", "runner": "ddev"}
+{
+  "profiles": [
+    {"profile": "drupal", "runner": "ddev", "application": "."},
+    {"profile": "python", "runner": "local", "application": "tools"}
+  ]
+}
 ```
 
-`profile` is one of `drupal`, `laravel`, `symfony`, `python`, `go`, `generic`. `runner` can be `local`, `ddev` or `compose`;
-without it the runner is detected (`LINT_SERVICE` and `LINT_CONTAINER_ROOT` pick the Compose service and root).
+`application` is relative to the repository root. `runner` can be `local`, `ddev` or `compose`.
+Existing scalar `profile`, `runner` and `application` settings still define one selection. When the legacy
+runner is omitted, it is detected from project markers. `LINT_SERVICE` and `LINT_CONTAINER_ROOT` pick the
+Compose service and root. The `ready-check.py profiles --project <repo>` command shows selections and evidence.
 Project tools and configs (`vendor/bin`, `phpcs.xml`, `phpstan.neon`, `pint.json`, `.php-cs-fixer.dist.php`,
 `[tool.ruff]`, `.golangci.yml`, ESLint/Stylelint configs) take priority over the managed ones.
 
@@ -262,12 +298,17 @@ Project tools and configs (`vendor/bin`, `phpcs.xml`, `phpstan.neon`, `pint.json
 - For Python checks: Python 3.10+ in the runner for the managed tools; the project's own interpreter for
   Django checks.
 - For Go checks: Go 1.26+ in the runner (the pinned golangci-lint needs it); Node.js 20+ for asset checks.
+- For TypeScript checks: Node.js in the runner. Managed setup requires Node.js 20+ and npm.
+- For YAML checks in Generic: `yamllint` in the selected runner.
+- For DevOps: the tools that match the changed files, as listed in the [DevOps profile](profiles/devops/static.md).
+- For Flutter: the project's prepared Flutter SDK and packages. Native device cases need a suitable test target.
 
 ## Documentation
 
 - [Setup details](dependencies/SETUP.md)
 - Static checks: [Drupal](profiles/drupal/static.md), [Laravel](profiles/laravel/static.md),
-  [Symfony](profiles/symfony/static.md), [Python](profiles/python/static.md), [Go](profiles/go/static.md)
+  [Symfony](profiles/symfony/static.md), [Python](profiles/python/static.md), [Go](profiles/go/static.md),
+  [TypeScript](profiles/typescript/static.md), [Flutter](profiles/flutter/static.md)
 - [Report template](skills/check/references/report-template.md)
 
 ## Development

@@ -19,6 +19,7 @@ PROFILE_TOOLS = {
                               "phpmd/phpmd", "symfony/yaml"}, node=NODE_TOOLS),
     "python": dict(pip={"ruff", "mypy", "bandit", "pip-audit"}, node=NODE_TOOLS),
     "go": dict(go={"golangci-lint", "govulncheck"}, node=NODE_TOOLS),
+    "typescript": dict(node={"eslint", "typescript", "typescript-eslint"}),
 }
 SKILLS = {"setup", "check", "review", "qa", "uninstall", "customize", "feedback", "reflect", "contribute"}
 
@@ -109,7 +110,7 @@ def profiles(root):
             require(type(check.get("required")) is bool, f"Check required flag must be boolean: {child.name}")
             ids.add(check["id"])
         found.append(child.name)
-    missing = (set(PROFILE_TOOLS) | {"generic"}) - set(found)
+    missing = (set(PROFILE_TOOLS) | {"generic", "devops", "flutter"}) - set(found)
     require(not missing, "A required profile is missing: " + ", ".join(sorted(missing)))
     return found
 
@@ -172,19 +173,22 @@ def dependencies(root):
         tools = resource(root, root, f"profiles/{name}/tools", directory=True)
         folders.append(tools)
         npm_lock(root, tools)
+        require(need["node"] <= read_json(tools / "package.json")["dependencies"].keys(), f"{name} Node tools are missing")
+
+        if name == "typescript":
+            for relative in ("eslint.config.mjs", "typecheck.cjs"):
+                resource(root, tools, relative)
+            continue
 
         if "go" in need:
             go_tools(root, tools, need)
-            require(need["node"] <= read_json(tools / "package.json")["dependencies"].keys(), f"{name} Node tools are missing")
             continue
 
         if "pip" in need:
             pip_tools(root, tools, need)
-            require(need["node"] <= read_json(tools / "package.json")["dependencies"].keys(), f"{name} Node tools are missing")
             continue
         manifest = read_json(resource(root, tools, "composer.json"))
         require(need["composer"] <= manifest.get("require", {}).keys(), f"{name} Composer tools are missing")
-        require(need["node"] <= read_json(tools / "package.json")["dependencies"].keys(), f"{name} Node tools are missing")
         for relative in ("eslint.config.mjs", "stylelint.config.json"):
             resource(root, tools, relative)
         lock = read_json(resource(root, tools, "composer.lock"))
@@ -201,21 +205,22 @@ def dependencies(root):
 
 
 def entry_points(root):
-    for name in ("doctor.sh", "check-static.sh", "check-profile.py", "setup.sh", "setup.py", "dependency_support.py",
+    for name in ("doctor.sh", "check-static.sh", "check-profile.py", "setup.sh", "setup.py", "dependency_support.py", "profile_selection.py",
                  "process_support.py", "profile_runtime.py", "managed_storage.py", "git_exclude.py", "reports.py", "mcp.py", "mcp.mjs",
                  "ready-check.py", "playwright.sh", "playwright.py", "project.py", "settings.py", "detect.py", "logs.py",
-                 "tasks.py", "answers.py", "hook.py", "hook_state.py", "fingerprint.py", "consent.py", "uninstall.py", "rules.py", "a11y.py", "customize.py", "summary.py", "feedback.py", "reflect_collect.py"):
+                 "tasks.py", "answers.py", "hook.py", "hook_state.py", "fingerprint.py", "consent.py", "uninstall.py", "rules.py", "a11y.py", "qa-gate.py", "customize.py", "draft_template.py", "summary.py", "feedback.py", "reflect_collect.py", "publication.py"):
         resource(root, root, "scripts/" + name)
     for name in ("session-rule.md", "first-run.md"):
         resource(root, root, "hooks/" + name)
-    for name in ("CONTRIBUTING.md", "templates/improvement.md", "templates/bug.md"):
+    for name in ("CONTRIBUTING.md", "skills/check/references/check-offer.md", "templates/improvement.md", "templates/bug.md",
+                 "templates/commit-message.txt", "templates/pull-request.md"):
         resource(root, root, name)
     require(read_json(root / ".mcp.json").get("mcpServers", {}).get("ready-playwright"), "Claude must bundle the ready-playwright MCP server")
-    for name in ("core_runner.py", "core_scope.py", "core_toolchain.py", "core_checks.py", "core_main.py", "core_setup.py"):
+    for name in ("core_runner.py", "core_scope.py", "core_toolchain.py", "core_checks.py", "core_main.py", "core_setup.py", "yaml_checks.py"):
         resource(root, root, "profiles/_shared/core/" + name)
     for name in ("php_runtime.py", "php_toolchain.py", "php_lint.py", "php_provider.py", "php_setup.py"):
         resource(root, root, "profiles/_shared/php/" + name)
-    for profile in PROFILE_TOOLS:
+    for profile in (*PROFILE_TOOLS, "devops", "flutter"):
         for name in ("checks.py", "setup.py", "spec.py"):
             resource(root, root, f"profiles/{profile}/scripts/{name}")
 

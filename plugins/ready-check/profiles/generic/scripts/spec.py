@@ -5,6 +5,7 @@ from pathlib import Path, PurePosixPath
 from types import SimpleNamespace
 
 from process_support import find_command
+from yaml_checks import is_yaml, yaml_plan, yaml_run
 
 
 SHELLS = {"sh", "bash"}
@@ -94,6 +95,7 @@ def shell_run(lint):
 
 
 SPEC = SimpleNamespace(
+    id="generic",
     directory=Path(__file__).resolve().parent.parent,
     providers=(),
     core_configs=(),
@@ -105,5 +107,6 @@ SPEC = SimpleNamespace(
         "syntax": SimpleNamespace(applies=lambda paths: any(syntax_type(path) for path in paths), run=syntax_run),
         "shell": SimpleNamespace(applies=lambda paths: any(path.suffix in SHELL_EXTENSIONS for path in paths),
                                  run=shell_run, plan=shell_plan),
+        "yaml": SimpleNamespace(applies=lambda paths: any(map(is_yaml, paths)), run=yaml_run, plan=yaml_plan),
     },
 )

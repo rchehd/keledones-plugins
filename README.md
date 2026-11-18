@@ -12,9 +12,9 @@ root holds one catalog per client.
 
 | Plugin | Folder | Description | Clients |
 | --- | --- | --- | --- |
-| Ready Check (`ready`) | [plugins/ready-check](plugins/ready-check) | Checks a task before push: requirements, static checks, review, browser QA and a PR draft | Claude Code, Codex, Cursor |
+| Ready Check · Review & QA (`ready`) | [plugins/ready-check](plugins/ready-check) | Checks a task before push: requirements, static checks, review, browser QA and a PR draft | Claude Code, Codex, Cursor |
 | Keledones themes (`keledones-themes`) | [plugins/keledones-themes](plugins/keledones-themes) | Looks for the Claude app: Keledones and Graphite, switched with `/look` | Claude Code (desktop and mobile app) |
-| Gnothi (`gnothi`) | [plugins/gnothi](plugins/gnothi) | A private portrait of how you work with AI agents, from local session history | Claude Code, Codex, Cursor |
+| Gnothi · AI Work Profile (`gnothi`) | [plugins/gnothi](plugins/gnothi) | A private portrait of how you work with AI agents, from local session history | Claude Code, Codex, Cursor |
 
 ## Install
 

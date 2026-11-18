@@ -22,6 +22,7 @@ def main():
     scope = parser.add_mutually_exclusive_group(required=True)
     scope.add_argument("--base")
     scope.add_argument("--commits", nargs="+")
+    parser.add_argument("--path", action="append", help="Limit results to a path relative to the application")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--timeout", type=int, default=180)
     args = parser.parse_args()
@@ -54,8 +55,7 @@ def main():
         profile = json.loads((folder / "profile.json").read_text(encoding="utf-8"))
         if not isinstance(profile, dict) or profile.get("schema_version") != 1 or profile.get("id") != args.profile:
             raise ValueError("Unsupported or inconsistent profile manifest")
-        if project_config(project).get("profile", args.profile) != args.profile:
-            raise ValueError("Selected profile conflicts with the project's Ready Check configuration")
+        project_config(project, args.profile)
         entry = (folder / profile["scripts"][args.action]).resolve(strict=True)
         if not entry.is_relative_to(folder.resolve()) or entry.suffix != ".py":
             raise ValueError("Profile entry point must be a Python file inside the profile")
@@ -63,6 +63,7 @@ def main():
         if output:
             argv += ["--evidence-dir", str(output.parent / "evidence")]
         argv += ["--base", args.base] if args.base else ["--commits", *args.commits]
+        argv.extend(f"--path={path}" for path in args.path or [])
         process = subprocess.run(argv,
                                  cwd=project, capture_output=True, text=True, encoding="utf-8",
                                  env=dict(os.environ, PYTHONIOENCODING="utf-8"))

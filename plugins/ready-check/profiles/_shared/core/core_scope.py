@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
 from process_support import execute
-from settings import project_config
+from settings import project_config, valid
 
 DATA = "ai/ready-check"
 CORE = Path(__file__).resolve().parent
@@ -87,17 +87,28 @@ def commit_scope(project, root, head, commits):
                 seed=head.encode() + b"\0commits\0" + b"\0".join(s.encode() for s in sorted(shas)) + b"\0" + diff)
 
 
-def snapshot(project, spec, base=None, commits=None):
+def snapshot(project, spec, base=None, commits=None, paths=None):
     root = Path(os.fsdecode(git(project, "rev-parse", "--show-toplevel")).strip()).resolve()
     head = git(project, "rev-parse", "HEAD").decode().strip()
     prefix = project.relative_to(root).as_posix()
     repository_data = ("" if prefix == "." else prefix + "/") + DATA + "/"
     part = commit_scope(project, root, head, commits) if commits else base_scope(project, head, base)
+    omitted = set()
+    if paths:
+        if not all(valid("application", path) for path in paths):
+            raise ValueError("Each --path must be relative to the application")
+        paths = sorted(set(paths))
+        omitted = {name for name in part["changed_files"]
+                   if not any(path == "." or name == path or name.startswith(path + "/") for path in paths)}
+        for key in ("files", "changed_files"):
+            part[key] = [name for name in part[key] if name not in omitted]
 
     if not part["changed_files"]:
         raise ValueError("No changes found; clarify the application and scope")
     digest = hashlib.sha256(part["seed"])
-    digest.update(json.dumps(project_config(project), sort_keys=True).encode())
+    if paths:
+        digest.update(json.dumps(paths).encode())
+    digest.update(json.dumps(project_config(project, spec.id), sort_keys=True).encode())
     digest.update(spec.directory.joinpath("profile.json").read_bytes())
 
     for folder in (spec.directory / "scripts", CORE, *(p.directory for p in spec.providers)):
@@ -124,6 +135,9 @@ def snapshot(project, spec, base=None, commits=None):
     scope = {"repository": str(root), "project": str(project), "mode": part["mode"], "commits": part["commits"],
              "head": head, "base": part["base"], "merge_base": part["merge_base"], "snapshot": digest.hexdigest(),
              "files": part["files"], "changed_files": part["changed_files"], "outside_scope": sorted(outside)}
+    if paths:
+        scope["paths"] = paths
+        scope["outside_scope"] = sorted(set(outside) | {(Path(prefix) / name).as_posix() for name in omitted})
 
     if "uncommitted_outside_task" in part:
         scope["uncommitted_outside_task"] = part["uncommitted_outside_task"]

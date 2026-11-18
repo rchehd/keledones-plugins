@@ -34,9 +34,11 @@ instead.
 
 Show the diff and the PR text. Ask whether to publish.
 
-- **Yes, repository set:** commit with a message saying why, what and how it was checked; push the branch (to the
-  user's fork when they lack write access) and open the PR with `gh pr create` (GitHub) or `glab mr create` (GitLab)
-  using the filled template. If the CLI is missing or not authenticated, say so and fall back to saving files.
+- **Yes, repository set:** read the message format with `scripts/ready-check.py template commit --project <repo>`
+  from the installed plugin. Commit with a message in that format covering the change, reason and verification.
+  Push the branch (to the user's fork when they lack write access) and open the PR with `gh pr create` (GitHub)
+  or `glab mr create` (GitLab) using the filled contribution template. If the CLI is missing or not authenticated,
+  say so and fall back to saving files.
 - **No, or patch-only mode:** save `improvement.patch` and `pr.md` to `<data root>/contrib/out/<slug>/` and give their
   paths so the user can send them to the author.
 

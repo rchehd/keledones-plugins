@@ -72,6 +72,7 @@ def main(spec):
     parser.add_argument("--project", type=Path, required=True)
     parser.add_argument("--timeout", type=int, default=180)
     parser.add_argument("--evidence-dir", type=Path)
+    parser.add_argument("--path", action="append")
     scope_group = parser.add_mutually_exclusive_group(required=True)
     scope_group.add_argument("--base")
     scope_group.add_argument("--commits", nargs="+")
@@ -86,9 +87,9 @@ def main(spec):
         result["can_proceed"] = False
     try:
         core = spec.core_prefixes
-        scope = snapshot(project, spec, args.base, args.commits)
+        scope = snapshot(project, spec, args.base, args.commits, args.path)
         result["scope"] = scope
-        runner = Runner(project, project_config(project), spec.runner)
+        runner = Runner(project, project_config(project, spec.id), spec.runner)
         result["runner"] = runner.name
         files = lint_files(scope["files"], core, spec)
         scope["excluded_files"] = sorted(set(scope["files"]) - set(files))
@@ -139,7 +140,7 @@ def main(spec):
             status = "MISSING" if "MISSING" in required else "READY"
         else:
             status = "FAIL" if "FAIL" in required else "INCOMPLETE" if "INCOMPLETE" in required else "PASS" if "PASS" in required else "N/A"
-        fresh_runner = Runner(project, project_config(project), spec.runner)
+        fresh_runner = Runner(project, project_config(project, spec.id), spec.runner)
         current_plans = {}
 
         for check in result["checks"]:
@@ -149,7 +150,7 @@ def main(spec):
                 except (OSError, ValueError, TypeError, KeyError):
                     pass
         current_identity = json.dumps(current_plans, sort_keys=True).encode()
-        current_snapshot = hashlib.sha256(snapshot(project, spec, args.base, args.commits)["snapshot"].encode() + current_identity).hexdigest()
+        current_snapshot = hashlib.sha256(snapshot(project, spec, args.base, args.commits, args.path)["snapshot"].encode() + current_identity).hexdigest()
 
         if current_snapshot != scope["snapshot"]:
             status = "INCOMPLETE"

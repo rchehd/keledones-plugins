@@ -1,6 +1,6 @@
 {
   "name": "ready",
-  "displayName": "Ready Check",
+  "displayName": "Ready Check · Review & QA",
   "version": "0.1.0",
   "description": "Check task readiness against requirements, static checks, and browser QA.",
   "icon": "./assets/logo.png",

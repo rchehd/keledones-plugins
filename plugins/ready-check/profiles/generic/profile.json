@@ -3,6 +3,7 @@
   "id": "generic",
   "name": "Generic",
   "version": "0.1.0",
+  "managed_tools": false,
   "detection": {},
   "instructions": {
     "requirements": "requirements.md",
@@ -18,6 +19,7 @@
   "checks": [
     {"id": "diff", "required": true},
     {"id": "syntax", "required": true},
-    {"id": "shell", "required": true}
+    {"id": "shell", "required": true},
+    {"id": "yaml", "required": true}
   ]
 }

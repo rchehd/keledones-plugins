@@ -31,12 +31,20 @@ class HookTest(RepoTest):
         self.assertEqual(json.loads(records[0].read_text())["prompt"], "Add a clear button")
 
     def test_session_start_injects_rule_status_and_first_run(self):
-        for client, key in (("claude", ("hookSpecificOutput", "additionalContext")), ("cursor", ("additional_context",))):
+        for client, key in (("claude", ("hookSpecificOutput", "additionalContext")),
+                            ("codex", ("hookSpecificOutput", "additionalContext")),
+                            ("cursor", ("additional_context",))):
             output = self.hook("session-start", client, {"cwd": str(self.repo), "session_id": client})
             text = output[key[0]][key[1]] if len(key) == 2 else output[key[0]]
             self.assertIn("ask once in the user's", text)
+            self.assertIn("A workflow-only change can offer CI QA", text)
+            self.assertIn("A stack elsewhere in the", text)
+            self.assertIn("An explicit subset stays scoped.", text)
+            self.assertNotIn("{check_offer}", text)
             self.assertIn("Ready Check browser tools:", text)
             self.assertIn("consent yes", text)
+            self.assertIn("template commit --project <repo>", text)
+            self.assertIn("template pr --project <repo>", text)
             self.assertIn("Do not investigate or fix the reported problem until the user asks", text)
             self.assertIn("Never edit, copy or patch the Ready Check plugin", text)
 
@@ -59,6 +67,23 @@ class HookTest(RepoTest):
         text = self.hook("session-start", "claude", {"cwd": str(self.repo), "session_id": "g"})["hookSpecificOutput"]["additionalContext"]
         self.assertIn("Ready Check detected: Go, local.", text)
         self.assertNotIn("PHP", text)
+
+    def test_first_run_confirms_all_detected_profiles_in_one_prompt(self):
+        (self.repo / "go.mod").write_text("module example.com/app\n")
+        (self.repo / "pyproject.toml").write_text("[project]\nname = 'app'\n")
+        payload = {"cwd": str(self.repo), "session_id": "multi"}
+        text = self.hook("session-start", "claude", payload)["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("Ready Check detected: Go, local; Python, local.", text)
+        self.assertIn("--selection go:local:. --selection python:local:.", text)
+        self.assertIn("go.mod", text)
+        self.assertIn("pyproject.toml", text)
+
+        self.run_entry("consent", "no", "--project", str(self.repo), "--selection", "go:local:.",
+                       "--selection", "python:local:.").check_returncode()
+        selected = self.entry_json("profiles", "--project", str(self.repo))["profiles"]
+        self.assertEqual({item["profile"] for item in selected}, {"go", "python"})
+        text = self.hook("session-start", "claude", payload)["hookSpecificOutput"]["additionalContext"]
+        self.assertNotIn("consent yes", text)
 
     def test_stop_reminds_once_per_change_and_respects_checks(self):
         payload = {"cwd": str(self.repo), "session_id": "s"}

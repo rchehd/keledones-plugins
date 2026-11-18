@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "id": "flutter",
+  "name": "Flutter",
+  "version": "0.1.0",
+  "default_runner": "local",
+  "managed_tools": false,
+  "detection": {"flutter_sdk_dependency": true},
+  "instructions": {
+    "requirements": "requirements.md", "static": "static.md", "review": "review.md", "qa": "qa.md"
+  },
+  "scripts": {"doctor": "scripts/checks.py", "static": "scripts/checks.py", "setup": "scripts/setup.py"},
+  "checks": [
+    {"id": "diff", "required": true},
+    {"id": "flutter-analyze", "required": true},
+    {"id": "dart-format", "required": true}
+  ]
+}

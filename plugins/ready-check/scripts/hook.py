@@ -13,15 +13,16 @@ import rules
 import settings
 import tasks
 from dependency_support import PLUGIN, asset_id, bundle_path, data_root, installed
-from detect import FALLBACK, detect, profile_name
+from detect import has_managed_tools
 from fingerprint import last_checked, work_fingerprint
+from profile_selection import argument, discover
 from project import toplevel
 
 EVENTS = ("session-start", "prompt", "answer", "stop")
 CLIENTS = ("claude", "cursor", "codex")
 CHECK = {"claude": "/ready:check", "cursor": "/check", "codex": "$check"}
 RUNNERS = {"ddev": "DDEV", "compose": "Docker Compose", "local": "local"}
-REMINDER = "If you have finished the user's task, ask once whether to run Ready Check ({check}); otherwise ignore this."
+REMINDER = "If you have finished the user's task, ask once whether to run Ready Check ({check}) with options for the task's scope; otherwise ignore this."
 
 
 def session_id(payload):
@@ -73,46 +74,43 @@ def quote(value):
     if os.name != "nt":
         return shlex.quote(value)
 
-    return f'"{value}"' if any(character in value for character in " &()[]{}^=;!'+,`~$") else value
+    if any(character in value for character in " &()[]{}^=;!'\"+,\x60~$|<>"):
+        return "'" + value.replace("'", "''") + "'"
+    return value
 
 
-def command(top, decision, found):
-    parts = [sys.executable, PLUGIN / "scripts/ready-check.py", "consent", decision, "--project", top]
-
-    if found["profile"]:
-        parts += ["--profile", found["profile"]]
-
-    parts += ["--runner", found["runner"]]
-
-    if found["application"] != ".":
-        parts += ["--application", found["application"]]
-
+def shell_command(parts):
     line = " ".join(quote(part) for part in parts)
     # PowerShell runs a quoted executable path only through the call operator.
-    return "& " + line if os.name == "nt" and line.startswith('"') else line
+    return "& " + line if os.name == "nt" and line.startswith("'") else line
+
+
+def command(top, decision, selected):
+    parts = [sys.executable, PLUGIN / "scripts/ready-check.py", "consent", decision, "--project", top]
+
+    for item in selected:
+        parts += ["--selection", argument(item)]
+
+    return shell_command(parts)
 
 
 def describe(found):
-    if found["ambiguous"]:
-        return "several possible applications (ask which one and which framework it uses)"
-
-    if not found["profile"]:
-        return f"no supported framework, runner {RUNNERS.get(found['runner'], found['runner'])}"
-
-    name = profile_name(found["profile"]) + (" " + found["version"] if found["version"] else "")
+    name = found["name"] + (" " + found["version"] if found["version"] else "")
     where = "" if found["application"] == "." else f" in {found['application']}/"
     return f"{name}{where}, {RUNNERS.get(found['runner'], found['runner'])}"
 
 
-def question(found, values, status, confirmed):
-    project = describe(found)
+def question(selected, conflicts, values, status, confirmed):
+    project = "; ".join(describe(item) for item in selected)
     downloads = []
 
     if status != "ready" and values["install"] != "never":
         downloads.append("Playwright and Chromium (about 200 MB, once per machine)")
 
-    if not confirmed and found["profile"] and found["profile"] != FALLBACK and values["install"] != "never":
-        downloads.append(f"the {found['profile'].capitalize()} checkers if they are not installed yet")
+    if not confirmed and values["install"] != "never":
+        checkers = sorted({item["name"] for item in selected if has_managed_tools(item["profile"])})
+        if checkers:
+            downloads.append(f"the {', '.join(checkers)} checkers if they are not installed yet")
 
     if confirmed and values["install"] == "auto":
         return "Ready Check tools are missing or outdated. Run the accept command now without asking."
@@ -122,6 +120,13 @@ def question(found, values, status, confirmed):
                 "On yes run the accept command, on no run the decline command.")
 
     text = f"Ask the user once, in their language: \"Ready Check detected: {project}."
+    evidence = [f"{item['profile']} in {item['application']}: {', '.join(item['evidence'])}"
+                for item in selected if item["evidence"]]
+    if evidence:
+        text += f" Signals: {'; '.join(evidence)}."
+    if conflicts:
+        roots = ", ".join(item["application"] for item in conflicts)
+        text += f" Confirm which profiles apply in {roots}. Run only the confirmed --selection arguments."
 
     if downloads and values["install"] == "ask":
         return text + f" To work it needs {' and '.join(downloads)}. Install? Correct the project type if it is wrong.\""
@@ -131,28 +136,25 @@ def question(found, values, status, confirmed):
 
     decision = "decline" if values["install"] == "never" else "accept"
 
-    if not found["profile"]:
-        return text + f" Static checks are not available for this stack yet; review and QA work. Is this correct?\" Then run the {decision} command."
-
     return text + f" Is this correct?\" Then run the {decision} command."
 
 
 def first_run(top, client, values, status):
     raw = settings.read(settings.project_path(top))
-    confirmed = settings.valid("runner", raw.get("runner"))
+    confirmed = settings.valid("profiles", raw.get("profiles")) or settings.valid("runner", raw.get("runner"))
     pending_download = status not in {"ready", "failed"} and values["install"] != "never"
 
     if confirmed and not pending_download:
         return None
 
-    found = detect(top)
-
-    if confirmed:
-        found.update({key: raw[key] for key in ("profile", "runner", "application") if settings.valid(key, raw.get(key))})
+    try:
+        _, selected, conflicts = discover(top)
+    except (OSError, ValueError) as error:
+        return f"Ready Check profile setup is unresolved ({error}). Ask the user to correct it with the setup skill."
 
     fallback = "; in Claude Code the user can run it by typing ! followed by the command" if client == "claude" else ""
-    return template("first-run.md", question=question(found, values, status, confirmed), fallback=fallback,
-                    yes=command(top, "yes", found), no=command(top, "no", found), language=language_note(values))
+    return template("first-run.md", question=question(selected, conflicts, values, status, confirmed), fallback=fallback,
+                    yes=command(top, "yes", selected), no=command(top, "no", selected), language=language_note(values))
 
 
 def language_note(values):
@@ -169,8 +171,12 @@ def session_start(client, payload):
     values = settings.load(top)
     hook_state.prune()
     status = browser_status()
-    rules_command = f"{quote(sys.executable)} {quote(PLUGIN / 'scripts/ready-check.py')} rules add"
-    parts = [template("session-rule.md", check=CHECK[client], rules=rules_command, language=values["artifactLanguage"]),
+    entry = [sys.executable, PLUGIN / "scripts/ready-check.py"]
+    rules_command = shell_command([*entry, "rules", "add"])
+    template_command = shell_command([*entry, "template"])
+    check_offer = (PLUGIN / "skills/check/references/check-offer.md").read_text(encoding="utf-8").strip()
+    parts = [template("session-rule.md", check=CHECK[client], rules=rules_command, template_command=template_command,
+                      language=values["artifactLanguage"], check_offer=check_offer),
              status_line(status, client)]
     coding_rules = rules.context(top)
 

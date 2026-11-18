@@ -1,6 +1,7 @@
+import os
 import shutil
 
-from helpers import RepoTest
+from helpers import RepoTest, write_fake_command
 
 
 class GenericTest(RepoTest):
@@ -29,7 +30,7 @@ class GenericTest(RepoTest):
         self.write(".vscode/settings.json", '{ // editor JSONC\n"editor.tabSize": 2,\n}\n')
         result = self.static()
         self.assertEqual({c["id"]: c["status"] for c in result["checks"]},
-                         {"diff": "PASS", "syntax": "PASS", "shell": "PASS"})
+                         {"diff": "PASS", "syntax": "PASS", "shell": "PASS", "yaml": "N/A"})
         self.assertTrue(result["can_proceed"])
 
     def test_invalid_shell_python_and_json_block_the_static_gate(self):
@@ -44,7 +45,40 @@ class GenericTest(RepoTest):
     def test_compose_file_alone_leaves_generic_checks_local(self):
         self.write("compose.yml", "services: {}\n")
         self.write("scripts/task.py", "print('ready')\n")
-        self.assertEqual(self.static()["runner"], "local")
+        bin_dir = self.root / "bin"
+        write_fake_command(bin_dir / "yamllint", "#!/usr/bin/env python3\nprint('yamllint 1.38.0')\n")
+        doctor = self.entry_json("doctor", "--profile", "generic", "--project", str(self.repo), "--base", "main",
+                                 env={"PATH": str(bin_dir) + os.pathsep + os.environ["PATH"]})
+        self.assertEqual(doctor["runner"], "local")
+
+    def test_helm_templates_are_not_sent_to_yamllint(self):
+        self.write("chart/Chart.yaml", "name: demo\n")
+        self.git("add", ".")
+        self.git("commit", "-qm", "Add chart")
+        self.write("chart/templates/service.yaml", "{{- if .Values.enabled }}\n")
+        check = next(check for check in self.static()["checks"] if check["id"] == "yaml")
+        self.assertEqual(check["status"], "N/A")
+        self.assertIn("renderer", check["reason"])
+
+    def test_yaml_uses_the_closest_config_and_surfaces_syntax_errors(self):
+        bin_dir = self.root / "bin"
+        write_fake_command(bin_dir / "yamllint", """#!/usr/bin/env python3
+import sys
+if '--version' in sys.argv:
+    print('yamllint 1.38.0')
+    raise SystemExit(0)
+assert sys.argv[1:6] == ['-f', 'parsable', '-c', 'conf/.yamllint', '--']
+print(sys.argv[-1] + ':1:12: [error] syntax error: expected a closing bracket (syntax)')
+raise SystemExit(1)
+""")
+        self.write("conf/.yamllint", "{rules: {}}\n")
+        self.write("conf/settings.yaml", "enabled: [true\n")
+        report = self.entry_json("static", "--profile", "generic", "--project", str(self.repo), "--base", "main",
+                                 "--output", str(self.root / "yaml.json"), code=1,
+                                 env={"PATH": str(bin_dir) + os.pathsep + os.environ["PATH"]})
+        check = next(check for check in report["checks"] if check["id"] == "yaml")
+        self.assertEqual(check["status"], "FAIL")
+        self.assertEqual(check["findings"][0]["file"], "conf/settings.yaml")
 
     def test_mixed_languages_stay_in_scope(self):
         self.write("worker.rs", "fn main() {}\n")

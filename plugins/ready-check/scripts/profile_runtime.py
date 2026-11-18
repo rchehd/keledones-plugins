@@ -20,4 +20,4 @@ def profile_runner(application, profile):
     sys.path.insert(0, str(SHARED))
     from core_runner import Runner
     spec = load_spec(profile)
-    return Runner(application, settings.project_config(application), spec.runner), spec
+    return Runner(application, settings.project_config(application, profile), spec.runner), spec

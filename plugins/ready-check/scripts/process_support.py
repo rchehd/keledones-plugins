@@ -52,6 +52,10 @@ def launch_argv(argv, env=None, cwd=None):
                 header = stream.read(512)
         first = header.split(b"\n", 1)[0]
         if b"python" in first and first.startswith(b"#!"):
+            interpreter = Path(os.fsdecode(first[2:].split()[0]))
+            if (os.name != "nt" and interpreter.is_absolute() and "python" in interpreter.name
+                    and not first.endswith(b"\r") and os.access(path, os.X_OK)):
+                return [str(path), *args[1:]]
             return [sys.executable, str(path), *args[1:]]
         if suffix in {".php", ".phar"} or b"php" in first and first.startswith(b"#!") or header.startswith(b"<?php"):
             return [find_command("php", env) or "php", str(path), *args[1:]]

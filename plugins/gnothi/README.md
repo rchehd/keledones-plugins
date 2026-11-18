@@ -2,7 +2,7 @@
   <img src="assets/logo.png" alt="Gnothi" width="96">
 </p>
 
-# Gnothi
+# Gnothi · AI Work Profile
 
 *Gnothi seauton*: know yourself. A plugin for Claude Code, Codex and Cursor that reads your local session history
 from all three clients and draws a portrait of how you work with AI agents: what you do well, where you lose time,

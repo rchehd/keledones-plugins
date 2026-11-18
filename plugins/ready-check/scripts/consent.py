@@ -6,10 +6,11 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 import settings
 from dependency_support import PLUGIN, asset_id, bundle_path, data_root
-from detect import detect
+from detect import has_managed_tools, profile_runner_name
 from profile_runtime import profile_runner
+from profile_selection import discover, parse_argument, selection
 from project import toplevel, write_json
-from setup import install
+from setup import install_selected
 
 RUNNERS = {"ddev": "DDEV", "compose": "Docker Compose", "local": "local"}
 
@@ -28,7 +29,7 @@ def runner_available(application, profile):
         return False
 
 
-def summary(result, profile, runner):
+def summary(result):
     parts = []
 
     for part in result["components"]:
@@ -39,7 +40,8 @@ def summary(result, profile, runner):
             parts.append(f"Playwright CLI {part.get('cli_version')}, MCP {part.get('mcp_version')}, "
                          f"{part.get('browser')} {part.get('browser_version')}")
         else:
-            parts.append(f"{profile.capitalize()} checkers in {RUNNERS.get(runner, runner)}")
+            runner_name = part["runner"]
+            parts.append(f"{part['component'].capitalize()} checks in {part['application']} ({RUNNERS.get(runner_name, runner_name)})")
 
     return ", ".join(parts)
 
@@ -56,33 +58,63 @@ def remember(status, reason=None, log=None):
                     bundle=asset_id(PLUGIN / "dependencies/browser")), data_root())
 
 
-def accept(top, found):
-    application = top / found["application"]
+def accept(top, selected):
     settings.store("install", "auto")
-    components = ["browser"]
-    later = None
+    available = []
+    for item in selected:
+        profile, name, application = item["profile"], item["runner"], item["application"]
+        if not has_managed_tools(profile) or runner_available(top / application, profile):
+            available.append(item)
+        else:
+            say(f"{RUNNERS[name]} is unavailable for {profile.capitalize()} in {application}. "
+                "Its checkers will install at the first static check with a working runner.")
 
-    if found["profile"] and runner_available(application, found["profile"]):
-        components.insert(0, "profile")
-    elif found["profile"]:
-        later = f"{RUNNERS.get(found['runner'], found['runner'])} is not running; the {found['profile'].capitalize()} checkers will install at the first static check."
-
-    result = install(application, found["profile"], tuple(components), say)
+    result = install_selected(top, available, ("profile", "browser"), say)
     failed = [part for part in result["components"] if part.get("status") != "PASS"]
-
-    if later:
-        say(later)
-
+    browser = next(part for part in result["components"] if part["component"] == "browser")
+    if browser["status"] == "PASS":
+        remember("PASS")
+    else:
+        remember("FAIL", browser.get("reason"), browser_log())
     if failed:
-        reasons = "; ".join(f"{part['component']}: {part.get('reason', 'unknown error')}" for part in failed)
-        log = browser_log()
-        remember("FAIL", reasons, log)
-        say(f"Ready Check setup incomplete: {reasons}; log: {log}")
+        reasons = "; ".join(f"{part['component']} ({part.get('application', '.')}): "
+                            f"{part.get('reason', 'unknown error')}" for part in failed)
+        say(f"Ready Check setup incomplete: {reasons}")
         return 2
 
-    remember("PASS")
-    say(f"Ready Check is ready: {summary(result, found['profile'], found['runner'])}")
+    say(f"Ready Check is ready: {summary(result)}")
     return 0
+
+
+def confirmed_selections(top, args):
+    if args.selection:
+        if args.profile or args.runner or args.application:
+            raise ValueError("Use --selection or the single-profile flags")
+        return [parse_argument(value) for value in args.selection]
+
+    if args.profile and args.application is not None:
+        application = settings.application_root(top, args.application)
+        name = args.runner or profile_runner_name(args.profile, application, application)
+        return [dict(profile=args.profile, application=args.application, runner=name)]
+
+    _, candidates, conflicts = discover(args.project)
+    if args.profile:
+        matching = [item for item in candidates if item["profile"] == args.profile]
+        if len(matching) > 1:
+            raise ValueError("The profile matches several applications; pass --application")
+        if matching:
+            return [dict(selection(matching[0]), runner=args.runner or matching[0]["runner"])]
+        application = args.project.resolve()
+        name = args.runner or profile_runner_name(args.profile, application, application)
+        return [dict(profile=args.profile, application=application.relative_to(top).as_posix(), runner=name)]
+
+    if args.application is not None:
+        settings.application_root(top, args.application)
+        candidates = [item for item in candidates if item["application"] == args.application]
+        conflicts = [item for item in conflicts if item["application"] == args.application]
+    if conflicts:
+        raise ValueError("Several profiles match the same application; pass the confirmed --selection entries")
+    return [dict(selection(item), runner=args.runner or item["runner"]) for item in candidates]
 
 
 def main():
@@ -95,6 +127,7 @@ def main():
     parser.add_argument("--profile")
     parser.add_argument("--runner", choices=sorted(RUNNERS))
     parser.add_argument("--application")
+    parser.add_argument("--selection", action="append", metavar="PROFILE:RUNNER:APPLICATION")
     args = parser.parse_args()
 
     try:
@@ -102,19 +135,10 @@ def main():
         if not top:
             raise ValueError("Ready Check needs a Git work tree")
 
-        found = detect(top)
-        found.update({key: value for key, value in (("profile", args.profile), ("runner", args.runner),
-                                                     ("application", args.application)) if value})
-
-        if found["profile"] and not settings.valid("profile", found["profile"]):
-            say(f"Ready Check has no {found['profile']} profile yet: static checks are unavailable, review and QA work.")
-            found["profile"] = None
-
-        if found["profile"]:
-            settings.store("profile", found["profile"], top)
-
-        settings.store("runner", found["runner"], top)
-        settings.store("application", found["application"], top)
+        selected = confirmed_selections(top, args)
+        if not settings.valid("profiles", selected):
+            raise ValueError("Expected unique selections with a packaged profile, runner and application")
+        settings.store("profiles", selected, top)
 
         if args.decision == "no":
             settings.store("install", "never")
@@ -122,7 +146,7 @@ def main():
                 "change this later with the setup command.")
             return 0
 
-        return accept(top, found)
+        return accept(top, selected)
     except (OSError, ValueError) as error:
         say(f"Ready Check setup incomplete: {error}")
         return 2

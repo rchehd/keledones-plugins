@@ -1,5 +1,6 @@
 import json
 import unittest
+from pathlib import Path
 
 from helpers import RepoTest
 import detect
@@ -30,6 +31,104 @@ class SettingsTest(RepoTest):
         self.assertFalse(settings.valid("profile", "nope"))
 
 
+class ProfileSelectionTest(RepoTest):
+    def select(self, project=None, code=0):
+        return self.entry_json("profiles", "--project", str(project or self.repo), code=code)
+
+    def test_composes_profiles_at_the_same_and_nested_roots(self):
+        (self.repo / "go.mod").write_text("module example.com/app\n")
+        (self.repo / "pyproject.toml").write_text("[project]\nname = 'app'\n")
+        child = self.repo / "apps" / "site"
+        child.mkdir(parents=True)
+        (child / "composer.json").write_text('{"require":{"drupal/core":"^10"}}')
+        (child / "compose.yaml").write_text("services: {}\n")
+
+        views = {(item["application"], item["profile"]): item for item in self.select()["profiles"]}
+        self.assertEqual(set(views), {(".", "go"), (".", "python"), ("apps/site", "drupal"), ("apps/site", "devops")})
+        self.assertEqual(views[("apps/site", "drupal")]["runner"], "compose")
+        self.assertEqual(views[("apps/site", "devops")]["runner"], "local")
+        self.assertEqual(views[("apps/site", "drupal")]["evidence"], ["composer.json require drupal/core"])
+        self.assertEqual(self.select(child)["profiles"], [views[("apps/site", "drupal")], views[("apps/site", "devops")]])
+
+    def test_legacy_config_is_one_explicit_selection(self):
+        child = self.repo / "apps"
+        child.mkdir()
+        (self.repo / "go.mod").write_text("module example.com/app\n")
+        self.entry_json("config", "set", "profile", "python", "--project", str(self.repo))
+        self.entry_json("config", "set", "application", "apps", "--project", str(self.repo))
+        self.entry_json("config", "set", "runner", "local", "--project", str(self.repo))
+        selected, = self.select()["profiles"]
+        self.assertEqual((selected["profile"], selected["application"], selected["source"]), ("python", "apps", "config"))
+
+    def test_conflicting_php_frameworks_require_explicit_selection(self):
+        (self.repo / "composer.json").write_text('{"require":{"laravel/framework":"^11","drupal/core":"^10"}}')
+        result = self.select(code=2)
+        self.assertEqual(result["conflicts"], [{"application": ".", "profiles": ["drupal", "laravel"]}])
+
+    def test_multi_profile_config_validates_structure(self):
+        item = dict(profile="python", application=".", runner="local")
+        for invalid in ([item, item], [dict(item, application="../project")], [dict(item, runner=["local"])]):
+            self.entry_json("config", "set", "profiles", json.dumps(invalid), "--project", str(self.repo), code=2)
+        selected = [item, dict(item, profile="go")]
+        self.entry_json("config", "set", "profiles", json.dumps(selected), "--project", str(self.repo))
+        self.assertEqual([item["profile"] for item in self.select()["profiles"]], ["python", "go"])
+
+    def test_profiles_use_separate_scope_and_results_in_one_task_folder(self):
+        tools = self.repo / "tools"
+        service = self.repo / "service"
+        for directory in (tools, service):
+            directory.mkdir()
+        (service / "go.mod").write_text("module example.com/service\n")
+        (tools / "config.json").write_text('{"enabled": false}\n')
+        self.git("add", ".")
+        self.git("commit", "-q", "-m", "Add applications")
+        self.git("switch", "-q", "-c", "task")
+
+        self.run_entry("consent", "no", "--project", str(self.repo), "--selection", "go:local:service",
+                       "--selection", "generic:local:tools").check_returncode()
+        (service / "README.md").write_text("# Service\n")
+        (tools / "config.json").write_text('{"enabled": true}\n')
+        (self.repo / "README.md").write_text("# Repository\n")
+        report = self.entry_json("reports", "--project", str(self.repo), "--task", "Two applications")
+        directory = Path(report["directory"])
+        all_covered, outside = set(), set()
+        for item in self.select()["profiles"]:
+            profile, application = item["profile"], item["application"]
+            args = ("--profile", profile, "--project", str(self.repo / application), "--base", "main")
+            doctor_file, static_file = (directory / f"{action}-{profile}.json" for action in ("doctor", "static"))
+            doctor = self.entry_json("doctor", *args, "--output", str(doctor_file))
+            static = self.entry_json("static", *args, "--output", str(static_file))
+            self.assertEqual(doctor["status"], "READY")
+            self.assertTrue(static["can_proceed"])
+            self.assertEqual(doctor["scope"]["snapshot"], static["scope"]["snapshot"])
+            self.assertEqual(static["runner"], item["runner"])
+            self.assertTrue(doctor_file.is_file() and static_file.is_file())
+            all_covered.update(f"{application}/{path}" for path in static["scope"]["changed_files"])
+            outside.update(static["scope"]["outside_scope"])
+        self.assertEqual(all_covered, {"service/README.md", "tools/config.json"})
+        self.assertEqual(outside - all_covered, {"README.md"})
+        mismatch = self.entry_json("doctor", "--profile", "generic", "--project", str(service),
+                                   "--base", "main", code=2)
+        self.assertIn("conflict with project configuration", mismatch["reason"])
+
+        (tools / "config.json").write_text('{"enabled": }\n')
+        broken = self.entry_json("static", "--profile", "generic", "--project", str(tools),
+                                 "--base", "main", "--output", str(directory / "static-generic-round-2.json"), code=1)
+        self.assertFalse(broken["can_proceed"])
+        self.assertIn("syntax", [check["id"] for check in broken["checks"] if check["status"] == "FAIL"])
+        go = self.entry_json("static", "--profile", "go", "--project", str(service), "--base", "main")
+        self.assertTrue(go["can_proceed"])
+
+    def test_same_application_keeps_each_profiles_runner(self):
+        (self.repo / "README.md").write_text("# Task\n")
+        self.run_entry("consent", "no", "--project", str(self.repo), "--selection", "go:compose:.",
+                       "--selection", "python:local:.").check_returncode()
+        for profile, runner in (("go", "compose"), ("python", "local")):
+            report = self.entry_json("doctor", "--profile", profile, "--project", str(self.repo),
+                                     "--base", "main", env={"LINT_RUNNER": ""})
+            self.assertEqual(report["runner"], runner)
+
+
 class DetectTest(RepoTest):
     def write(self, relative, data):
         path = self.repo / relative
@@ -55,7 +154,7 @@ class DetectTest(RepoTest):
     def test_non_drupal_project(self):
         self.write("package.json", {"name": "x"})
         self.write("compose.yml", "services: {}\n")
-        self.assertEqual((detect.detect(self.repo)["profile"], detect.detect(self.repo)["runner"]), ("generic", "local"))
+        self.assertEqual((detect.detect(self.repo)["profile"], detect.detect(self.repo)["runner"]), ("devops", "local"))
 
     def test_explicit_unknown_profile_is_preserved(self):
         self.write(".ready-check.json", {"profile": "unavailable"})

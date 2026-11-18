@@ -56,6 +56,13 @@ class PlatformTest(unittest.TestCase):
         code, output, _ = execute([str(binary)], self.root)
         self.assertEqual((code, output.strip()), (0, b"portable"))
 
+    @unittest.skipIf(os.name == "nt" or any(c.isspace() for c in sys.executable), "Requires a POSIX shebang")
+    def test_installed_python_command_keeps_its_interpreter_and_flags(self):
+        binary = self.write("bin/yamllint", f"#!{sys.executable} -S\nimport sys\nprint(sys.flags.no_site)\n")
+        binary.chmod(0o755)
+        code, stdout, _ = execute([str(binary)], self.root)
+        self.assertEqual((code, stdout.strip()), (0, b"1"))
+
     def test_relative_proxy_uses_command_working_directory(self):
         self.write("vendor/bin/checker", '#!/usr/bin/env python3\nprint("relative")\n')
         code, output, _ = execute(["vendor/bin/checker"], self.root)
