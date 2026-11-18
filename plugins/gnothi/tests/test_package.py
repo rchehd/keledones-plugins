@@ -27,9 +27,9 @@ class PackageTest(unittest.TestCase):
         problems = validate.check_skills(PLUGIN, ("setup", "portrait", "absent"))
         self.assertEqual(problems, ["skills/absent/SKILL.md: missing"])
 
-    def test_codex_starter_targets_the_local_portrait_skill(self):
+    def test_codex_starter_targets_the_portrait_skill_in_cloud_and_local_chats(self):
         manifest = json.loads((PLUGIN / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
-        self.assertIs(manifest["requires_local_executor"], True)
+        self.assertFalse(manifest.get("requires_local_executor", False))
         prompt = manifest["interface"]["defaultPrompt"][0]
         self.assertIn("$gnothi:portrait", prompt)
         self.assertLessEqual(len(prompt), 128)

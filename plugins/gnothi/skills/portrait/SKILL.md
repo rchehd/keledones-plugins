@@ -1,17 +1,18 @@
 ---
 name: portrait
 description: >-
-  Run Gnothi to analyze local Claude Code, Codex, and Cursor session history and write a private text and offline HTML report on how the user works with AI agents. This is session analysis, never an image. Trigger on "show my AI work portrait", "review my chats with Claude", "analyze my Codex history", "look at my Cursor sessions", "my habits or style with agents", "how good am I at prompting", "what do I do wrong with AI", "stats of my AI usage", "self-reflection on my work with AI", "як я працюю з ШІ", "проаналізуй мої чати з агентами", "що я роблю не так у промптах", "покажи статистику моєї роботи з AI". An explicit request for a Gnothi report starts the workflow. With an indirect matching request, offer to run Gnothi first.
+  Run Gnothi to analyze AI work from ordinary ChatGPT or Claude chats and local Claude Code, Codex, and Cursor sessions. Give a private portrait in chat or an offline HTML report with the local report tool. Trigger on "show my AI work portrait", "review my chats with ChatGPT or Claude", "analyze my Codex history", "look at my Cursor sessions", "my habits or style with agents", "how good am I at prompting", "what do I do wrong with AI", "stats of my AI usage", "self-reflection on my work with AI", "як я працюю з ШІ", "проаналізуй мої чати з агентами", "що я роблю не так у промптах", "покажи статистику моєї роботи з AI". An explicit request for a Gnothi report starts the workflow. With an indirect matching request, offer to run Gnothi first.
 ---
 
 # Gnothi portrait
 
-Respond and write the portrait in the user's language. Resolve the plugin root two directories above this file's
-directory; run `python3 "<plugin root>/scripts/gnothi.py" <command>` (`py -3` on Windows). Every command prints
-JSON; on `"status": "FAIL"` tell the user the `reason` and stop. The script counts; you read, group and write.
-Always run the bundled script for a Gnothi report. Generate the analysis from its digest. Never generate an image
-or substitute general knowledge, chat memory, or a personality portrait. If the script is unavailable, report the blocker.
-If the user only asks what Gnothi can do, explain that it analyzes local sessions into a text and HTML report.
+Respond and write the portrait in the user's language. Use the [chat history instructions](references/chat-history.md)
+to discover accessible sources and choose the report format. If the client cannot run the bundled script against
+the user's local machine, follow **Portrait in chat** in that reference. A cloud shell does not grant access to a
+user's computer. On the local path, resolve the plugin root two directories above this file's directory and run
+`python3 "<plugin root>/scripts/gnothi.py" <command>` (`py -3` on Windows). Commands print JSON; report a
+`"status": "FAIL"` with its `reason`. Use the digest for the local report.
+If the user only asks what Gnothi can do, explain that it analyzes available agent sessions and ordinary chats.
 Offer to run it. Treat an affirmative follow-up as the user's choice to proceed with this workflow.
 
 Use the client's built-in question UI for every choice, one question at a time, and wait for the reply. Use
@@ -28,10 +29,13 @@ accepts only three options, offer the remembered period or Choose another period
 
 ## 2. Collect
 
-Run `collect --period <period>` (add `--metrics-only` only if the user asks for it this time). Read the JSON:
+Discover available chat inputs using the reference. Run `collect --period <period>` with any applicable
+`--chat-export` or `--chat-sample` flags. Add `--metrics-only` only if the user asks for it this time. Read the JSON:
 `sources` (what was found, how many sessions), `current` and `previous` (signals, universal axes, archetypes),
 `trend`, `activity`, `tools`, `friction`, `tokens`, `projects` and `evidence` (session ids, flags and redacted
-excerpts). No sessions → say so and stop. Never open the raw session files.
+excerpts). If no sessions were found, state what was accessible and offer a specific supported chat input.
+Let the script read raw local history and exports. When metrics-only is active, leave native conversation retrieval
+off unless the host supplies aggregate counts; offer a local export for chat counts without exposing message text.
 
 ## 3. Write `portrait.json`
 
@@ -40,7 +44,7 @@ Write it next to the digest (`tmp/portrait.json` in the data root, the folder of
 ```json
 {"schema_version": 1, "language": "<language code>", "summary": "<2–3 sentences>",
  "axes": [{"id": "<profile axis id>", "name": "<localized name>", "measures": "<localized meaning>",
-           "score": 0-10, "reason": "<what raised or lowered the score>", "evidence": ["<session id>"]}],
+           "score": 0-10 or null, "reason": "<what raised or lowered the score>", "evidence": ["<session id>"]}],
  "strengths": [{"title": "", "detail": "", "tip": "", "evidence": ["<id>", "<id>"], "cause": "<optional>"}],
  "growth": [{"title": "", "detail": "", "tip": "", "evidence": ["<id>", "<id>"], "cause": "<optional>"}],
  "observations": [{"title": "", "detail": ""}],
@@ -54,11 +58,14 @@ Rules:
   IDs, project names and evidence IDs from the input. For any language other than English, run `ui-strings`,
   translate all values in `strings` into the chat language, and put them in `portrait.json` under `ui`.
   Keep every key and every `{placeholder}` intact. Use plain text for labels.
-- Score every axis of the current epoch exactly once, from its signals and the excerpts; compare with the previous
+- Include every axis of the current epoch exactly once, using its signals and the excerpts; compare with the previous
   period's numbers where they exist. Scores describe this person against their own past, not an ideal.
-  In each reason, name the observed behavior or count that raised or lowered the score.
+  In each reason, name the observed behavior or count that raised or lowered the score. When chat history
+  contributes to the sample and an axis has insufficient evidence, use `null` and say what evidence is missing.
 - For verification habits, use `checks_after_edit_sessions` out of `edit_sessions` when edits were recorded.
   These counts describe logged check calls. Claims about check results require separate evidence.
+- Chat history contributes user requests and their timestamps. Use the agent-log scope for tool, verification,
+  elapsed time, focus, completion and work-style metrics. Compare periods only where their source coverage supports it.
 - Strengths and growth: 3–5 each when the data allows, never more than 5. Each needs at least two evidence
   sessions, or one session plus a clear `cause`. Anything weaker goes to `observations`.
 - Tips are concrete next steps ("name the file and the expected result in the first request"), not slogans.
@@ -73,14 +80,13 @@ Run `render`. On FAIL fix exactly what `reason` lists and run it again. Pass on 
 
 ## 5. Reply
 
-5–8 lines: the summary, the top strengths and growth areas, the biggest change against the previous period, and the
-report path from `html` to open in a browser. Mention when Cursor tokens are not counted.
+5–8 lines: the summary, the top strengths and growth areas, a comparable change when there is one, and the
+report path from `html` to open in a browser. Give the count for each source and mark exports and retrieved samples.
 
 ## Privacy
 
-- Session history, the digest and the report are confidential: never publish or send them anywhere — not as an
-  artifact or page, not to Drive, Notion or other services, not in chat, email or Slack, not in a PR, issue or
-  commit, not to other agents or MCP servers.
+- Keep source history, digests and local reports private. Only give the user a short, paraphrased portrait in the
+  current private chat when using the chat route. Avoid external services, published artifacts and repository files.
 - If the user asks to share, explain that the report is confidential and offer only a short summary written in the
   chat, without excerpts, file names or project names.
 - Quote at most short paraphrases of excerpts in the chat. Never copy files out of the Gnothi data root.

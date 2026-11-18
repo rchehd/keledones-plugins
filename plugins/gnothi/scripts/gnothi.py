@@ -17,7 +17,7 @@ import report  # noqa: E402
 from report_strings import ENGLISH  # noqa: E402
 import storage  # noqa: E402
 from sessions import PERIODS  # noqa: E402
-from sources import ADAPTERS  # noqa: E402
+from sources import ADAPTERS, chat_history  # noqa: E402
 
 
 def sources(args):
@@ -28,6 +28,10 @@ def sources(args):
         paths = adapter.files(base)
         found.append({"client": adapter.CLIENT, "root": str(base), "found": bool(paths), "files": len(paths)})
 
+    if args:
+        _, imports = chat_history.import_sources(args.chat_export, args.chat_sample)
+        found.extend(imports)
+
     return {"sources": found}
 
 
@@ -35,7 +39,7 @@ def collect(args):
     options = profiles.read()["options"]
     period = args.period or options["period"]
     data = digest.build(period, digest.date.today(), args.budget, args.metrics_only or options["metrics_only"],
-                        args.archetypes or options["archetypes"])
+                        args.archetypes or options["archetypes"], args.chat_export, args.chat_sample)
     profiles.set_options(period=period)
     path = storage.write_private(storage.data_root() / "tmp/digest.json", json.dumps(data, ensure_ascii=False, indent=1))
     return dict(data, digest=str(path))
@@ -74,13 +78,19 @@ def forget(args):
 def parser():
     root = argparse.ArgumentParser(prog="gnothi", description="Gnothi: a private portrait of how you work with AI agents.")
     commands = root.add_subparsers(dest="command", required=True)
-    commands.add_parser("sources", help="List the session folders Gnothi can read").set_defaults(run=sources)
+    source_command = commands.add_parser("sources", help="List readable session folders and supplied chat history")
+    source_command.set_defaults(run=sources)
     command = commands.add_parser("collect", help="Build the redacted digest for one period")
     command.add_argument("--period", choices=list(PERIODS))
     command.add_argument("--budget", type=int, default=30000)
     command.add_argument("--metrics-only", action="store_true")
     command.add_argument("--archetypes", action="store_true")
     command.set_defaults(run=collect)
+    for reader in (source_command, command):
+        reader.add_argument("--chat-export", action="append", default=[], metavar="PATH",
+                            help="Read an official ChatGPT or Claude JSON/ZIP export; repeat for multiple exports")
+        reader.add_argument("--chat-sample", action="append", default=[], metavar="PATH",
+                            help="Read retrieved chat messages in Gnothi JSON format; use - for stdin")
     command = commands.add_parser("profile", help="Show or change the profile and options")
     actions = command.add_subparsers(dest="profile_command", required=True)
     actions.add_parser("show")

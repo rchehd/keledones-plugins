@@ -3,10 +3,12 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from datetime import date
+from itertools import groupby
 
 import signals
 from redact import excerpt
-from sessions import load, window
+from sessions import CHAT_CLIENTS, load, window
+from sources import chat_history
 
 PRIORITY = ("correction", "repeat", "debug", "question", "plan")
 
@@ -74,8 +76,18 @@ def block(sessions, archetypes_on):
     if not sessions:
         return {"summary": summary, "axes": None, "archetypes": None}
 
-    return {"summary": summary, "axes": signals.axes(summary),
-            "archetypes": signals.archetypes(summary) if archetypes_on else None}
+    axes = signals.axes(summary)
+    agents = [session for session in sessions if session.client not in CHAT_CLIENTS]
+    agent_summary = summary if len(agents) == len(sessions) else signals.summarize(agents)
+    if agent_summary is not summary:
+        agent_axes = signals.axes(agent_summary) if agents else {}
+        axes.update({key: agent_axes.get(key) for key in ("focus", "completion", "tool_range")})
+        summary["agent_sessions"] = len(agents)
+        summary["minutes"] = agent_summary["minutes"]
+        summary["project_switches"] = agent_summary["project_switches"]
+
+    return {"summary": summary, "axes": axes,
+            "archetypes": signals.archetypes(agent_summary) if archetypes_on and agents else None}
 
 
 def anonymize(data, sessions):
@@ -99,7 +111,19 @@ def anonymize(data, sessions):
         data["tools"][kind] = {f"{kind.rstrip('s')}-{index}": counts[name] for index, name in enumerate(sorted(counts), 1)}
 
 
-def build(period, today=None, budget=30000, metrics_only=False, archetypes_on=False):
+def monthly_axes(sessions):
+    months = defaultdict(list)
+    for session in sessions:
+        if session.client in CHAT_CLIENTS:
+            for month, turns in groupby(session.turns, key=lambda turn: turn.ts.astimezone().strftime("%Y-%m")):
+                months[month].append(chat_history.with_turns(session, list(turns)))
+        else:
+            months[session.started.astimezone().strftime("%Y-%m")].append(session)
+    return [{"month": month, "axes": block(group, False)["axes"]} for month, group in sorted(months.items())]
+
+
+def build(period, today=None, budget=30000, metrics_only=False, archetypes_on=False,
+          chat_exports=(), chat_samples=()):
     today = today or date.today()
     span = window(period, today)
     previous = span["previous"]
@@ -111,16 +135,17 @@ def build(period, today=None, budget=30000, metrics_only=False, archetypes_on=Fa
     current = [session for session in sessions if span["start"] is None or day(session) >= span["start"]]
     earlier = [session for session in sessions if previous and day(session) <= previous["end"]]
 
+    chat_sessions, chat_sources = chat_history.import_sources(chat_exports, chat_samples)
+    current.extend(chat_history.in_period(chat_sessions, span["start"], span["end"]))
+    if previous:
+        earlier.extend(chat_history.in_period(chat_sessions, previous["start"], previous["end"]))
+    sources.extend(chat_sources)
+
     for entry in sources:
         entry["sessions"] = sum(session.client == entry["client"] for session in current)
 
     now = block(current, archetypes_on)
     summary = now["summary"]
-    months = defaultdict(list)
-
-    if period == "all":
-        for session in current:
-            months[day(session).strftime("%Y-%m")].append(session)
 
     data = {
         "schema_version": 1,
@@ -130,7 +155,7 @@ def build(period, today=None, budget=30000, metrics_only=False, archetypes_on=Fa
         "metrics_only": metrics_only,
         "current": now,
         "previous": block(earlier, archetypes_on) if previous else None,
-        "trend": [{"month": month, "axes": signals.axes(signals.summarize(group))} for month, group in sorted(months.items())],
+        "trend": monthly_axes(current) if period == "all" else [],
         "activity": {"by_weekday": summary["by_weekday"], "by_hour": summary["by_hour"]},
         "tools": {"skills": summary["skills"], "mcp": summary["mcp"], "kinds": summary["kinds"],
                   "subagent_turns": summary["subagent_turns"]},
@@ -142,7 +167,7 @@ def build(period, today=None, budget=30000, metrics_only=False, archetypes_on=Fa
     }
 
     if metrics_only:
-        anonymize(data, sessions)
+        anonymize(data, [*current, *earlier])
         return data
 
     size = len(json.dumps(data, ensure_ascii=False))

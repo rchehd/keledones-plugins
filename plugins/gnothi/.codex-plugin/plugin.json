@@ -6,12 +6,11 @@
     "name": "Roman Chekhaniuk"
   },
   "skills": "./skills/",
-  "requires_local_executor": true,
   "onboardingSkill": "./skills/setup/SKILL.md",
   "interface": {
     "displayName": "Gnothi · AI Work Profile",
     "shortDescription": "A private portrait of how you work with AI agents.",
-    "longDescription": "Analyzes your local AI sessions and builds a private HTML report on how you collaborate with AI, where you spend time, and which work patterns recur.",
+    "longDescription": "Builds a private portrait of your work with AI from local agent sessions and available ChatGPT or Claude chats. Read the portrait in chat or generate an offline HTML report on your computer.",
     "developerName": "Roman Chekhaniuk",
     "category": "Productivity",
     "capabilities": ["Interactive", "Read", "Write"],
@@ -19,7 +18,7 @@
     "composerIcon": "./assets/logo.svg",
     "logo": "./assets/logo.svg",
     "defaultPrompt": [
-      "Use $gnothi:portrait to analyze my local AI sessions and create a private HTML report on how I work."
+      "Use $gnothi:portrait to analyze how I work with AI across my available sessions and chats."
     ]
   }
 }

@@ -1,12 +1,18 @@
 ---
 name: setup
 description: >-
-  Set up, edit, or delete a Gnothi profile for a private text and HTML analysis of local Claude Code, Codex, and Cursor logs. Configure the user's role, personal metrics, work styles, or metrics-only mode. Trigger on "set up Gnothi", "detect my role for Gnothi from my AI chats", "my role changed, update my AI profile", "change my portrait axes", "turn on archetypes", "use metrics only", "delete my Gnothi data", "налаштуй Gnothi", "зміни метрики мого профілю", "увімкни лише метрики", "видали дані Gnothi". With an indirect matching request, offer to change the profile first.
+  Set up, edit, or delete a Gnothi profile for private analysis of AI chats and agent sessions. Configure the user's role, personal metrics, work styles, or metrics-only mode. Trigger on "set up Gnothi", "detect my role for Gnothi from my AI chats", "my role changed, update my AI profile", "change my portrait axes", "turn on archetypes", "use metrics only", "delete my Gnothi data", "налаштуй Gnothi", "зміни метрики мого профілю", "увімкни лише метрики", "видали дані Gnothi". With an indirect matching request, offer to change the profile first.
 ---
 
 # Gnothi profile
 
-Respond in the user's language. Resolve the plugin root two directories above this file's directory; run
+Respond in the user's language. If the user opened Gnothi in a client without access to their local machine,
+use the [chat history instructions](../portrait/references/chat-history.md). Ask for the user's work context or
+infer it from authorized chat evidence at their request. Use those preferences for the current portrait.
+Persistent profile changes and deletion require the local path. For an explicit request to show a portrait,
+go directly to the chat route without requiring profile setup.
+
+On the local path, resolve the plugin root two directories above this file's directory; run
 `python3 "<plugin root>/scripts/gnothi.py" <command>` (`py -3` on Windows). Every command prints JSON; on
 `"status": "FAIL"` tell the user the `reason` and stop.
 
@@ -24,8 +30,9 @@ Run `profile show` and `profile templates`. If an epoch exists, show its axes an
 For profile axes, ask how to identify their work, with Describe my work / Detect from sessions. For Describe my
 work, ask for a brief description of what they do and how they use AI. For Detect from sessions with
 `options.metrics_only` off, ask whether to include short masked excerpts, with Include masked excerpts / Metrics
-only. Run `collect` without `--period` to keep the remembered period. Add `--metrics-only` for a metrics-only
-choice. Infer the work from `projects`, `tools` and any evidence excerpts. Paraphrase excerpts briefly if needed.
+only. Use the available inputs from the chat history instructions with `collect`. Omit `--period` to keep the
+remembered period. Add `--metrics-only` for a metrics-only choice. Infer the work from `projects`, `tools` and any
+evidence excerpts. Paraphrase excerpts briefly if needed.
 For a request limited to changing options, go to Options.
 
 ## 3. Propose axes

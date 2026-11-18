@@ -8,7 +8,8 @@ from typing import List, Optional
 
 KINDS = ("edit", "read", "shell", "test", "skill", "mcp", "subagent", "plan", "other")
 PERIODS = {"all": None, "year": 365, "half": 182, "month": 30}
-PREFIX = {"claude": "cc", "codex": "cx", "cursor": "cu"}
+CHAT_CLIENTS = {"chatgpt": "ChatGPT", "claude-chat": "Claude.ai"}
+PREFIX = {"claude": "cc", "codex": "cx", "cursor": "cu", "chatgpt": "cg", "claude-chat": "ca"}
 CACHE_VERSION = 2
 
 INJECTED = re.compile(r"<(system-reminder|environment_context|INSTRUCTIONS|user_instructions|local-command-stdout|"

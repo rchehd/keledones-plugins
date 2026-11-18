@@ -9,10 +9,11 @@ from pathlib import Path
 import profiles
 import storage
 from report_strings import check_ui, strings_for
+from sessions import CHAT_CLIENTS
 from signals import ARCHETYPES, AXES
 
 PACKAGE = Path(__file__).resolve().parent.parent
-CLIENTS = {"claude": "Claude Code", "codex": "Codex", "cursor": "Cursor"}
+CLIENTS = {"claude": "Claude Code", "codex": "Codex", "cursor": "Cursor", **CHAT_CLIENTS}
 WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:"
 
@@ -94,6 +95,7 @@ def validate(portrait, digest, profile):
 
     known = {item["id"] for item in digest.get("evidence", [])}
     metrics_only = digest.get("metrics_only")
+    includes_chats = any(source["client"] in CHAT_CLIENTS and source["sessions"] for source in digest.get("sources", []))
     epoch = profiles.current_epoch(profile)
     axes = portrait.get("axes")
 
@@ -120,7 +122,8 @@ def validate(portrait, digest, profile):
 
         for item in axes:
             if isinstance(item, dict):
-                if not is_score(item.get("score")):
+                unavailable = includes_chats and "score" in item and item["score"] is None
+                if not unavailable and not is_score(item.get("score")):
                     problems.append(f"axes: {item.get('id')} needs a score from 0 to 10")
 
                 if not text(item.get("reason")):
@@ -346,6 +349,14 @@ def render_html(digest, portrait, profile, previous):
     before = previous_block["summary"] if previous_block.get("axes") else {}
     styles = digest["current"].get("archetypes") or {}
     ranked_styles = sorted((name for name in ARCHETYPES if name in styles), key=styles.get, reverse=True)
+    chat_sources = [item for item in digest["sources"] if item["client"] in CHAT_CLIENTS]
+    source_note = ""
+    if chat_sources:
+        source_rows = [(CLIENTS[item["client"]], item["sessions"],
+                        ", ".join(ui[f"chat_{mode}"] for mode in item["imports"]), item["skipped_conversations"])
+                       for item in chat_sources]
+        source_note = (table([ui[key] for key in ("client", "sessions", "chat_input", "chat_skipped")],
+                             source_rows, numeric=(1, 3)) + f'<p class="note">{label["chat_limits"]}</p>')
     data = {
         "radar": radar,
         "style": {"title": ui["work_style"], "labels": [ui[name] for name in ranked_styles],
@@ -356,10 +367,11 @@ def render_html(digest, portrait, profile, previous):
                   "series": [{"label": ui[key], "values": [item["axes"][key] for item in digest["trend"]]}
                              for key in AXES]} if len(digest["trend"]) > 1 else None,
     }
+    hours = "—" if summary.get("agent_sessions") == 0 else round(summary["minutes"] / 60)
     tiles = "".join(f'<div class="tile"><span>{label[key]}</span><strong>{value}</strong></div>'
                     for key, value in (("sessions", summary["sessions"]), ("requests", summary["requests"]),
                                        ("active_days", summary["active_days"]),
-                                       ("hours_with_agents", round(summary["minutes"] / 60))))
+                                       ("hours_with_agents", hours)))
     friction = "".join(f'<div class="tile"><span>{label[key]}</span><strong>{summary[key]}</strong>'
                        f'<small>{escape(ui["previous_count"].format(count=before[key])) if key in before else ""}</small></div>'
                        for key in ("corrections", "repeats", "interrupted", "compactions"))
@@ -395,8 +407,9 @@ def render_html(digest, portrait, profile, previous):
     action_counts = escape(ui["action_counts"].format(counts=kinds))
     tokens = digest["tokens"]
     spend = table([ui["client"], ui["tokens"]],
-                  [(name, f"{tokens[key]:,}" if tokens[key] is not None else ui["not_recorded"])
-                   for key, name in CLIENTS.items()], numeric=(1,))
+                  [(name, f"{tokens[key]:,}" if tokens.get(key) is not None else ui["not_recorded"])
+                   for key, name in CLIENTS.items()
+                   if key in tokens or any(item["client"] == key for item in chat_sources)], numeric=(1,))
     observations = "".join(f"<li><strong>{escape(item.get('title'))}</strong> — {escape(item.get('detail'))}</li>"
                            for item in portrait.get("observations", []))
     style_card = ""
@@ -424,6 +437,7 @@ def render_html(digest, portrait, profile, previous):
 <title>{label['title']}</title><style>{css}</style></head><body><main>
 <header><div class="eyebrow">Gnothi</div><h1>{label['your_portrait']}</h1>
 <p class="muted">{escape(report_header)}</p>
+{source_note}
 <p class="lead">{escape(portrait.get('summary'))}</p></header>
 {banner}
 <div class="tiles">{tiles}</div>

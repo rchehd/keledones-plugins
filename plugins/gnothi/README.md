@@ -4,10 +4,10 @@
 
 # Gnothi · AI Work Profile
 
-*Gnothi seauton*: know yourself. A plugin for Claude Code, Codex and Cursor that reads your local session history
-from all three clients and draws a portrait of how you work with AI agents: what you do well, where you lose time,
-and what to try next. It looks at the content of your sessions, not at token spend, and backs every conclusion with
-the sessions it came from. Everything stays on your machine.
+*Gnothi seauton*: know yourself. Gnothi draws a private portrait of how you work with AI from ordinary ChatGPT
+and Claude chats and from local Claude Code, Codex and Cursor sessions. The local report can combine both
+sources and open offline. In a browser, Gnothi returns a portrait in the current chat using the history the
+client makes available or a selection you provide.
 
 ## What the report shows
 
@@ -60,10 +60,10 @@ with edit calls. The measure uses recognized tool calls in log order and covers 
 - The profile, cache, history and reports live only in the Gnothi data folder, readable by you alone:
   `~/.local/share/gnothi` on Linux, `~/Library/Application Support/Gnothi` on macOS, `%LOCALAPPDATA%\Gnothi` on
   Windows (`GNOTHI_DATA_DIR` overrides it). Gnothi refuses to write inside any Git work tree.
-- The model reads a digest, never the raw history: numbers plus short excerpts (at most 150 characters) with keys,
-  tokens, passwords, emails, URLs and your home folder masked.
-- The analysis runs on your client's model, the same provider that already sees these sessions; Gnothi adds no new
-  recipient. Metrics-only mode sends the model numbers and no session text.
+- For a local collection, the script reads history and the model receives a digest with numbers and short
+  excerpts (at most 150 characters). Keys, tokens, passwords, emails, URLs and your home folder are masked.
+  Metrics-only mode gives the model numbers. Keep an export local to use this mode without giving it to the model.
+- In a browser, native retrieval and supplied conversation files are read by the current client.
 - The skills never publish or send the report. Asked to share, they offer a short summary without excerpts or
   project names.
 - "Delete my Gnothi data" removes the whole data folder after confirmation.
@@ -75,9 +75,14 @@ with edit calls. The measure uses recognized tool calls in log order and covers 
 | Claude Code | `~/.claude/projects/<project>/*.jsonl` | Yes |
 | Codex | `~/.codex/sessions/**/*.jsonl` | Yes |
 | Cursor | `~/.cursor/projects/<project>/agent-transcripts/<id>/<id>.jsonl` | No; time comes from the request stamps |
+| ChatGPT | Available past-chat tool or supplied conversation JSON/ZIP | No |
+| Claude.ai | Available past-chat tool or supplied conversation JSON/ZIP | No |
 
 `GNOTHI_CLAUDE_DIR`, `GNOTHI_CODEX_DIR` and `GNOTHI_CURSOR_DIR` point Gnothi elsewhere. Parsed sessions are cached,
 so later runs read only new or changed files.
+
+Ordinary chats contribute dated user requests. The report counts chats by source and labels retrieved samples.
+Agent logs supply tool, task completion, verification, focus, work-style and elapsed-time metrics.
 
 ## Install
 
@@ -100,7 +105,7 @@ Cursor: **Customize → From GitHub Repository** with `rchehd/keledones-plugins`
 To install Gnothi on its own, follow the
 [individual plugin instructions](https://github.com/rchehd/keledones-plugins#install-an-individual-plugin).
 
-Gnothi needs Python 3.9 or newer and nothing else.
+The local report needs Python 3.9 or newer.
 
 ## Use
 
@@ -111,9 +116,21 @@ Ask "show my agent profile", "how do I work with AI?" or run the skill directly:
 | `portrait` | `/gnothi:portrait` · `/portrait` · `$gnothi:portrait` | Pick a period, build the portrait and the report |
 | `setup` | `/gnothi:setup` · `/setup` · `$gnothi:setup` | Describe your work, edit the axes, set options |
 
-Gnothi needs a local Codex chat to read the session logs. To test an updated install, refresh Gnothi from the
-local marketplace and open a new local chat. Try the suggested starter prompt, then try a natural request such
-as “проаналізуй мої чати з агентами”.
+In the browser, ask to use your ordinary chats. Gnothi uses past-chat retrieval when the client exposes it.
+If the client cannot retrieve past chats, supply conversation JSON or selected chats. Account memory can
+provide context, while the portrait uses actual conversation evidence.
+
+On your computer, give the portrait skill the local path to a
+[ChatGPT export](https://help.openai.com/en/articles/7260999-exporting-your-chatgpt-history-and-data) or a
+[Claude export](https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data). From the
+plugin directory, you can also collect the combined digest directly:
+
+```sh
+python3 scripts/gnothi.py collect --period month --chat-export "/path/to/chatgpt.zip" --chat-export "/path/to/claude.json"
+```
+
+The importer reads only `conversations.json` or numbered conversation JSON entries from a ZIP. The export
+remains at its original path. Each run discovers local agent logs and uses the export paths supplied for that run.
 
 Each run asks for the period: all history, the last year, 6 months or month (the last choice is offered first). The
 previous period of the same length is the comparison; for all history the report shows a monthly trend instead.
