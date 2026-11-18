@@ -8,7 +8,7 @@
   "skills": "./skills/",
   "onboardingSkill": "./skills/setup/SKILL.md",
   "interface": {
-    "displayName": "Ready Check",
+    "displayName": "Ready Check · Review & QA",
     "shortDescription": "Task readiness checks with requirements review and browser QA.",
     "developerName": "Roman Chekhaniuk",
     "category": "Developer Tools",

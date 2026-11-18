@@ -9,7 +9,7 @@
   "requires_local_executor": true,
   "onboardingSkill": "./skills/setup/SKILL.md",
   "interface": {
-    "displayName": "Gnothi",
+    "displayName": "Gnothi · AI Work Profile",
     "shortDescription": "A private portrait of how you work with AI agents.",
     "developerName": "Roman Chekhaniuk",
     "category": "Productivity",

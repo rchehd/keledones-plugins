@@ -2,7 +2,7 @@
   <img src="assets/logo.png" alt="Ready Check" width="96">
 </p>
 
-# Ready Check
+# Ready Check · Review & QA
 
 A plugin for Cursor, Claude Code and Codex that checks whether a task is ready to push: the code meets the task's
 requirements, passes the project's checkers, follows the framework's practices, is safe, and works in a browser.
