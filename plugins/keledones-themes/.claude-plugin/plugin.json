@@ -1,7 +1,7 @@
 {
   "name": "keledones-themes",
   "displayName": "Keledones themes",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Looks for the Claude app: Keledones (cream, blue-green and gold) and Graphite (gray IDE colors), switched with /look",
   "author": {
     "name": "Roman Chekhaniuk"
