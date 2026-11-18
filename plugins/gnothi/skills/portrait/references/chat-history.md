@@ -38,6 +38,26 @@ safely, use the chat route for that sample and explain which sources reached the
 Use `claude-chat` for Claude.ai. Keep real conversation identifiers only in the transient input. Gnothi hashes
 them in the digest and avoids counting the same conversation twice. Include only visible, dated user requests.
 
+## Private storage access
+
+On Windows the default private data folder is `%LOCALAPPDATA%\Gnothi`. `storage-check` tests writing and removing
+an empty file at the data root and in `tmp`, where setup and portrait inputs go. If a later command returns
+`error_code: storage_access_denied`, report its `path` and `reason`. A client sandbox may block writes to a folder
+that the user's own terminal can write to. A failed check alone cannot identify the source of the restriction.
+
+If the client offers filesystem approval, request access for the failing command or file write at that private
+path and retry after approval. Use the same data directory for every step. When the default directory is genuinely
+unwritable, use `GNOTHI_DATA_DIR` only with a private, writable directory the user has chosen outside any repository
+and the plugin package. Keep the choices already made for the period, sources and excerpts.
+
+When private storage is unavailable and the user chooses a portrait in chat, run `collect --no-save --period <period>`
+with the agreed flags and available chat inputs. It prints the redacted digest and leaves the profile, cache and report
+files alone. Use stdin for retrieved chat samples when available and keep those samples in chat if stdin is unavailable.
+Use `--metrics-only` if the user chose metrics only. If the saved profile cannot be read due to permissions, collection
+defaults to metrics only. Write a short, paraphrased portrait in the current private chat. Use the actual session and chat
+counts from the digest and state that no HTML report or profile changes were saved. If the local script itself is
+unavailable, use the chat sources below.
+
 ## Portrait in chat
 
 1. If the user has not given a period, ask for all available history, the last year, six months or one month.

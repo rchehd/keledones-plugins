@@ -177,11 +177,14 @@ def cached(adapter, path):
         pass
 
     session = adapter.read(path)
-    storage.write_private(target, json.dumps({"key": key, "session": session_to_json(session)}, ensure_ascii=False))
+    try:
+        storage.write_private(target, json.dumps({"key": key, "session": session_to_json(session)}, ensure_ascii=False))
+    except storage.StoragePermissionError:
+        pass
     return session
 
 
-def load(start, end):
+def load(start, end, *, use_cache=True):
     from sources import ADAPTERS
 
     found, stats = [], []
@@ -194,7 +197,7 @@ def load(start, end):
 
         for path in paths:
             try:
-                session = cached(adapter, path)
+                session = cached(adapter, path) if use_cache else adapter.read(path)
             except Exception:
                 entry["failed_files"] += 1
                 continue
@@ -210,7 +213,8 @@ def load(start, end):
                 found.append(session)
                 entry["sessions"] += 1
 
-        prune(adapter, paths)
+        if use_cache:
+            prune(adapter, paths)
         stats.append(entry)
 
     return found, stats

@@ -4,9 +4,16 @@ import os
 import shutil
 import sys
 from pathlib import Path
+from uuid import uuid4
 
 PLUGIN = Path(__file__).resolve().parent.parent
 KNOWN = {"profile.json", "history.jsonl", "cache", "tmp", "reports"}
+
+
+class StoragePermissionError(PermissionError):
+    def __init__(self, path, error):
+        self.path = path
+        super().__init__(f"Gnothi storage access denied at {path}: {error}")
 
 
 def data_root():
@@ -59,6 +66,13 @@ def private_dir(path):
 
 
 def write_private(path, text):
+    try:
+        return _write_private(path, text)
+    except PermissionError as error:
+        raise StoragePermissionError(path, error) from error
+
+
+def _write_private(path, text):
     path = guard(path)
     private_dir(path.parent)
     temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
@@ -75,6 +89,19 @@ def write_private(path, text):
             temporary.unlink()
 
     return path
+
+
+def check_writable():
+    root = data_root()
+
+    for folder in (root, root / "tmp"):
+        try:
+            probe = _write_private(folder / f".write-test-{uuid4().hex}", "")
+            probe.unlink()
+        except PermissionError as error:
+            raise StoragePermissionError(folder, error) from error
+
+    return root
 
 
 def forget():

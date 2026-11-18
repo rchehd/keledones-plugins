@@ -36,10 +36,20 @@ def sources(args):
 
 
 def collect(args):
-    options = profiles.read()["options"]
+    try:
+        options = profiles.read()["options"]
+    except storage.StoragePermissionError:
+        if not args.no_save:
+            raise
+        options = dict(profiles.OPTIONS, metrics_only=True)
+
     period = args.period or options["period"]
     data = digest.build(period, digest.date.today(), args.budget, args.metrics_only or options["metrics_only"],
-                        args.archetypes or options["archetypes"], args.chat_export, args.chat_sample)
+                        args.archetypes or options["archetypes"], args.chat_export, args.chat_sample,
+                        use_cache=not args.no_save)
+    if args.no_save:
+        return data
+
     profiles.set_options(period=period)
     path = storage.write_private(storage.data_root() / "tmp/digest.json", json.dumps(data, ensure_ascii=False, indent=1))
     return dict(data, digest=str(path))
@@ -80,11 +90,14 @@ def parser():
     commands = root.add_subparsers(dest="command", required=True)
     source_command = commands.add_parser("sources", help="List readable session folders and supplied chat history")
     source_command.set_defaults(run=sources)
+    commands.add_parser("storage-check", help="Check writes to the private data directory").set_defaults(
+        run=lambda _: {"data_root": str(storage.check_writable())})
     command = commands.add_parser("collect", help="Build the redacted digest for one period")
     command.add_argument("--period", choices=list(PERIODS))
     command.add_argument("--budget", type=int, default=30000)
     command.add_argument("--metrics-only", action="store_true")
     command.add_argument("--archetypes", action="store_true")
+    command.add_argument("--no-save", action="store_true", help="Print the digest without updating local storage")
     command.set_defaults(run=collect)
     for reader in (source_command, command):
         reader.add_argument("--chat-export", action="append", default=[], metavar="PATH",
@@ -122,6 +135,8 @@ def main(argv=None):
     try:
         result.update(args.run(args))
         result["status"] = "PASS"
+    except storage.StoragePermissionError as error:
+        result.update(reason=str(error), error_code="storage_access_denied", path=str(error.path))
     except (OSError, ValueError) as error:
         result["reason"] = str(error)
 

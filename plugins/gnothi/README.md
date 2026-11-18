@@ -136,6 +136,13 @@ Each run asks for the period: all history, the last year, 6 months or month (the
 previous period of the same length is the comparison; for all history the report shows a monthly trend instead.
 The report opens from the path the skill prints.
 
+### Windows storage access
+
+From the plugin directory, run `py -3 scripts/gnothi.py storage-check` to test the private data folder. An access
+error includes the affected path. If the check succeeds in PowerShell but fails inside the client, use the client's
+filesystem approval for the Gnothi folder. You can set `GNOTHI_DATA_DIR` to a private writable folder outside Git
+work trees and the plugin package. For a portrait in chat without saving files, use `collect --no-save`.
+
 ## Development
 
 ```sh

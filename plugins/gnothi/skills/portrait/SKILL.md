@@ -22,7 +22,9 @@ not an answer. For an indirect trigger, ask Run Gnothi / Cancel through the same
 
 ## 1. Profile and period
 
-Run `profile show`. Without an epoch (and without the metrics-only option), follow the `setup` skill first.
+For a local report, run `storage-check` before profile setup or collection. If it fails, follow
+[Private storage access](references/chat-history.md#private-storage-access). Run `profile show`. Without an
+epoch (and without the metrics-only option), follow the `setup` skill first for the HTML report.
 Ask for the period if the user has not given it. Offer all history (`all`), last year (`year`), last 6 months
 (`half`), and last month (`month`), with the remembered one (`options.period`) first. If the question tool
 accepts only three options, offer the remembered period or Choose another period, then offer the other three.
@@ -36,6 +38,8 @@ Discover available chat inputs using the reference. Run `collect --period <perio
 excerpts). If no sessions were found, state what was accessible and offer a specific supported chat input.
 Let the script read raw local history and exports. When metrics-only is active, leave native conversation retrieval
 off unless the host supplies aggregate counts; offer a local export for chat counts without exposing message text.
+For a portrait in chat from local sources without saving files, add `--no-save` and follow
+[Private storage access](references/chat-history.md#private-storage-access). Check `metrics_only` in the returned digest.
 
 ## 3. Write `portrait.json`
 
@@ -76,7 +80,9 @@ Rules:
 
 ## 4. Render
 
-Run `render`. On FAIL fix exactly what `reason` lists and run it again. Pass on `warnings` in one line.
+Run `render`. If storage access fails here or at another local step, follow
+[Private storage access](references/chat-history.md#private-storage-access). For other failures, fix what
+`reason` lists and run it again. Pass on `warnings` in one line.
 
 ## 5. Reply
 

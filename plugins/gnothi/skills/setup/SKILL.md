@@ -13,8 +13,9 @@ Persistent profile changes and deletion require the local path. For an explicit 
 go directly to the chat route without requiring profile setup.
 
 On the local path, resolve the plugin root two directories above this file's directory; run
-`python3 "<plugin root>/scripts/gnothi.py" <command>` (`py -3` on Windows). Every command prints JSON; on
-`"status": "FAIL"` tell the user the `reason` and stop.
+`python3 "<plugin root>/scripts/gnothi.py" <command>` (`py -3` on Windows). Every command prints JSON.
+For storage access failures, follow [Private storage access](../portrait/references/chat-history.md#private-storage-access).
+For other failures, stop the affected step and report the `reason`.
 
 Use the client's built-in question UI for each choice, one question at a time, and wait for the reply. Use
 Claude Code's `AskUserQuestion`, Codex's `request_user_input` when available (or `request_user_input_async`),
@@ -23,7 +24,8 @@ not an answer. Skip choices the user already answered. For an indirect trigger, 
 
 ## 1. Look
 
-Run `profile show` and `profile templates`. If an epoch exists, show its axes and ask what changed.
+Run `storage-check` before profile setup or option changes. Run `profile show` and `profile templates`. If an epoch
+exists, show its axes and ask what changed.
 
 ## 2. Ask
 

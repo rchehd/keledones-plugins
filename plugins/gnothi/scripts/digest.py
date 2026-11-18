@@ -123,11 +123,11 @@ def monthly_axes(sessions):
 
 
 def build(period, today=None, budget=30000, metrics_only=False, archetypes_on=False,
-          chat_exports=(), chat_samples=()):
+          chat_exports=(), chat_samples=(), *, use_cache=True):
     today = today or date.today()
     span = window(period, today)
     previous = span["previous"]
-    sessions, sources = load(previous["start"] if previous else span["start"], today)
+    sessions, sources = load(previous["start"] if previous else span["start"], today, use_cache=use_cache)
 
     def day(session):
         return session.started.astimezone().date()

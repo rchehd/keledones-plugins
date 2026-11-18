@@ -18,15 +18,18 @@ def path():
 
 
 def read():
+    target = path()
     try:
-        data = json.loads(path().read_text(encoding="utf-8"))
+        data = json.loads(target.read_text(encoding="utf-8"))
     except FileNotFoundError:
         data = {}
+    except PermissionError as error:
+        raise storage.StoragePermissionError(target, error) from error
     except (OSError, ValueError) as error:
-        raise ValueError(f"{path()} is unreadable ({error}); fix or remove it, nothing was changed")
+        raise ValueError(f"{target} is unreadable ({error}); fix or remove it, nothing was changed")
 
     if not isinstance(data, dict):
-        raise ValueError(f"{path()} is not a Gnothi profile; fix or remove it, nothing was changed")
+        raise ValueError(f"{target} is not a Gnothi profile; fix or remove it, nothing was changed")
 
     return {"schema_version": 1, "epochs": data.get("epochs") or [], "options": dict(OPTIONS, **(data.get("options") or {}))}
 
