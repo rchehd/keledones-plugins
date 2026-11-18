@@ -52,6 +52,13 @@ class PackageTest(unittest.TestCase):
         self.change_json(".codex-plugin/plugin.json", lambda data: data.update(onboardingSkill="./skills/check/SKILL.md"))
         self.assert_failed("manifests")
 
+    def test_codex_import_requires_a_long_description(self):
+        path = ".codex-plugin/plugin.json"
+        self.change_json(path, lambda data: data["interface"].update(longDescription=" \t\n"))
+        self.assert_failed("manifests")
+        self.change_json(path, lambda data: data["interface"].pop("longDescription"))
+        self.assert_failed("manifests")
+
     def test_missing_shared_entry_point_is_rejected(self):
         (self.root / "scripts/setup.sh").unlink()
         self.assert_failed("entry-points")

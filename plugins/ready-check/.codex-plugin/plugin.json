@@ -10,6 +10,7 @@
   "interface": {
     "displayName": "Ready Check · Review & QA",
     "shortDescription": "Task readiness checks with requirements review and browser QA.",
+    "longDescription": "Checks task readiness against the requirements and Git diff with profile-based static analysis, code and security review, and approved QA scenarios.",
     "developerName": "Roman Chekhaniuk",
     "category": "Developer Tools",
     "brandColor": "#16794C",

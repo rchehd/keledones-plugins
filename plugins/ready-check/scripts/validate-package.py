@@ -58,6 +58,10 @@ def manifests(root):
         else:
             require("skills" not in manifest or manifest["skills"] == "./skills/", "Claude must use the shared skills directory")
         if folder == ".codex-plugin":
+            interface = manifest.get("interface")
+            description = interface.get("longDescription") if isinstance(interface, dict) else None
+            require(isinstance(description, str) and bool(description.strip()),
+                    f"{folder}/plugin.json: interface.longDescription must be non-blank text")
             onboarding = resource(root, root, manifest.get("onboardingSkill"))
             require(onboarding == root / "skills/setup/SKILL.md", "Codex onboarding must invoke the packaged setup skill")
     require(len(versions) == 1, "Plugin manifest versions must agree across all harnesses")

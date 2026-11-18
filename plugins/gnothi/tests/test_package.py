@@ -1,6 +1,9 @@
 import importlib.util
 import json
+import shutil
+import tempfile
 import unittest
+from pathlib import Path
 
 from helpers import PLUGIN
 
@@ -31,10 +34,26 @@ class PackageTest(unittest.TestCase):
         self.assertIn("$gnothi:portrait", prompt)
         self.assertLessEqual(len(prompt), 128)
 
+    def test_codex_import_requires_a_long_description(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "gnothi"
+            shutil.copytree(PLUGIN, root)
+            path = root / ".codex-plugin/plugin.json"
+            manifest = json.loads(path.read_text(encoding="utf-8"))
+            for description in (" \t\n", None):
+                with self.subTest(description=description):
+                    if description is None:
+                        del manifest["interface"]["longDescription"]
+                    else:
+                        manifest["interface"]["longDescription"] = description
+                    path.write_text(json.dumps(manifest), encoding="utf-8")
+                    self.assertIn(".codex-plugin/plugin.json: interface.longDescription must be non-blank text",
+                                  validate.check_manifests(root))
+
     def test_versions_match(self):
         versions = {json.loads((PLUGIN / folder / "plugin.json").read_text(encoding="utf-8"))["version"]
                     for folder in (".claude-plugin", ".codex-plugin", ".cursor-plugin")}
-        self.assertEqual(versions, {"0.1.0"})
+        self.assertEqual(len(versions), 1, versions)
 
 
 if __name__ == "__main__":

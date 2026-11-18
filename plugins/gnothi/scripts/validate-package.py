@@ -43,6 +43,13 @@ def check_manifests(root):
             problems.append(f"{folder}/plugin.json: version must be X.Y.Z")
         versions.add(version)
 
+        if folder == ".codex-plugin":
+            interface = manifest.get("interface")
+            description = interface.get("longDescription") if isinstance(interface, dict) else None
+            if not isinstance(description, str) or not description.strip():
+                problems.append(f"{folder}/plugin.json: interface.longDescription must be non-blank text")
+                continue
+
         for relative in resources(manifest):
             target = (root / relative).resolve()
 

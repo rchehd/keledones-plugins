@@ -11,6 +11,7 @@
   "interface": {
     "displayName": "Gnothi · AI Work Profile",
     "shortDescription": "A private portrait of how you work with AI agents.",
+    "longDescription": "Analyzes your local AI sessions and builds a private HTML report on how you collaborate with AI, where you spend time, and which work patterns recur.",
     "developerName": "Roman Chekhaniuk",
     "category": "Productivity",
     "brandColor": "#1F5673",
