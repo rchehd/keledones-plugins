@@ -141,8 +141,10 @@ def import_sources(exports=(), samples=()):
                 entry["skipped_conversations"] += 1
             else:
                 existing = sessions.get(session.id)
-                if existing is None or len(session.turns) > len(existing.turns):
-                    sessions[session.id] = session
+                if existing is not None:
+                    unique_turns = {(turn.ts, turn.request): turn for turn in [*existing.turns, *session.turns]}
+                    session = with_turns(session, sorted(unique_turns.values(), key=lambda turn: turn.ts))
+                sessions[session.id] = session
 
         if sampled:
             seen_sources.add(client)

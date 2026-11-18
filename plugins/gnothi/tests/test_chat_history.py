@@ -71,15 +71,22 @@ class ChatHistoryTest(unittest.TestCase):
             self.assertNotIn(private_text, serialized)
 
     def test_native_sample_uses_same_conversation_identity_and_records_coverage(self):
+        old_stamp = datetime(2026, 10, 12, 12, tzinfo=timezone.utc)
+        self.chatgpt["mapping"]["follow-up"]["message"]["create_time"] = old_stamp.timestamp()
         sample = self.write("sample.json", {"source": "chatgpt", "conversations": [
             {"id": self.chatgpt["id"], "messages": [
-                {"role": "user", "timestamp": "2026-11-11T12:00:00Z", "text": "Same conversation"}
+                {"role": "user", "timestamp": old_stamp.isoformat(), "text": "Send the details to person@example.com"},
+                {"role": "user", "timestamp": "2026-11-11T12:00:00Z", "text": "Update the itinerary"},
             ]},
         ]})
         export = self.write("conversations.json", [self.chatgpt])
         args = gnothi.parser().parse_args(["sources", "--chat-export", str(export), "--chat-sample", str(sample)])
         entry = gnothi.sources(args)["sources"][-1]
         self.assertEqual((entry["imports"], entry["files"], entry["sessions"]), (["export", "sample"], 2, 1))
+        data = digest.build("month", TODAY, chat_exports=[export], chat_samples=[sample])
+        self.assertEqual(data["current"]["summary"]["sessions"], 1)
+        self.assertEqual(data["previous"]["summary"]["requests"], 2)
+        self.assertEqual(data["evidence"][0]["excerpts"], ["Update the itinerary"])
 
     def test_chat_only_renders_and_leaves_agent_metrics_unavailable(self):
         export = self.write("conversations.json", [self.chatgpt])
