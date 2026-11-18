@@ -1,14 +1,24 @@
 name: CI
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   workflow_dispatch:
   workflow_call:
 permissions:
   contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   catalog:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     uses: ./.github/workflows/catalog.yml
   ready-check:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     uses: ./.github/workflows/ready-check.yml
   gnothi:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     uses: ./.github/workflows/gnothi.yml
+  macos:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    uses: ./.github/workflows/macos.yml
