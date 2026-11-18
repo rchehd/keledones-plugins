@@ -19,6 +19,7 @@ jobs:
         platform:
           - {name: Linux, runner: ubuntu-24.04}
           - {name: macOS, runner: macos-15-intel}
+          - {name: macOS Apple Silicon, runner: macos-15}
           - {name: Windows, runner: windows-latest}
         python: ['3.9', '3.13']
     runs-on: ${{ matrix.platform.runner }}
