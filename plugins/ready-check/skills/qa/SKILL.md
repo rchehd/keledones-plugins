@@ -77,6 +77,8 @@ UI, use the [UI design checklist](../review/references/ui-design.md).
 When tests are a deliverable, follow the [project test runner guidance](references/project-tests.md).
 For affected web platform features, use the [web platform checklist](../review/references/web-platform.md)
 to turn relevant compatibility or fallback risks into observable scenarios in the project's supported browsers.
+When browser QA covers application UI changes, include the applicable accessibility checks from step 7
+for affected pages or components, even when the plan also runs automated browser specs.
 
 ## 4. Plan and approval
 

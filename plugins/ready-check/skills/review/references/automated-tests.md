@@ -25,8 +25,10 @@ integration and browser tests. Inspect coverage from the code even when the runn
 
 2. Trace each condition to the actual test setup, action and assertion. Consider existing tests that
    exercise the same requirement, including parameterized cases. Cite the test and assertion at their
-   file and line. For a regression, consider whether the original defect could recur while the assertion
-   still passes. A test name, a broad mock or a green suite summary alone does not establish coverage.
+   file and line. Count only cases eligible to run in the intended suite. If the only matching case is
+   disabled or excluded, record the gap and the configuration or marker causing it. For a regression,
+   consider whether the original defect could recur while the assertion still passes. A test name,
+   a broad mock or a green suite summary alone does not establish coverage.
 3. Record one row per condition in the report's **Automated test coverage** table. Use `COVERED` when
    the inspected test exercises the condition and asserts its full expected result, `PARTIAL` when it
    asserts only part of the outcome, `MISSING` when no effective test covers it, or `UNRESOLVED` when the

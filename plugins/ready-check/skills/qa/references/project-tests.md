@@ -12,9 +12,11 @@ already provisioned tools and fixtures. Plan the exact selection before executin
   Set application URL, credentials and browser/project selection using the project's test configuration.
   Use a test environment with approved data. The separate Playwright MCP/CLI session is needed only for
   separately planned interactive browser cases.
-- For API or CLI test suites, use those case kinds. Use CI cases when the requirement concerns test
-  discovery, configuration or artifacts in the hosted pipeline. Record the actual tool, version,
-  working directory, environment, exact command or scoped CI job and tested revision.
+- For suites that exercise an API, a device or a CLI, use the corresponding scenario kind. Record a
+  local runner invocation for unit, kernel or other service integration tests as a CLI scenario.
+  Use CI cases when the requirement concerns test discovery, configuration or artifacts in the hosted
+  pipeline. Record the actual tool, version, working directory, environment, exact command or scoped CI
+  job and tested revision.
 - Confirm that the intended test names and project(s) actually ran. Record outcomes, skipped or
   filtered cases, retries and any flaky results. A zero exit code with zero matching tests leaves the
   planned case unverified. Capture a redacted runner summary and relevant traces, screenshots, videos
