@@ -90,6 +90,15 @@ evidence and CHECKED / FINDING / N/A; or "Tests: N/A — no tests in the change 
 | --- | --- | --- | --- |
 | [Rule text (client settings / user / team)] | yes / no | [File and line] | CHECKED / FINDING / N/A |
 
+### Automated test coverage
+
+[Complete for changes to automated tests, their discovery, or shared test setup. Record code inspection here
+and execution evidence under QA.]
+
+| Requirement or regression | Technique and test condition | Expected outcome | Test and assertion evidence | Coverage | Gap or question |
+| --- | --- | --- | --- | --- | --- |
+| RC-001 | [Relevant ISTQB technique and condition] | [Observable result] | [File and line of the case and assertion, or explained absence] | COVERED / PARTIAL / MISSING / UNRESOLVED | [Specific gap, linked finding or question] |
+
 ### Findings
 
 [Label each finding: issue (blocking) / suggestion / nitpick / question. For each finding: ID, RC IDs or regression label, blocking/nonblocking, trigger, expected/code-inferred
@@ -112,7 +121,7 @@ Plan approval: [PENDING / APPROVED / REJECTED; human response and approved revis
 Task type and source: [Feature acceptance or bug trigger/corrected expectation/regressions, from session/task/human]
 Time: [Execution start/end or not run]
 Environment: [Target URL, runner, fixture or CI run; application and scope mapping, data and revision identity]
-Browser mode: [If applicable, requested and actual mode, browser/version, viewport, GUI limitations and approved fallback]
+Browser execution: [If applicable, project runner and selected specs or interactive mode, browser/version, viewport and approved fallback]
 Mobile target: [If applicable, app ID, build and flavor, platform, device and OS, tool and version]
 Design reference: [If applicable, agreed Figma node or export, version, mapped viewport, variant and state]
 Risk map: [Changed areas with likelihood × impact (H/M/L) and the change types they come from]

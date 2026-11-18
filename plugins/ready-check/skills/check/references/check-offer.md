@@ -12,6 +12,7 @@ to pick a subset.
 Use the task's outcomes to choose the QA options. A workflow-only change can offer CI QA for its jobs and
 artifacts. A changed CLI flag can offer CLI QA, and an API-only change can offer API QA. A change to a web flow
 and its API can offer both Playwright and API QA. Offer native mobile QA for affected device behavior.
+If browser tests are the deliverable, name the project runner in the offer, such as "Run changed Cypress specs".
 If only static analysis and review are evident, offer those without a runtime mode. If the scope is unclear,
 offer all applicable checks, a custom selection and skip. Resolve consequential scope questions after consent.
 An unqualified yes means all applicable checks. An explicit subset stays scoped. Get separate approval

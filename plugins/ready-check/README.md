@@ -62,6 +62,8 @@ Checks live in framework profiles. See [supported profiles](#supported-profiles)
 | QA oracles and exploration | HICCUPPS consistency oracles ([Bolton](https://developsense.com/resource/Oracles.pdf)), SFDPOT and session-based exploratory testing with charters |
 | Bug reports | RIMGEA (Kaner's bug advocacy): replicate, isolate, maximize, generalize, externalize; steps, expected and actual result, severity, evidence |
 | Browser automation | [Playwright best practices](https://playwright.dev/docs/best-practices): user-facing locators, web-first waits, isolated sessions; official Playwright CLI and MCP |
+| Automated test changes | [ISTQB CTFL v4.0.1](https://istqb.org/?sdm_process_download=1&download_id=3345) (§1.4.4 and §4.2) for reviewing requirements coverage against existing assertions. [Playwright Test](https://playwright.dev/docs/test-cli) and [Cypress best practices](https://docs.cypress.io/app/core-concepts/best-practices) for browser test review and targeted runs. |
+| Web platform review | [Modern Web Guidance](https://developer.chrome.com/docs/modern-web-guidance) and [Baseline](https://web.dev/baseline) for browser compatibility, progressive enhancement and fallback scenarios |
 | Technical QA | Project tests and fixtures, [OpenAPI](https://spec.openapis.org/oas/latest.html) for API contracts, and [CI run evidence](skills/qa/references/technical-qa.md#ci-and-artifacts) tied to the tested revision |
 | Design and native QA | [Figma Dev Mode and MCP](https://developers.figma.com/docs/figma-mcp-server/tools-and-prompts/) for agreed design references, existing [Flutter integration tests](https://docs.flutter.dev/cookbook/testing/integration/introduction), [Maestro](https://docs.maestro.dev/get-started/supported-platform/flutter) for device flows, and [OWASP MASVS](https://mas.owasp.org/MASVS/) for mobile security |
 | Learning from use | Cursor's [`/reflect`](https://github.com/cursor/plugins/blob/main/pstack/skills/reflect/SKILL.md) and [Continual Learning](https://github.com/cursor/plugins/tree/main/continual-learning), [CodeRabbit Learnings](https://www.coderabbit.ai/blog/context-engineering-ai-code-reviews): proposals backed by evidence, applied only after approval |
@@ -106,6 +108,12 @@ After you finish a task that changed the project, the agent offers checks based 
 paths and applicable profiles. A workflow change can get CI QA, while a changed web flow and API can get both
 Playwright and API QA. Choose all applicable checks, a subset or skip. You can also start a check yourself
 with the commands in [How it works](#how-it-works).
+
+**Test-only tasks.** Ready Check reviews the coverage, assertions and fixtures of added or changed tests.
+QA runs the selected cases with the project's own runner, such as Playwright Test or Cypress, and records
+which cases executed. Use the project's configured environment and its installed test tools. See the
+[test review checklist](skills/review/references/automated-tests.md) and
+[project test runner guidance](skills/qa/references/project-tests.md).
 
 Ready Check works through plugin hooks and does not write `AGENTS.md`, `CLAUDE.md` or project MCP configs. In
 Codex, trust the plugin's hooks once in `/hooks`. Cursor gets the rule at session start but no end-of-turn
