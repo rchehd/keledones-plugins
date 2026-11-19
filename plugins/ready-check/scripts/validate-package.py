@@ -21,7 +21,7 @@ PROFILE_TOOLS = {
     "go": dict(go={"golangci-lint", "govulncheck"}, node=NODE_TOOLS),
     "typescript": dict(node={"eslint", "typescript", "typescript-eslint"}),
 }
-SKILLS = {"setup", "check", "review", "qa", "uninstall", "customize", "feedback", "reflect", "contribute"}
+SKILLS = {"setup", "check", "review", "qa", "draft", "uninstall", "customize", "feedback", "reflect", "contribute"}
 
 
 def require(condition, message):
@@ -220,7 +220,7 @@ def entry_points(root):
     for name in ("session-rule.md", "first-run.md"):
         resource(root, root, "hooks/" + name)
     for name in ("CONTRIBUTING.md", "skills/check/references/check-offer.md", "templates/improvement.md", "templates/bug.md",
-                 "templates/commit-message.txt", "templates/pull-request.md"):
+                 "templates/commit-message.txt", "templates/pull-request.md", "templates/task-comment.md"):
         resource(root, root, name)
     require(read_json(root / ".mcp.json").get("mcpServers", {}).get("ready-playwright"), "Claude must bundle the ready-playwright MCP server")
     for name in ("core_runner.py", "core_scope.py", "core_toolchain.py", "core_checks.py", "core_main.py", "core_setup.py", "yaml_checks.py"):

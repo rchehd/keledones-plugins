@@ -14,7 +14,7 @@ visible on the user's computer. Confirm a real launch before claiming visibility
 
 The plugin ships the MCP server; the client starts it when the plugin is enabled. Its command runs
 `node <plugin>/scripts/mcp.mjs`, which starts `scripts/ready-check.py mcp` with the managed browser, an isolated
-context and artifacts under `ai/ready-check/tmp/playwright-mcp/`. If the tools are not installed yet, the server
+context and artifacts under `.ai/ready-check/tmp/playwright-mcp/`. If the tools are not installed yet, the server
 exits with a message naming the install command. QA never edits client configuration.
 
 ## Locators and waiting
@@ -50,7 +50,7 @@ does not prove that this CLI interface is installed. If the executable or browse
 actual error and ask about switching mode unless that fallback was already authorized. Installation is separate from QA; see
 [setup instructions](../../../dependencies/SETUP.md). QA does not install anything; `check` handles it.
 
-Run commands with the reports directory (`<repo>/ai/ready-check/reports/<branch-slug>/`) as their working directory so default `.playwright-cli`
+Run commands with the task directory returned by `reports` as their working directory so default `.playwright-cli`
 artifacts do not enter the application or plugin. Create a unique session name per run and role; reuse it
 on every command for that role. Use temporary browser profiles rather than attaching to a personal browser.
 
@@ -128,10 +128,10 @@ personal session is not a substitute for the required test role. Record the brow
 configuration from the connection or browser observations; do not claim an unknown version was verified.
 
 MCP may save automatic artifacts to its configured output directory (for Ready Check's server,
-`ai/ready-check/tmp/playwright-mcp/`), while explicit relative filenames can resolve against its workspace root.
+`.ai/ready-check/tmp/playwright-mcp/`), while explicit relative filenames can resolve against its workspace root.
 Copy artifacts the report cites from there into `<reports directory>/evidence/`. Verify output routing before requesting file-producing actions. Use
 absolute paths under `<reports directory>/evidence/` when supported, or inline tool output saved beside the report. If the
-server cannot keep required artifacts under `ai/ready-check/`, resolve setup or mark the affected
+server cannot keep required artifacts under `.ai/ready-check/`, resolve setup or mark the affected
 evidence `INCOMPLETE`; do not silently contaminate the checked diff. Do not change the server configuration.
 
 Check real navigation, UI, console, network, and persistence just as for CLI. Missing observability needed

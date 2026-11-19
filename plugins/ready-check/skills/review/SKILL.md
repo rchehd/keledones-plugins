@@ -135,7 +135,7 @@ problem through another path.
 ## Check user and team coding rules
 
 Read the active rules with `scripts/ready-check.py rules list --project <app>` (client settings, the user's
-`rules.md` and the project's `ai/ready-check/rules.md`). Treat each rule as one more checklist item, applied only to
+`rules.md` and the project's `.ai/ready-check/rules.md`). Treat each rule as one more checklist item, applied only to
 the changed lines and files: `CHECKED` when the changed code follows it, `N/A` when the change has no code the
 rule can apply to, `FINDING` with file and line when it is broken. A broken `MUST` rule is a blocking finding
 labelled RULE; any other broken rule is a nonblocking recommendation. Rules describe how code should look; they

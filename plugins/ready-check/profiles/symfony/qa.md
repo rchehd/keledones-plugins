@@ -26,7 +26,7 @@ user from the project's Doctrine fixtures (`doctrine:fixtures:load --append` onl
 through the runner with the project's own command or `bin/console dbal:run-sql`/a short PHP script using the
 password hasher. When the `login_link` authenticator is configured, generate a link
 (`LoginLinkHandlerInterface`) instead of typing a password. Keep the generated credentials only in
-`ai/ready-check/qa-accounts.json` (local, never committed, never in the report or PR draft), log in through the
+`.ai/ready-check/qa-accounts.json` (local, never committed, never in the report or PR draft), log in through the
 app's form, and list the user as test data. Never reuse real accounts or production credentials; never create
 users on a shared or production database.
 

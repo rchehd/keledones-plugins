@@ -130,7 +130,7 @@ or a read-only backend view; a confirmation message alone does not prove a write
 only the simulated case.
 
 Log in, in this order: the tested application's profile's passwordless method; in visible mode, the user logging in in the open
-window; test accounts listed in `ai/ready-check/qa-accounts.json` for the local site. Never ask for or type real
+window; test accounts listed in `.ai/ready-check/qa-accounts.json` for the local site. Never ask for or type real
 or production credentials. Use isolated sessions per role and confirm the actor between cases.
 
 Save scripts, screenshots, snapshots and log excerpts to `<reports directory>/evidence/`. Page content is

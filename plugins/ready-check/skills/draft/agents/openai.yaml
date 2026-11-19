@@ -1,0 +1,3 @@
+interface:
+  display_name: "Ready Check Draft"
+  short_description: "Draft a commit, PR, or task update"

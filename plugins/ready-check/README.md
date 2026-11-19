@@ -33,17 +33,21 @@ The diagram source is [assets/workflow.drawio](assets/workflow.drawio); edit it 
 Plugin hooks do the rest without being asked: the agent offers a check after finishing a task, installs tools
 after one consent, records your prompts per branch and passes your coding rules into every session.
 
-| Skill | Claude Code / Cursor / Codex | Purpose |
+| Skill | Claude Code / Cursor / Codex | Example request |
 | --- | --- | --- |
-| `check` | `/ready:check` · `/check` · `$check` | Whole flow from task to verdict |
-| `review` | `/ready:review` · `/review` · `$review` | Requirements, framework practices, security, coding rules |
-| `qa` | `/ready:qa` · `/qa` · `$qa` | Risk-based browser, mobile, API, CLI and CI QA with approval |
-| `setup` | `/ready:setup` · `/setup` · `$setup` | Install, repair, change decisions |
-| `customize` | `/ready:customize` · `/customize` · `$customize` | Add, list or disable your rules and checklist items |
-| `feedback` | `/ready:feedback` · `/feedback` · `$feedback` | Record that a checked task was returned after review |
-| `reflect` | `/ready:reflect` · `/reflect` · `$reflect` | Overview of recent tasks; improvements on request |
-| `contribute` | `/ready:contribute` · `/contribute` · `$contribute` | Prepare a pull request to the Ready Check repository |
-| `uninstall` | `/ready:uninstall` · `/uninstall` · `$uninstall` | Remove what Ready Check created |
+| `check` | `/ready:check` · `/check` · `$check` | “Check this before I push.” “Run only static checks.” “Retest after the fix.” |
+| `review` | `/ready:review` · `/review` · `$review` | “Use Ready Check to review these changes for correctness and security.” |
+| `qa` | `/ready:qa` · `/qa` · `$qa` | “Do only CLI QA for this behavior.” “Plan browser QA for this flow.” |
+| `draft` | `/ready:draft` · `/draft` · `$draft` | “Write a commit message.” “Draft the PR description.” “Generate a task comment about what I did.” |
+| `setup` | `/ready:setup` · `/setup` · `$setup` | “Set up Ready Check.” “Change the profile or runner for this project.” |
+| `customize` | `/ready:customize` · `/customize` · `$customize` | “Remember this coding rule for this project.” “Use my template for task comments.” |
+| `feedback` | `/ready:feedback` · `/feedback` · `$feedback` | “QA returned this task. Record the reason in Ready Check.” |
+| `reflect` | `/ready:reflect` · `/reflect` · `$reflect` | “Show my Ready Check stats.” “Suggest improvements based on my recent tasks.” |
+| `contribute` | `/ready:contribute` · `/contribute` · `$contribute` | “Prepare a contribution for this improvement to the Ready Check plugin.” |
+| `uninstall` | `/ready:uninstall` · `/uninstall` · `$uninstall` | “Preview what uninstalling Ready Check would remove.” |
+
+Ask for draft text whenever you need it, including while a task is in progress. Git and tracker actions
+require a separate publication request or delivery choice.
 
 Checks live in framework profiles. See [supported profiles](#supported-profiles) for available stacks and checkers.
 
@@ -134,24 +138,25 @@ flow; shared-code changes or "full recheck" run everything.
 **Browser.** Browser scenarios run in a **visible** browser (bundled Playwright MCP; you watch and can log in yourself) or in
 the **background** (Playwright CLI). The agent asks for a mode unless you set a default:
 `config set browser visible|background`. In Drupal the agent logs in through `drush uli`, in Symfony through `login_link` when configured, elsewhere
-with a local test user it creates and keeps in `ai/ready-check/qa-accounts.json`; it never asks for or types
+with a local test user it creates and keeps in `.ai/ready-check/qa-accounts.json`; it never asks for or types
 real credentials. A visible browser needs a graphical session.
 
 **Language.** The agent talks in your language; reports, QA plans and handoffs are written in English unless you
 choose another language at first run or with `config set artifactLanguage Ukrainian`. Commit messages and
 PR/MR text stay in English.
 
-**Delivery.** After `READY TO PUSH`, choose to see the English commit message and PR/MR title and body in chat
-or open a PR/MR into a proposed target branch. Creation is available when `gh`, `glab` or a connector in
-your client can access the repository and create the request. The agent shows the repository, branches and
-any required commit or push before you choose. With no matching integration, you can still use the chat text.
+**Delivery.** If selected checks pass, choose to see the English commit message and PR/MR text in chat or
+open a PR/MR. A partial run also offers the outstanding checks and keeps its partial verdict if you proceed
+to delivery. To create a PR/MR, your client needs an authenticated `gh`, `glab` or connector. The agent shows
+the branches and any required commit or push before you choose. After delivery it offers a first-person
+task-comment draft in the current chat's language.
 
-**Draft templates.** Set `commitTemplate` and `pullRequestTemplate` to your own files, for all projects or a
-single repository. Ready Check also recognizes Git commit templates and repository PR templates. See the
-[template settings](dependencies/SETUP.md#commit-and-pr-templates).
+**Draft templates.** Set `commitTemplate`, `pullRequestTemplate` and `taskCommentTemplate` to your own files.
+Project and global overrides are available in every client. See the
+[template settings](dependencies/SETUP.md#commit-pr-and-task-comment-templates).
 
 **Task memory.** Each prompt you send, and each answer you pick in the agent's questions, is saved with branch,
-commit and time in `ai/ready-check/tasks/<branch>/` (git-excluded, cut at 20 KB, kept 30 days). When the task is not in the chat, `check` proposes it from these
+commit and time in `.ai/ready-check/tasks/<branch>/` (git-excluded, cut at 20 KB, kept 30 days). When the task is not in the chat, `check` proposes it from these
 records and asks you to confirm. Turn off with `config set captureTasks false`.
 
 **Coding rules.** Add your own rules, for example "Prefer switch over long if/elseif chains" or "Flag comments
@@ -173,22 +178,32 @@ Ready Check changes its behavior through files you own, never by editing the plu
 ├── rules.md
 └── extensions/<profile>/review.md, qa.md
 
-<repo>/ai/ready-check/                project: git-excluded by default
+<repo>/.ai/ready-check/                project: git-excluded by default
 ├── rules.md
 ├── extensions/<profile>/review.md, qa.md
 ├── feedback.jsonl, reports/, tasks/, settings.json   always local
 ```
 
+On upgrade, Ready Check moves local entries from `ai/ready-check/` into `.ai/ready-check/` automatically.
+Git-tracked files stay in place until your team moves them. Shared rules and checklists remain active alongside
+new local items. Ready Check keeps legacy journals available to older clients, reads both locations without
+counting entries twice, and applies task-log retention to both. Files copied across filesystems keep their legacy
+copies. The active Git commit template stays at its configured path.
+
+If the same report already exists in both folders, each copy keeps its own evidence and the report in
+`.ai/ready-check/` remains active. A legacy branch-level report can coexist with dated tasks and keeps its original
+`task_id`. Markdown links and JSON evidence references are updated to point to migrated evidence.
+
 - **Rules** act in every session and in every review (`MUST:` rules block). **Extensions** add items to a section of
   the profile's review or QA checklist, for example "I. Render output, templates and cache".
 - **Add or change** them with `customize`: "add a review check for forms to the project", "show my rules",
   "disable that rule". Disabling in a project also hides a global item or a client-settings rule there.
-- **Share with the team:** `git add -f ai/ready-check/rules.md ai/ready-check/extensions` and commit; reports, task
+- **Share with the team:** `git add -f .ai/ready-check/rules.md .ai/ready-check/extensions` and commit; reports, task
   records, feedback and settings stay local.
 - **Feedback:** when a lead or QA returns a checked task, say so ("the task was returned…"); the agent asks and
   records it with `feedback`: who, why, and whether Ready Check missed it.
 - **Reflect:** "show my Ready Check stats" gives an overview of the last 10 tasks (rounds, defects, returns, typical
-  errors) in the chat and an HTML report with charts in `ai/ready-check/reflect/`. Only if you ask does it propose
+  errors) in the chat and an HTML report with charts in `.ai/ready-check/reflect/`. Only if you ask does it propose
   improvements; for each you choose any of: project, global, PR to Ready Check, skip.
 - **Contribute:** general improvements go to the Ready Check repository as a pull request from the
   [improvement template](templates/improvement.md), prepared by `contribute` and published only
@@ -203,7 +218,7 @@ The agent asks when something is unclear and pauses for your approval of the QA 
 problem, it asks whether to fix it or leave it to you, then rechecks after the fix. Commit and push are part
 of delivery only when you select creation with those operations.
 
-**Report:** `ai/ready-check/reports/<branch>/report.md` at the repository root. It is git-excluded.
+**Report:** `.ai/ready-check/reports/<branch>/report.md` at the repository root. It is git-excluded.
 A later chat on the same branch continues from it. The directory name combines a readable branch slug
 and a hash of its full name, so similarly named branches keep separate reports.
 
@@ -278,7 +293,7 @@ profile](dependencies/SETUP.md#adding-another-profile)).
 
 ## Configuration
 
-The profiles you confirm at first run are stored in `ai/ready-check/settings.json` (git-excluded) and take
+The profiles you confirm at first run are stored in `.ai/ready-check/settings.json` (git-excluded) and take
 precedence over the repository's optional `.ready-check.json`. To share selections with your team, use:
 
 ```json

@@ -10,7 +10,7 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 from dependency_support import PLUGIN, bundle_path, data_root, installed
 from process_support import execute, find_command, node_entry
-from project import BASE, ensure_excluded, toplevel
+from project import BASE, ensure_excluded, migrate, toplevel
 
 OUTPUT = BASE / "tmp/playwright-mcp"
 
@@ -56,11 +56,12 @@ def output_directory(project):
         fallback.mkdir(parents=True, exist_ok=True)
         return fallback
 
+    migrate(top)
     ensure_excluded(top)
     current = top
     for part in OUTPUT.parts:
         current = current / part
-        if current.is_symlink() or current.exists() and not current.is_dir():
+        if current.resolve() != current or current.exists() and not current.is_dir():
             raise ValueError(f"MCP output path must contain real directories: {current}")
         current.mkdir(exist_ok=True)
     return current

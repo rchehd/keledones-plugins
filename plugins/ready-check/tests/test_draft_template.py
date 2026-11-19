@@ -2,9 +2,9 @@ from helpers import RepoTest
 
 
 class DraftTemplateTest(RepoTest):
-    def template(self, kind, code=0):
+    def template(self, kind, code=0, **options):
         return self.entry_json("template", kind, "--project", str(self.repo), code=code,
-                               env={"GIT_CONFIG_GLOBAL": str(self.root / "git-global"), "GIT_CONFIG_NOSYSTEM": "1"})
+                               env={"GIT_CONFIG_GLOBAL": str(self.root / "git-global"), "GIT_CONFIG_NOSYSTEM": "1", **options})
 
     def write(self, path, text):
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -56,6 +56,32 @@ class DraftTemplateTest(RepoTest):
     def test_uses_native_gitlab_body(self):
         self.write(self.repo / ".gitlab/merge_request_templates/Default.md", "## Merge request\n")
         self.assertEqual(self.template("pr")["content"], "## Merge request\n")
+
+    def test_task_comment_template_uses_project_client_user_then_default(self):
+        kind = "task-comment"
+        self.git("config", "--local", "commit.template", "irrelevant")
+        default = self.template(kind)
+        self.assertEqual(default["source"], "default")
+        self.assertIn("1. ", default["content"])
+        user = self.write(self.root / "user.md", "User layout\n")
+        cli = self.write(self.repo / "claude.md", "Claude layout\n")
+        cursor = self.write(self.root / "cursor.md", "Cursor layout\n")
+        local = self.write(self.repo / "local.md", "Project layout\n")
+        self.entry_json("config", "set", "taskCommentTemplate", str(user))
+        self.assertEqual(self.template(kind)["source"], "user")
+        for option, value, file in (("CLAUDE_PLUGIN_OPTION_TASK_COMMENT_TEMPLATE", "claude.md", cli),
+                                    ("READY_CHECK_TASK_COMMENT_TEMPLATE", str(cursor), cursor)):
+            with self.subTest(option=option):
+                template = self.template(kind, **{option: value})
+                self.assertEqual((template["source"], template["content"]), ("client", file.read_text()))
+        self.entry_json("config", "set", "taskCommentTemplate", str(local), "--project", str(self.repo))
+        self.assertEqual(self.template(kind, READY_CHECK_TASK_COMMENT_TEMPLATE=str(cursor))["content"], "Project layout\n")
+        self.entry_json("config", "unset", "taskCommentTemplate", "--project", str(self.repo))
+        self.assertEqual(self.template(kind)["content"], "User layout\n")
+
+    def test_bad_task_comment_client_override_reports_error(self):
+        result = self.template("task-comment", code=2, CLAUDE_PLUGIN_OPTION_TASK_COMMENT_TEMPLATE="missing.md")
+        self.assertIn("does not exist", result["reason"])
 
     def test_missing_or_outside_project_template_is_reported(self):
         local_file = self.write(self.repo / "local.md", "Project layout\n")

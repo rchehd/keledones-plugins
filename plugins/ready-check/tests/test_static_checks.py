@@ -452,13 +452,13 @@ class Yaml {
             self.assertEqual(process.returncode, 2)
 
     def test_ready_check_data_is_ignored(self):
-        self.write("ai/ready-check/note.php", "<?php\n")
+        self.write(".ai/ready-check/note.php", "<?php\n")
         first = self.check("doctor")
-        self.write("ai/ready-check/note.php", "<?php\n\n")
-        self.write("ai/ready-check/evidence/log.txt", "x\n")
+        self.write(".ai/ready-check/note.php", "<?php\n\n")
+        self.write(".ai/ready-check/evidence/log.txt", "x\n")
         second = self.check("doctor")
         self.assertEqual(first["scope"]["snapshot"], second["scope"]["snapshot"])
-        self.assertNotIn("ai/ready-check/note.php", second["scope"]["files"] + second["scope"]["changed_files"])
+        self.assertNotIn(".ai/ready-check/note.php", second["scope"]["files"] + second["scope"]["changed_files"])
 
     def test_legacy_root_temporary_directories_are_out_of_scope(self):
         self.write(".ready-check-lint.legacy/config.php", "<?php\n")
@@ -491,7 +491,7 @@ class Yaml {
         self.assertEqual(self.checker(result, "js")["tools"][0]["configuration"]["source"], "project", result)
 
     def test_static_preserves_temporary_directories_of_other_runs(self):
-        active = [self.project / "ai/ready-check/tmp/.ready-check-lint.active",
+        active = [self.project / ".ai/ready-check/tmp/.ready-check-lint.active",
                   self.project / ".ready-check-lint.legacy"]
         for path in active:
             path.mkdir(parents=True)
@@ -506,7 +506,7 @@ class Yaml {
         active.mkdir(parents=True)
         (active / "keep.txt").write_bytes(b"Other toolkit data")
         try:
-            (self.project / "ai").symlink_to(external, target_is_directory=True)
+            (self.project / ".ai").symlink_to(external, target_is_directory=True)
         except OSError as error:
             self.skipTest(f"Symlinks unavailable: {error}")
         self.check()
@@ -518,7 +518,7 @@ class Yaml {
         sys.path.insert(0, str(PLUGIN / "profiles/drupal/scripts"))
         from core_checks import Lint
         from spec import SPEC
-        for relative in ("ai", "ai/ready-check", "ai/ready-check/tmp"):
+        for relative in (".ai", ".ai/ready-check", ".ai/ready-check/tmp"):
             with self.subTest(relative=relative), tempfile.TemporaryDirectory(dir=self.root) as temporary:
                 root = Path(temporary)
                 project, external, evidence = root / "project", root / "external", root / "evidence"
@@ -541,7 +541,7 @@ class Yaml {
         sys.path.insert(0, str(PLUGIN / "profiles/drupal/scripts"))
         from core_checks import Lint
         from spec import SPEC
-        active = self.project / "ai/ready-check/tmp/.ready-check-lint.active"
+        active = self.project / ".ai/ready-check/tmp/.ready-check-lint.active"
         active.mkdir(parents=True)
         (active / "config.xml").write_bytes(b"Other active run")
         evidence = self.root / "evidence"
@@ -583,12 +583,12 @@ class Yaml {
         self.assertEqual(self.checker(result, "phpstan")["tools"][0]["configuration"]["path"], "web/phpstan.neon.dist")
 
     def test_output_is_allowed_only_in_ready_check_data_inside_project(self):
-        output = self.project / "ai/ready-check/static.json"
+        output = self.project / ".ai/ready-check/static.json"
         result = self.check(extra=("--output", str(output)))
         self.assertEqual(result["status"], "PASS", result)
         self.assertEqual(json.loads(output.read_text(encoding="utf-8")), result)
-        self.assertTrue(Path(result["evidence_directory"]).is_relative_to(self.project / "ai/ready-check/evidence"))
-        for rejected in ("ai/other/static.json", "reports/static.json"):
+        self.assertTrue(Path(result["evidence_directory"]).is_relative_to(self.project / ".ai/ready-check/evidence"))
+        for rejected in (".ai/other/static.json", "ai/ready-check/static.json", "reports/static.json"):
             self.assertEqual(self.check("doctor", extra=("--output", str(self.project / rejected)))["status"], "INCOMPLETE")
             self.assertFalse((self.project / rejected).exists())
 

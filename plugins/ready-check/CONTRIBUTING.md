@@ -9,7 +9,7 @@ a bug fix. The `contribute` skill prepares such a pull request from an approved 
 - Fixes to skills, hooks and scripts, with a minimal reproduction.
 - New framework profiles under `profiles/<id>/`.
 
-Project-specific rules belong in the project's own `ai/ready-check/` customizations, not here.
+Project-specific rules belong in the project's own `.ai/ready-check/` customizations, not here.
 
 ## Privacy
 

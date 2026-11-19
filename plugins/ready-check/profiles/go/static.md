@@ -4,8 +4,8 @@ Run the Go profile dispatcher from the installed plugin. Python 3.9+ and Git are
 Windows, and WSL. The examples use `python3`; on Windows PowerShell use `py -3`.
 
 ```sh
-python3 /path/to/ready-check/scripts/ready-check.py doctor --profile go --project /path/to/application --base main --output /path/to/repository/ai/ready-check/reports/<branch-slug>/doctor.json
-python3 /path/to/ready-check/scripts/ready-check.py static --profile go --project /path/to/application --base main --output /path/to/repository/ai/ready-check/reports/<branch-slug>/static.json
+python3 /path/to/ready-check/scripts/ready-check.py doctor --profile go --project /path/to/application --base main --output /path/to/repository/.ai/ready-check/reports/<branch-slug>/doctor.json
+python3 /path/to/ready-check/scripts/ready-check.py static --profile go --project /path/to/application --base main --output /path/to/repository/.ai/ready-check/reports/<branch-slug>/static.json
 ```
 
 Get the directory with `ready-check.py reports --project <app>`. Both commands take exactly one of `--base <ref>` or

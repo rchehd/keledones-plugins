@@ -12,7 +12,7 @@ packaged detection rules to repository files and selects a runner for each appli
 Compose markers. The first prompt shows the candidate profiles, roots, runners, detection evidence and
 missing downloads. Independent matches can coexist at the same root. Conflicting framework candidates for
 one root need confirmation. The install decision (`ask`, `auto`, `never`) is stored once per machine, and
-the selections are stored once per project in `ai/ready-check/settings.json`.
+the selections are stored once per project in `.ai/ready-check/settings.json`.
 
 - Yes: `ready-check.py consent yes` records both and installs in the foreground, one line per component, ending
   with `Ready Check is ready: …` or `Ready Check setup incomplete: …`. If the agent cannot run commands, the user
@@ -38,7 +38,7 @@ Manual paths stay available through the `setup` skill: `/ready:setup` (Claude Co
 
 - Session start: injects the rule "offer Ready Check after a finished task", the browser-tool status and the
   first-run question. It never installs anything and finishes in about a second.
-- Prompt submit: appends the prompt to `ai/ready-check/tasks/<branch>/<date>.jsonl` (see below).
+- Prompt submit: appends the prompt to `.ai/ready-check/tasks/<branch>/<date>.jsonl` (see below).
 - Question answers: answers chosen in the client's question tool reach the agent as a tool result, not as a prompt;
   the tool hook records them in the same file as `Q: … A: …`, once even when the client also sends them as a prompt.
 - Stop: after files changed in the session, reminds the agent once per change set to offer the check; quiet
@@ -55,7 +55,7 @@ No project instruction files (`AGENTS.md`, `CLAUDE.md`, `CLAUDE.local.md`) and n
 
 `ready-check.py config get [key] [--project <app>]`, `config set <key> <value> [--project <app>]` and
 `config unset <key> [--project <app>]`.
-User settings live in `<data root>/settings.json`, project overrides in `ai/ready-check/settings.json` (git-excluded).
+User settings live in `<data root>/settings.json`, project overrides in `.ai/ready-check/settings.json` (git-excluded).
 
 | Key | Values | Scope |
 | --- | --- | --- |
@@ -66,15 +66,16 @@ User settings live in `<data root>/settings.json`, project overrides in `ai/read
 | `artifactLanguage` | `English` (default) or another language name, for example `Ukrainian`; language of reports, QA plans and handoffs (PR drafts and the report's key lines stay English) | user, project |
 | `commitTemplate` | Path to a UTF-8 commit message template | user, project |
 | `pullRequestTemplate` | Path to a UTF-8 PR body template | user, project |
+| `taskCommentTemplate` | Path to a UTF-8 Markdown template for task-comment drafts | user, project |
 | `profiles` | confirmed selections as a JSON array of objects with `profile`, `runner`, `application` keys | project |
 | `profile`, `runner`, `application` | legacy single selection | project |
 
 `ready-check.py profiles --project <repo>` displays the configured or detected selections and marker evidence.
 Use `ready-check.py config set profiles '<JSON array>' --project <repo>` to replace the list.
 
-### Commit and PR templates
+### Commit, PR and task comment templates
 
-Set either override independently. Paths passed with `--project` resolve inside the repository and relative
+Set each override independently. Paths passed with `--project` resolve inside the repository and relative
 paths start at its root. For user-wide settings, paths resolve from the current directory at setup time.
 
 ```sh
@@ -83,6 +84,8 @@ ready-check.py config set pullRequestTemplate .github/qa-pr.md --project .
 ready-check.py config set commitTemplate /path/to/commit-message.txt
 ready-check.py template commit --project .
 ready-check.py template pr --project .
+ready-check.py config set taskCommentTemplate .ai/task-comment.md --project .
+ready-check.py template task-comment --project .
 ready-check.py config unset pullRequestTemplate --project .
 ```
 
@@ -97,11 +100,18 @@ The `template` command shows its source, path and contents. A configured file th
 is reported as an error. Ready Check uses these files to draft text. Git's editor template still uses Git's
 own configuration.
 
+For task comments, Ready Check selects the project override, the native client option, the user-wide override,
+then the bundled template. Set **Task comment template** in Claude Code's plugin configuration, or supply
+`READY_CHECK_TASK_COMMENT_TEMPLATE` in a Cursor environment that exposes plugin variables. The Claude Code
+session hook passes the configured path to the draft command. Use an absolute path or one relative to the Git
+root. In any client, use `config set taskCommentTemplate <path>` for a user-wide override or add `--project .`
+for a project override. The comment uses the current chat's language.
+
 ## Coding rules
 
 Rules are merged from the Claude Code `userConfig` option `rules` (exported as `CLAUDE_PLUGIN_OPTION_RULES`), the
 environment variable `READY_CHECK_RULES` (the Cursor plugin variable; one rule per line), the user file
-`<data root>/rules.md` and the project file `ai/ready-check/rules.md`. Files hold one rule per
+`<data root>/rules.md` and the project file `.ai/ready-check/rules.md`. Files hold one rule per
 line (a leading `- ` is optional; `#` lines are ignored). A `MUST:` prefix makes a broken rule block the review.
 Duplicates are dropped and the injected text is capped at 4 KB. Manage them with
 `ready-check.py rules list|add|remove [text] [--project <app>] [--must]` (`--project` targets the project file) or
@@ -112,11 +122,11 @@ How Cursor passes plugin variables to hooks is not verified yet.
 
 | Command | Purpose |
 | --- | --- |
-| `customize list\|add\|disable\|enable\|remove [text] --kind rule\|review\|qa --scope project\|global [--profile id] [--section name] [--project app] [--must]` | Rules and checklist extensions; files under `<data root>` (global) or `ai/ready-check/` (project); disabled items in `disabled.json` |
-| `reports --project app [--task title]` | Per-task report folder `ai/ready-check/reports/<branch>/<task_id>/`; without `--task` the newest task on the branch |
+| `customize list\|add\|disable\|enable\|remove [text] --kind rule\|review\|qa --scope project\|global [--profile id] [--section name] [--project app] [--must]` | Rules and checklist extensions; files under `<data root>` (global) or `.ai/ready-check/` (project); disabled items in `disabled.json` |
+| `reports --project app [--task title]` | Per-task report folder `.ai/ready-check/reports/<branch>/<task_id>/`; without `--task` the newest task on the branch |
 | `summary --project app --task id --round n --verdict v --static s --review s --qa s [--finding …] [--qa-case …]` | Appends one round to the task's `summary.json` with HEAD and code fingerprint |
-| `feedback add\|list --project app [--task id\|unknown] --returned yes\|no [--by …] [--reason …] [--missed yes\|no\|unknown] [--area …]` | One JSON line per record in `ai/ready-check/feedback.jsonl`; exit 3 with recent tasks when the task is unclear |
-| `reflect-collect --project app [--tasks 10] [--html]` | Digest and statistics of the newest tasks; `--html` writes `ai/ready-check/reflect/overview-<date>.html` with inlined Chart.js (tables without the browser bundle) |
+| `feedback add\|list --project app [--task id\|unknown] --returned yes\|no [--by …] [--reason …] [--missed yes\|no\|unknown] [--area …]` | One JSON line per record in `.ai/ready-check/feedback.jsonl`; exit 3 with recent tasks when the task is unclear |
+| `reflect-collect --project app [--tasks 10] [--html]` | Digest and statistics of the newest tasks; `--html` writes `.ai/ready-check/reflect/overview-<date>.html` with inlined Chart.js (tables without the browser bundle) |
 
 The browser bundle pins `chart.js` next to `axe-core`. A plugin update that changes pinned tools makes the installed
 bundle outdated: with `install` = `auto` the next session reinstalls it in the chat; otherwise run the `setup` skill. `uninstall` keeps rules, extensions and `disabled.json` unless
@@ -209,7 +219,7 @@ Playwright browser revision into the managed browser cache, then launches it hea
 test page. A CLI version check alone does not produce `PASS`. Missing OS libraries or sandbox permissions
 remain explicit setup failures; the script does not invoke `sudo`, install OS packages, or weaken launch settings.
 
-Use the managed CLI from the reports directory (`<repo>/ai/ready-check/reports/<branch-slug>/`):
+Use the managed CLI from the reports directory (`<repo>/.ai/ready-check/reports/<branch-slug>/`):
 
 ```sh
 python3 /path/to/ready-check/scripts/ready-check.py playwright --version
@@ -225,7 +235,7 @@ The locked versions share one Playwright/browser revision; package validation re
 The plugin declares the MCP server `ready-playwright` for every client (`.mcp.json` for Claude Code,
 `mcpServers` in the Cursor and Codex manifests). The client starts `node <plugin>/scripts/mcp.mjs`, which runs
 `scripts/ready-check.py mcp` with `python3` or `python`. The server is headed, uses the installed bundle and an
-isolated context, and writes artifacts to the git-excluded `ai/ready-check/tmp/playwright-mcp/`. Without
+isolated context, and writes artifacts to the git-excluded `.ai/ready-check/tmp/playwright-mcp/`. Without
 installed tools it exits with a message naming the install command. For diagnostics:
 
 ```sh

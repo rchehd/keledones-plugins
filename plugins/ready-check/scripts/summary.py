@@ -8,8 +8,8 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 from fingerprint import work_fingerprint
 from git_exclude import git
-from project import toplevel, write_json
-from reports import prepare
+from project import migrate, toplevel, write_json
+from reports import prepare, require_migrated
 
 STATUSES = {"PASS", "FAIL", "INCOMPLETE", "N/A", "NOT_SELECTED", "NOT_RUN"}
 VERDICTS = ("READY TO PUSH", "PARTIAL CHECK COMPLETE", "BLOCKED", "INCOMPLETE")
@@ -71,9 +71,12 @@ def main():
             if getattr(args, name) not in STATUSES:
                 raise ValueError(f"--{name} must be one of {sorted(STATUSES)}")
 
+        migrate(top)
         target = prepare(args.project, args.task, dry_run=True)
+        directory = Path(target["directory"])
+        require_migrated(top, directory)
 
-        if not Path(target["directory"]).is_dir():
+        if not directory.is_dir():
             raise ValueError(f"No report folder for task {args.task!r}; create it with the reports command first")
 
         entry = dict(task_id=target["task_id"], round=args.round, ts=datetime.now().isoformat(timespec="seconds"),

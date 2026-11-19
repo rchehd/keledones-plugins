@@ -1,6 +1,6 @@
 ---
 name: customize
-description: Manage Ready Check coding rules, review or QA checklist items, and commit or PR draft templates for this project or globally. Also used by reflect to apply approved proposals.
+description: Manage Ready Check coding rules, review or QA checklist items, and commit, PR or task-comment draft templates for this project or globally. Also used by reflect to apply approved proposals.
 ---
 
 # Customize Ready Check
@@ -17,11 +17,11 @@ Resolve the plugin root two directories above this file's directory. Python: `py
 | `review` | One section of the profile's review checklist | Section "I. Render output, templates and cache": "Output varying by role has the user.roles context" |
 | `qa` | The profile's QA checklist or its familiar problems | Section "Forms": "Submit with an expired session" |
 
-Scopes: `project` (`<repo>/ai/ready-check/…`, git-excluded) or `global` (the user's data folder, all projects).
+Scopes: `project` (`<repo>/.ai/ready-check/…`, git-excluded) or `global` (the user's data folder, all projects).
 
 ## Steps
 
-1. Map the request to kind, text, profile (from `ai/ready-check/settings.json`, usually `drupal`), section (the
+1. Map the request to kind, text, profile (from `.ai/ready-check/settings.json`, usually `drupal`), section (the
    profile checklist heading the item belongs to; `Familiar problems` for QA error guesses) and `--must` for rules
    that must block.
 2. If the user did not say project or global, ask once.
@@ -32,14 +32,15 @@ Scopes: `project` (`<repo>/ai/ready-check/…`, git-excluded) or `global` (the u
      disable also hides a global item or a client-settings rule in this project)
    - remove: `ready-check.py customize remove "<text>" --kind <kind> --scope <scope> --project <app> [--profile drupal]`
 4. Show what changed and the file. For project items, say how to share them with the team:
-   `git add -f ai/ready-check/rules.md ai/ready-check/extensions` (then commit as usual).
+   `git add -f .ai/ready-check/rules.md .ai/ready-check/extensions` (then commit as usual).
 
 An item that already exists is not added twice. A remove that matches several items asks for a more specific text.
 
 ## Draft templates
 
-For a commit message use `commitTemplate`. For a PR body use `pullRequestTemplate`.
+For a commit message use `commitTemplate`. For a PR body use `pullRequestTemplate`. For a task comment use
+`taskCommentTemplate` or the client's native plugin option when available.
 Set the requested file with `ready-check.py config set <key> <path> [--project <repo>]`. Use
 `config unset <key> [--project <repo>]` to remove the override. Follow the requested scope and reuse any
-scope already given. Show the effective source with `ready-check.py template commit|pr [--project <repo>]`.
-See [template settings](../../dependencies/SETUP.md#commit-and-pr-templates) for path and fallback rules.
+scope already given. Show the effective source with `ready-check.py template commit|pr|task-comment [--project <repo>]`.
+See [template settings](../../dependencies/SETUP.md#commit-pr-and-task-comment-templates) for path and fallback rules.

@@ -14,15 +14,19 @@ import settings
 import tasks
 from dependency_support import PLUGIN, asset_id, bundle_path, data_root, installed
 from detect import has_managed_tools
+from draft_template import client_comment_template
 from fingerprint import last_checked, work_fingerprint
 from profile_selection import argument, discover
-from project import toplevel
+from project import migrate, project_file, toplevel
 
 EVENTS = ("session-start", "prompt", "answer", "stop")
 CLIENTS = ("claude", "cursor", "codex")
 CHECK = {"claude": "/ready:check", "cursor": "/check", "codex": "$check"}
 RUNNERS = {"ddev": "DDEV", "compose": "Docker Compose", "local": "local"}
-REMINDER = "If you have finished the user's task, ask once whether to run Ready Check ({check}) with options for the task's scope; otherwise ignore this."
+REMINDER = ("If you have finished the user's task, ask once about Ready Check ({check}) using the shared choice instructions: "
+            "all applicable checks, each applicable stage (static, review, QA), combinations, or skip. "
+            "Use {question} when available. A yes/no prompt alone is insufficient.")
+QUESTION_TOOL = {"claude": "AskUserQuestion", "codex": "request_user_input or request_user_input_async"}
 
 
 def session_id(payload):
@@ -140,7 +144,7 @@ def question(selected, conflicts, values, status, confirmed):
 
 
 def first_run(top, client, values, status):
-    raw = settings.read(settings.project_path(top))
+    raw = settings.read(project_file(top, "settings.json"))
     confirmed = settings.valid("profiles", raw.get("profiles")) or settings.valid("runner", raw.get("runner"))
     pending_download = status not in {"ready", "failed"} and values["install"] != "never"
 
@@ -168,16 +172,27 @@ def language_note(values):
 
 def session_start(client, payload):
     top = toplevel(start_directory(payload)) if start_directory(payload) else None
+    migration_error = None
+    if top:
+        try:
+            migrate(top)
+        except (OSError, ValueError, RuntimeError) as error:
+            migration_error = str(error)
     values = settings.load(top)
     hook_state.prune()
     status = browser_status()
     entry = [sys.executable, PLUGIN / "scripts/ready-check.py"]
     rules_command = shell_command([*entry, "rules", "add"])
     template_command = shell_command([*entry, "template"])
+    comment_template = client_comment_template()
+    comment_option = (" " + quote("--client-template=" + comment_template)
+                      if settings.valid("taskCommentTemplate", comment_template) else "")
     check_offer = (PLUGIN / "skills/check/references/check-offer.md").read_text(encoding="utf-8").strip()
     parts = [template("session-rule.md", check=CHECK[client], rules=rules_command, template_command=template_command,
-                      language=values["artifactLanguage"], check_offer=check_offer),
+                      comment_option=comment_option, language=values["artifactLanguage"], check_offer=check_offer),
              status_line(status, client)]
+    if migration_error:
+        parts.append(f"Ready Check project data migration could not complete: {migration_error}")
     coding_rules = rules.context(top)
 
     if coding_rules:
@@ -238,7 +253,7 @@ def stop(client, payload):
         return None
 
     hook_state.save(client, session, dict(state, reminded=current))
-    text = REMINDER.format(check=CHECK[client])
+    text = REMINDER.format(check=CHECK[client], question=QUESTION_TOOL.get(client, "the client's question tool"))
 
     if client == "codex":
         return {"decision": "block", "reason": text}

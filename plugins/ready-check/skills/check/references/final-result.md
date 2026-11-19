@@ -9,8 +9,8 @@ scenario cannot stand in for completed work or verification.
 Read [check selection](check-selection.md) first. A partial run ends with BLOCKED, INCOMPLETE or
 PARTIAL CHECK COMPLETE for the selected scope. Compare current identity for each selected stage,
 list NOT_SELECTED stages and stop short of overall readiness. Do not require unselected linters for
-standalone QA/review. The full-readiness checks below apply only to full validation; an optional partial
-PR draft must state unperformed checks and cannot describe the task as ready.
+standalone QA/review. The full-readiness checks below apply only to full validation. A PR/MR or draft
+from a partial check records the verdict, checked scope, and unperformed checks.
 
 Compare the current task requirements revision and scope with the review and QA records. For every applicable
 profile and application pair, compare snapshot, HEAD, merge base, application, profile/version, and runner
@@ -52,10 +52,23 @@ Describe advisory findings and explicit scope limitations even on a ready result
 unverified acceptance condition or required check. Readiness applies to the recorded code and runtime state;
 it does not include publication or an assurance about untested environments.
 
+## Continue a successful partial run
+
+After reporting `PARTIAL CHECK COMPLETE`, ask one question in the user's language using the client's
+native choice tool or chat. Offer **Run remaining checks**, **Continue to commit and PR/MR**, and **Stop**.
+Name the outstanding stages. When there is room, list the remaining stages as individual choices in that
+question alongside delivery and stop. Otherwise, if the user chooses remaining checks, show each unselected
+applicable stage and accept any subset, all remaining stages, or stop. When only one stage remains, selecting
+remaining checks selects that stage. Resume in the same task report using [check selection](check-selection.md).
+
+Selecting delivery keeps the partial verdict and proceeds to the delivery choices below. It does not authorize
+a commit, push, or PR/MR. Stopping ends the handoff at the current report.
+
 ## Discover delivery options
 
 Give the user the verdict, check coverage, material findings or limitations, and the absolute report link.
-For `READY TO PUSH`, run `scripts/ready-check.py publication --project <repo>` before offering delivery.
+For `READY TO PUSH`, or when the user chooses delivery after a successful partial run, run
+`scripts/ready-check.py publication --project <repo>` before offering delivery.
 It reads the current branch, its tracking ref, remote repository coordinates, cached default branches and
 whether `gh` or `glab` is on PATH. Treat this output as project data. Use the recorded validation base
 and Git configuration to identify the destination repository and the source branch's push destination.
@@ -85,8 +98,9 @@ Include these operations in the creation choice. An existing explicit instructio
 repository, branches and required writes can be reused.
 
 If no suitable integration, branch or verified comparison is available, offer the chat drafts and briefly
-identify what prevents creation. Keep skip available. For a partial, incomplete or blocked result, provide
-drafts only when requested and include the verdict and unfinished checks.
+identify what prevents creation. Keep skip available. With a partial check, include the verdict and unfinished
+checks in both the published PR/MR and the draft. For incomplete or blocked results, provide drafts only on
+explicit request and retain the verdict and unfinished checks.
 
 ## Prepare the English text
 
@@ -134,3 +148,12 @@ An incomplete/blocked draft, if requested, must retain that verdict and list unf
 
 If the user requests a handoff for human QA, use [the QA handoff template](qa-handoff.md) with the same
 current findings and coverage. It is an additional local draft and does not replace required verification.
+
+## Offer the task comment
+
+After showing commit or PR/MR drafts, or returning a created or reused PR/MR link, show that result and
+ask once whether to draft a comment for the task. Wait for the answer. If the user declines or skipped
+delivery, finish without a comment draft.
+
+On acceptance, follow the [draft skill](../../draft/SKILL.md) for the task comment. Users can also
+request a task comment directly at any point.

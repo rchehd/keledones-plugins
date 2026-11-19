@@ -10,7 +10,7 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 import logs
 from dependency_support import data_root
-from project import BASE, ensure_excluded, toplevel
+from project import BASE, ensure_excluded, migrate, project_file, redirected, team_files, toplevel
 
 LIMIT = 4 * 1024
 TEAM = BASE / "rules.md"
@@ -39,7 +39,7 @@ def disabled_path(top=None):
 def disabled_hashes(top=None):
     found = set()
 
-    for path in [disabled_path()] + ([disabled_path(top)] if top else []):
+    for path in [disabled_path()] + ([project_file(top, "disabled.json")] if top else []):
         try:
             data = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
             found.update(item for item in data.get("hashes", []) if isinstance(item, str))
@@ -89,9 +89,9 @@ def load(top=None):
     sources += [("user", rule) for rule in read_file(user_path())]
 
     if top:
-        sources += [("team", rule) for rule in read_file(team_path(top))]
+        sources += [("team", rule) for path in team_files(top, "rules.md") for rule in read_file(path)]
 
-    rules, seen = [], set()
+    selected = {}
     disabled = disabled_hashes(top)
 
     for source, text in sources:
@@ -101,11 +101,11 @@ def load(top=None):
         must = text.upper().startswith("MUST:")
         body = text[5:].strip() if must else text
 
-        if body and body.lower() not in seen:
-            seen.add(body.lower())
-            rules.append(dict(source=source, must=must, text=body))
+        key = body.lower()
+        if body and (key not in selected or must and not selected[key]["must"]):
+            selected[key] = dict(source=source, must=must, text=body)
 
-    return rules
+    return list(selected.values())
 
 
 def context(top=None):
@@ -131,10 +131,13 @@ def add(text, top=None, must=False):
     if not text:
         raise ValueError("Rule text is empty")
 
+    if top:
+        migrate(top)
+        ensure_excluded(top)
     path = team_path(top) if top else user_path()
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    if path.is_symlink():
+    if redirected(path):
         raise ValueError(f"Refusing to write rules through a symlink: {path}")
 
     content = path.read_bytes() if path.is_file() else b""
@@ -143,28 +146,34 @@ def add(text, top=None, must=False):
     with open(path, "a", encoding="utf-8") as stream:
         stream.write(f"{prefix}- {'MUST: ' if must else ''}{text}\n")
 
-    if top:
-        ensure_excluded(Path(top))
-
     return path
 
 
 def remove(text, top=None):
+    if top:
+        migrate(top)
+        ensure_excluded(top)
     path = team_path(top) if top else user_path()
-
-    if not path.is_file():
+    paths = team_files(top, "rules.md") if top else [path] if path.is_file() else []
+    if not paths:
         raise ValueError(f"No rules file: {path}")
 
-    lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
-    kept = [line for line in lines if text.lower() not in line.lower()]
-
-    if len(kept) == len(lines):
+    needle = text.lower()
+    matches = []
+    for source in paths:
+        lines = source.read_text(encoding="utf-8").splitlines(keepends=True)
+        kept = [line for line in lines if needle not in line.lower()]
+        if len(kept) != len(lines):
+            matches.append((source, kept))
+    if not matches:
         raise ValueError(f"No rule matches: {text}")
+    if len(matches) > 1:
+        raise ValueError("The rule matches both project files; edit the intended file or disable the rule")
 
+    path, kept = matches[0]
+    if redirected(path):
+        raise ValueError(f"Refusing to write rules through a symlink: {path}")
     path.write_text("".join(kept), encoding="utf-8")
-
-    if top:
-        ensure_excluded(Path(top))
 
     return path
 

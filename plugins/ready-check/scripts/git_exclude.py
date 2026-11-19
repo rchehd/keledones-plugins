@@ -5,6 +5,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from file_lock import exclusive_lock
+
 
 BEGIN = b"# ready-check:begin"
 END = b"# ready-check:end"
@@ -48,9 +50,13 @@ def plan(project, entries):
     anchored = ["/" + posixpath.normpath(posixpath.join(relative, entry)) + ("/" if entry.endswith("/") else "")
                 for entry in entries]
     path = exclude_file(Path(os.path.abspath(project / location)))
+    return dict(path=path, entries=anchored, applied=False, **changes_for(path, anchored))
+
+
+def changes_for(path, entries):
     original = path.read_bytes() if path.exists() else None
-    updated = updated_content(original or b"", [entry.encode() for entry in anchored])
-    return dict(path=path, original=original, updated=updated, entries=anchored, applied=False,
+    updated = updated_content(original or b"", [entry.encode() for entry in entries])
+    return dict(original=original, updated=updated,
                 action="create" if original is None else "unchanged" if original == updated else "update")
 
 
@@ -70,11 +76,24 @@ def verify(plan):
         raise ValueError(f"Git exclude file changed during setup; repeat setup to preserve current edits: {path}")
 
 
-def apply(plan):
+def apply(plan, *, merge_entries=False):
     if plan is None or plan["action"] == "unchanged":
         return
     path = plan["path"]
     path.parent.mkdir(parents=True, exist_ok=True)
+    # Keep the lock inode stable while replacing the shared exclude file.
+    lock = exclude_file(path.parent.resolve() / ".ready-check-exclude.lock")
+    if lock.resolve() != lock:
+        raise ValueError(f"Git exclude lock must be a regular file: {lock}")
+    with exclusive_lock(lock):
+        if merge_entries:
+            plan.update(changes_for(exclude_file(path), plan["entries"]))
+        if plan["action"] != "unchanged":
+            publish(plan)
+
+
+def publish(plan):
+    path = plan["path"]
     verify(plan)
     temporary = None
     try:

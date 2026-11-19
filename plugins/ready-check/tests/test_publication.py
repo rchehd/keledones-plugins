@@ -39,7 +39,7 @@ class PublicationTest(RepoTest):
         self.assertEqual(remote["push"], [{"host": "github.com", "path": "fork/app", "provider": "github"}])
         self.assertNotIn("secret", str(data))
         self.assertEqual(self.git("status", "--porcelain"), "")
-        self.assertFalse((self.repo / "ai").exists())
+        self.assertFalse((self.repo / ".ai").exists())
 
     def test_cli_discovery_with_detached_head_and_no_remote(self):
         self.git("checkout", "--detach", "-q", "HEAD")

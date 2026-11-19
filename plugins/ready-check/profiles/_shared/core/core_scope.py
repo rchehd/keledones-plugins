@@ -7,9 +7,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
 from process_support import execute
+from project import BASE, LEGACY_BASE
 from settings import project_config, valid
 
-DATA = "ai/ready-check"
+DATA = BASE.as_posix()
+DATA_DIRS = (DATA, LEGACY_BASE.as_posix())
 CORE = Path(__file__).resolve().parent
 BLAME = re.compile(r"^([0-9a-f]{40}) \d+ (\d+) (\d+)$", re.M)
 HUNK = re.compile(r"^@@ .*?\+(\d+)(?:,(\d+))? @@", re.M)
@@ -30,7 +32,7 @@ def listing(data):
 
 
 def own(path):
-    return path == DATA or path.startswith(DATA + "/") or path.split("/")[0].startswith(LEGACY_TEMP)
+    return any(path == data or path.startswith(data + "/") for data in DATA_DIRS) or path.split("/")[0].startswith(LEGACY_TEMP)
 
 
 def untracked(project):
@@ -41,7 +43,7 @@ def base_scope(project, head, base):
     if base.startswith("-"):
         raise ValueError("Base ref must not be an option")
     merge_base = git(project, "merge-base", "HEAD", base).decode().strip()
-    spec = (".", ":(exclude)" + DATA)
+    spec = (".", *(":(exclude)" + data for data in DATA_DIRS))
     flags = ("--relative", "--name-only", "--no-renames", "-z")
     diff = git(project, "diff", "--no-ext-diff", "--no-textconv", "--binary", merge_base, "--", *spec)
     changed = listing(git(project, "diff", *flags, merge_base, "--", *spec))
@@ -91,7 +93,6 @@ def snapshot(project, spec, base=None, commits=None, paths=None):
     root = Path(os.fsdecode(git(project, "rev-parse", "--show-toplevel")).strip()).resolve()
     head = git(project, "rev-parse", "HEAD").decode().strip()
     prefix = project.relative_to(root).as_posix()
-    repository_data = ("" if prefix == "." else prefix + "/") + DATA + "/"
     part = commit_scope(project, root, head, commits) if commits else base_scope(project, head, base)
     omitted = set()
     if paths:
@@ -131,7 +132,7 @@ def snapshot(project, spec, base=None, commits=None, paths=None):
     if outside is None:
         outside = listing(git(root, "diff", "--name-only", "--no-renames", "-z", part["merge_base"])) | listing(
             git(root, "ls-files", "--others", "--exclude-standard", "-z"))
-    outside = [p for p in outside if prefix != "." and not p.startswith(prefix + "/") and not p.startswith(repository_data)]
+    outside = [p for p in outside if prefix != "." and not p.startswith(prefix + "/") and not own(p)]
     scope = {"repository": str(root), "project": str(project), "mode": part["mode"], "commits": part["commits"],
              "head": head, "base": part["base"], "merge_base": part["merge_base"], "snapshot": digest.hexdigest(),
              "files": part["files"], "changed_files": part["changed_files"], "outside_scope": sorted(outside)}

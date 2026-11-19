@@ -50,7 +50,7 @@ class SummaryFeedbackTest(RepoTest):
     def test_feedback_list_skips_malformed_lines(self):
         self.new_task()
         self.entry_json("feedback", "add", "--project", str(self.repo), "--returned", "yes")
-        with open(self.repo / "ai/ready-check/feedback.jsonl", "a") as stream:
+        with open(self.repo / ".ai/ready-check/feedback.jsonl", "a") as stream:
             stream.write("[1, 2]\nnot json\n")
         self.assertEqual(len(self.entry_json("feedback", "list", "--project", str(self.repo))["records"]), 1)
 

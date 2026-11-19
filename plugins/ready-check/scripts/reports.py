@@ -10,8 +10,9 @@ from pathlib import Path
 
 sys.dont_write_bytecode = True
 from dependency_support import PLUGIN
-from git_exclude import apply as apply_exclude, describe as describe_exclude, git, plan as plan_exclude
-from project import BASE, toplevel
+from git_exclude import describe as describe_exclude, git, plan as plan_exclude
+from project import (BASE, LEGACY_BASE, TASK_REPORT, branch_report_directory, ensure_excluded,
+                     migrate, migration_lock, redirected, toplevel)
 
 
 def branch_name(project):
@@ -43,17 +44,20 @@ def task_id(title, day=None):
     return f"{title_slug(title)}-{(day or date.today()).isoformat()}"
 
 
-TASK = re.compile(r".+-\d{4}-\d{2}-\d{2}\Z")
+def branch_tasks(branch_dir):
+    if redirected(branch_dir) or not branch_dir.is_dir():
+        return {}
+    found = {child.name: child for child in branch_dir.iterdir()
+             if TASK_REPORT.fullmatch(child.name) and not redirected(child) and child.is_dir()}
+    branch_report = branch_report_directory(branch_dir)
+    if branch_report:
+        found[branch_dir.name] = branch_report
+    return found
 
 
-def task_folders(branch_dir):
-    if not branch_dir.is_dir():
-        return []
-
-    folders = [child for child in branch_dir.iterdir()
-               if child.is_dir() and not child.is_symlink() and TASK.match(child.name)]
-    return sorted(folders, key=lambda folder: (folder / "report.md").stat().st_mtime
-                  if (folder / "report.md").is_file() else folder.stat().st_mtime)
+def report_mtime(folder):
+    report = folder / "report.md"
+    return (report if not redirected(report) and report.is_file() else folder).stat().st_mtime
 
 
 def safe_name(task):
@@ -63,62 +67,80 @@ def safe_name(task):
     return task
 
 
-def resolve_task(branch_dir, task):
-    folders = task_folders(branch_dir)
-
+def resolve_task(branch_dir, folders, task):
     if task:
         task = task.strip()
 
-        if task == branch_dir.name and (branch_dir / "report.md").is_file():
-            return None
-
-        if TASK.match(task):
+        if task in folders or TASK_REPORT.fullmatch(task):
             return safe_name(task)
 
         pattern = re.compile(re.escape(title_slug(task)) + r"-\d{4}-\d{2}-\d{2}")
-        matching = [folder for folder in folders if pattern.fullmatch(folder.name)]
-        return matching[-1].name if matching else task_id(task)
+        matching = [name for name in folders if pattern.fullmatch(name)]
+        return max(matching, key=lambda name: report_mtime(folders[name])) if matching else task_id(task)
 
-    if folders:
-        return folders[-1].name
+    dated = [name for name in folders if name != branch_dir.name]
+    if dated:
+        return max(dated, key=lambda name: report_mtime(folders[name]))
 
-    if (branch_dir / "report.md").is_file():
-        return None
+    if branch_dir.name in folders:
+        return branch_dir.name
 
     raise ValueError("No Ready Check task on this branch yet; pass --task with the task title")
 
 
-def all_tasks(top):
-    root = Path(top) / BASE / "reports"
+def tasks_in(root):
     found = []
 
-    if root.is_symlink() or not root.is_dir():
+    if redirected(root) or not root.is_dir():
         return found
 
     for branch_dir in root.iterdir():
-        if branch_dir.is_symlink() or not branch_dir.is_dir():
-            continue
+        for name, folder in branch_tasks(branch_dir).items():
+            found.append(dict(task_id=name, directory=folder, branch_dir=branch_dir.name, mtime=report_mtime(folder)))
 
-        folders = task_folders(branch_dir)
+    return found
 
-        if not folders and (branch_dir / "report.md").is_file():
-            folders = [branch_dir]
 
-        for folder in folders:
-            report = folder / "report.md"
-            found.append(dict(task_id=folder.name, directory=folder, branch_dir=branch_dir.name,
-                              mtime=(report if report.is_file() else folder).stat().st_mtime))
-
-    return sorted(found, key=lambda item: item["mtime"], reverse=True)
+def all_tasks(top):
+    found = {}
+    for base in (LEGACY_BASE, BASE):
+        for item in tasks_in(Path(top) / base / "reports"):
+            found[item["branch_dir"], item["task_id"]] = item
+    return sorted(found.values(), key=lambda item: item["mtime"], reverse=True)
 
 
 def checked_directory(project, *names):
     current = project
     for part in (*BASE.parts, "reports", *names):
         current = current / part
-        if current.is_symlink() or current.exists() and not current.is_dir():
+        if redirected(current) or current.exists() and not current.is_dir():
             raise ValueError(f"Report path must consist of real directories, not symlinks or files: {current}")
     return current
+
+
+def locate(top, branch, task, dry_run):
+    branch_id = slug(branch)
+    branch_dir = checked_directory(top, branch_id)
+    folders = branch_tasks(top / LEGACY_BASE / "reports" / branch_id)
+    folders.update(branch_tasks(branch_dir))
+    current = resolve_task(branch_dir, folders, task)
+    directory = folders.get(current)
+    if directory is None:
+        directory = checked_directory(top, branch_id, current)
+    if dry_run:
+        exclusion = plan_exclude(top, [BASE.as_posix() + "/"])
+    else:
+        require_migrated(top, directory)
+        exclusion = ensure_excluded(top)
+        directory.mkdir(parents=True, exist_ok=True)
+    return dict(branch=branch or "no-branch", task_id=current, directory=str(directory) + "/",
+                report=str(directory / "report.md"), summary=str(directory / "summary.json"),
+                git_exclude=describe_exclude(exclusion, "PLANNED" if dry_run else "PASS"))
+
+
+def require_migrated(top, directory):
+    if not directory.is_relative_to(top / BASE):
+        raise ValueError(f"Report is still in legacy Ready Check storage; migration could not move it: {directory}")
 
 
 def prepare(project, task=None, dry_run=False):
@@ -127,20 +149,11 @@ def prepare(project, task=None, dry_run=False):
         raise ValueError("Reports require an application directory outside the plugin package")
     top = toplevel(project) or project
     branch = branch_name(project)
-    branch_dir = checked_directory(top, slug(branch))
-    current = resolve_task(branch_dir, task)
-    # A legacy branch-level report has no task folder; it counts as one task named after the branch.
-    directory = checked_directory(top, slug(branch), current) if current else branch_dir
-
-    if not directory.resolve().is_relative_to(branch_dir.resolve()):
-        raise ValueError(f"Task folder escapes the report folder: {directory}")
-    exclusion = plan_exclude(top, [BASE.as_posix() + "/"])
-    if not dry_run:
-        apply_exclude(exclusion)
-        directory.mkdir(parents=True, exist_ok=True)
-    return dict(branch=branch or "no-branch", task_id=current or slug(branch), directory=str(directory) + "/",
-                report=str(directory / "report.md"), summary=str(directory / "summary.json"),
-                git_exclude=describe_exclude(exclusion, "PLANNED" if dry_run else "PASS"))
+    if dry_run:
+        return locate(top, branch, task, dry_run=True)
+    migrate(top)
+    with migration_lock(top / BASE):
+        return locate(top, branch, task, dry_run=False)
 
 
 def main():

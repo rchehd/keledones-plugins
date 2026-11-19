@@ -42,8 +42,15 @@ When selected partial stages complete successfully, use `PARTIAL CHECK COMPLETE`
 and list all unselected stages and remaining limitations. Never say READY TO PUSH, fully validated, or
 all checks pass for a partial selection. A whole-stage justified N/A counts as assessed only for its stated scope.
 
-Only `full` with all current gates, review dimensions, approved QA coverage (or reasoned whole-stage N/A),
-and no unresolved required question can produce READY TO PUSH and the PR/MR delivery offer.
-An explicitly requested draft from a partial run must retain its partial scope and unperformed checks.
-Expanding to full validation requires every full-workflow prerequisite and current evidence; a partial
-assessment is not a shortcut around a failing or stale gate.
+Only full scope with all current gates, review dimensions, approved QA coverage (or reasoned whole-stage
+N/A), and no unresolved required question can produce READY TO PUSH. After a successful partial run, offer
+the [remaining checks or delivery](final-result.md#continue-a-successful-partial-run). PR/MR text and
+drafts retain the partial verdict and unperformed checks.
+
+If the user selects more checks, update the selection in the same report. Run only the chosen remaining
+stages and keep other stages `NOT_SELECTED`. Carry completed results forward only if the diff, requirements,
+profile, runner and relevant runtime still match. When newly selected statics precede carried review or QA,
+verify equivalent scope and require the current static gate to pass before relying on those results.
+If earlier results are stale or lack equivalent evidence, explain why and get a decision before rerunning them.
+Selecting a previously omitted QA scope still requires plan approval. Combine all current results for the
+next verdict using the full-workflow gates when the selection now covers all applicable checks.

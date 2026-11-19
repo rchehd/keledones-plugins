@@ -3,11 +3,19 @@ paths and behaviors, and the applicable profiles already known. If needed, inspe
 read-only profile discovery (`scripts/ready-check.py profiles --project <repo>`). A stack elsewhere in the
 repository does not determine checks for this task. Do not run validation or install tools while making the offer.
 
-Ask one question in the user's language. Offer all applicable checks, focused static/lint or review/security
-options when relevant, QA options for the behavior that changed, and a way to skip. Name the actual scope
-in short labels or descriptions. Accept a custom combination. Use the client's choice UI when available;
-otherwise present the choices in chat. If the UI limits choices, group the focused options and explain how
-to pick a subset.
+Ask one question in the user's language. Always display each applicable stage as a choice: static checks,
+code and security review, and QA. Make all applicable checks, a custom combination and skip available.
+Name the actual scope in short labels or descriptions. A yes/no question alone does not meet this offer.
+
+- Claude Code: use `AskUserQuestion`. In a four-option multi-select, list **Static checks**, **Code and
+  security review**, **QA**, and **Skip**. Say that selecting all applicable stages runs the full check
+  and that Skip is a separate choice. If an answer combines Skip with checks, clarify before acting.
+- Codex: use `request_user_input` or `request_user_input_async` when available. Cursor: use its native
+  question tool. In a single-select UI with room, list **All applicable**, the individual stages, and
+  **Skip**. Use free text for combinations or for choices beyond the UI's limit.
+- If the UI cannot show each stage, show **All applicable**, **Choose checks**, and **Skip**. In
+  **Choose checks**, list each applicable stage and accept any combination. With no question tool, list
+  the same choices in chat and wait. Omit inapplicable stages in every client.
 
 Use the task's outcomes to choose the QA options. A workflow-only change can offer CI QA for its jobs and
 artifacts. A changed CLI flag can offer CLI QA, and an API-only change can offer API QA. A change to a web flow

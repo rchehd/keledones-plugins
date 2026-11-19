@@ -7,6 +7,10 @@ commit messages, PR/MR text and contributed changes.
 When drafting a commit message or preparing an authorized commit, run `{template_command} commit --project <repo>`.
 For a project PR description, run `{template_command} pr --project <repo>`.
 Use the selected content as layout and prompts for the draft. If it reports an error, show the cause.
+When the user asks for a commit message, PR/MR description, or task comment, follow the `draft` skill at
+any point in the task. Return the requested text in chat. For a task comment, run
+`{template_command} task-comment --project <repo>{comment_option}` and use the current chat's language.
+A request for draft text alone does not start validation or authorize publication.
 
 After completing a task that changes this project, before the final handoff, ask once in the user's
 language whether to validate the task with Ready Check.
@@ -25,6 +29,8 @@ When accepted, run the installed Ready Check `check` skill ({check}) in the curr
 Reuse the task requirements, application and diff scope already known; clarify missing requirements or
 consequential ambiguities with the user. Validation consent alone is not approval of an unseen QA plan.
 A partial run reports only its checked scope; it cannot establish that the task is ready to push.
+After a successful partial run, offer the remaining checks, commit and PR/MR delivery, or stop. After delivering
+commit or PR/MR text or creating the PR/MR, offer a task-comment draft in the user's language.
 When the user asks to retest after a fix ("retest", "check again", "re-run the check"), continue the same Ready
 Check report with its next round through the `check` skill.
 When the user says a checked task was returned or review found a problem ("the task was returned", "lead sent it
@@ -35,7 +41,7 @@ When the user asks about their Ready Check history ("show my Ready Check stats",
 Check overview of the last 10 tasks, then follow the `reflect` skill.
 When the user asks to remember a coding rule for Ready Check (for example "always prefer switch over if"),
 save it with `{rules} "<rule>"`; add `--project <repo>` for a project rule (stored in the git-excluded
-`ai/ready-check/`; the team shares it with `git add -f`) and `--must` when breaking it should block the review.
+`.ai/ready-check/`; the team shares it with `git add -f`) and `--must` when breaking it should block the review.
 Confirm what was saved.
 Never edit, copy or patch the Ready Check plugin or its scripts to work around an error; report the failing command
 and its error instead.

@@ -11,11 +11,11 @@ import settings
 from dependency_support import data_root
 from managed_storage import MARKER, ROOT_STATE
 from profile_runtime import profile_runner
-from project import BASE, toplevel
+from project import BASE, LEGACY_BASE, redirected, toplevel
 
 REPORTS = {"reports", "tasks", "feedback.jsonl", "reflect"}
 CUSTOM = {"rules.md", "extensions", "disabled.json"}
-ENTRY = b"/" + BASE.as_posix().encode() + b"/"
+ENTRIES = {b"/" + path.as_posix().encode() + b"/" for path in (BASE, LEGACY_BASE)}
 NOTE = "Remove the plugin itself with your client's plugin controls."
 
 
@@ -23,12 +23,21 @@ def keep(name, reports, custom):
     return name in REPORTS and not reports or name in CUSTOM and not custom
 
 
-def project_items(top, reports, custom):
-    base = top / BASE
+def storage_items(top, relative, reports, custom):
+    base = top / relative
     items = []
 
+    try:
+        base.lstat()
+    except (FileNotFoundError, NotADirectoryError):
+        return items
+
+    if redirected(base.parent):
+        raise ValueError(f"Refusing to uninstall through a redirected directory: {base.parent}")
     if base.is_symlink():
         return [dict(path=str(base), kind="project", action="remove")]
+    if redirected(base):
+        raise ValueError(f"Refusing to uninstall through a redirected directory: {base}")
 
     if not base.is_dir():
         return items
@@ -36,15 +45,21 @@ def project_items(top, reports, custom):
     for child in sorted(base.iterdir()):
         item = dict(path=str(child), kind="project", action="keep" if keep(child.name, reports, custom) else "remove")
 
-        if item["action"] == "remove" and child.name in CUSTOM and git_exclude.git(top, "ls-files", "--", str(child)):
+        if item["action"] == "remove" and git_exclude.git(top, "ls-files", "--", str(child)):
             item.update(action="keep", reason="tracked in Git (shared with the team); remove it with git rm")
 
         items.append(item)
 
     if all(item["action"] == "remove" for item in items):
         items.append(dict(path=str(base), kind="project", action="remove"))
-        items.append(dict(path=str(top), kind="git-exclude", action="remove"))
 
+    return items
+
+
+def project_items(top, reports, custom):
+    items = [item for relative in (BASE, LEGACY_BASE) for item in storage_items(top, relative, reports, custom)]
+    if all(item["action"] == "remove" for item in items):
+        items.append(dict(path=str(top), kind="git-exclude", action="remove"))
     return items
 
 
@@ -109,11 +124,14 @@ def remove_exclude(top):
         return
 
     lines = exclusion["original"].splitlines(keepends=True)
-    kept = [line for line in lines if line.strip() != ENTRY]
-    begin = [index for index, line in enumerate(kept) if line.strip() == git_exclude.BEGIN]
+    begin = [index for index, line in enumerate(lines) if line.strip() == git_exclude.BEGIN]
+    if not begin:
+        return
 
-    if begin and begin[0] + 1 < len(kept) and kept[begin[0] + 1].strip() == git_exclude.END:
-        del kept[begin[0]:begin[0] + 2]
+    start = begin[0]
+    end = next(index for index, line in enumerate(lines) if line.strip() == git_exclude.END)
+    entries = [line for line in lines[start + 1:end] if line.strip() not in ENTRIES]
+    kept = lines[:start] + ([lines[start], *entries, lines[end]] if entries else []) + lines[end + 1:]
 
     exclusion["updated"] = b"".join(kept)
     exclusion["action"] = "unchanged" if exclusion["updated"] == exclusion["original"] else "update"
@@ -121,6 +139,8 @@ def remove_exclude(top):
 
 
 def remove_path(path):
+    if redirected(path.parent) or not path.is_symlink() and redirected(path):
+        raise ValueError(f"Refusing to remove a redirected path: {path}")
     if path.is_symlink() or path.is_file():
         path.unlink()
     elif path.is_dir():

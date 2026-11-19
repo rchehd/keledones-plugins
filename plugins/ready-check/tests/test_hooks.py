@@ -8,9 +8,9 @@ from helpers import ENTRY, RepoTest
 
 
 class HookTest(RepoTest):
-    def hook(self, event, client, payload):
+    def hook(self, event, client, payload, env=None):
         process = self.run_entry("hook", event, "--client", client,
-                                 stdin=payload if isinstance(payload, str) else json.dumps(payload))
+                                 stdin=payload if isinstance(payload, str) else json.dumps(payload), env=env)
         self.assertEqual(process.returncode, 0, process.stderr)
         return json.loads(process.stdout) if process.stdout.strip() else None
 
@@ -26,7 +26,7 @@ class HookTest(RepoTest):
 
     def test_prompt_is_recorded_per_branch(self):
         self.hook("prompt", "claude", {"cwd": str(self.repo), "session_id": "s", "prompt": "Add a clear button"})
-        records = list((self.repo / "ai/ready-check/tasks").glob("*/*.jsonl"))
+        records = list((self.repo / ".ai/ready-check/tasks").glob("*/*.jsonl"))
         self.assertEqual(len(records), 1)
         self.assertEqual(json.loads(records[0].read_text())["prompt"], "Add a clear button")
 
@@ -40,13 +40,28 @@ class HookTest(RepoTest):
             self.assertIn("A workflow-only change can offer CI QA", text)
             self.assertIn("A stack elsewhere in the", text)
             self.assertIn("An explicit subset stays scoped.", text)
+            self.assertIn("AskUserQuestion", text)
+            self.assertIn("**Static checks**", text)
+            self.assertIn("**Code and\n  security review**", text)
+            self.assertIn("**QA**", text)
+            self.assertIn("**Skip**", text)
             self.assertNotIn("{check_offer}", text)
             self.assertIn("Ready Check browser tools:", text)
             self.assertIn("consent yes", text)
             self.assertIn("template commit --project <repo>", text)
             self.assertIn("template pr --project <repo>", text)
+            self.assertIn("template task-comment --project <repo>", text)
             self.assertIn("Do not investigate or fix the reported problem until the user asks", text)
             self.assertIn("Never edit, copy or patch the Ready Check plugin", text)
+
+    def test_claude_passes_native_task_comment_template_to_the_draft_command(self):
+        path = "task comments.md"
+        (self.repo / path).write_text("Custom layout\n")
+        payload = {"cwd": str(self.repo), "session_id": "comment"}
+        context = self.hook("session-start", "claude", payload, {"CLAUDE_PLUGIN_OPTION_TASK_COMMENT_TEMPLATE": path})
+        self.assertIn("'--client-template=task comments.md'", context["hookSpecificOutput"]["additionalContext"])
+        result = self.entry_json("template", "task-comment", "--project", str(self.repo), "--client-template", path)
+        self.assertEqual((result["source"], result["content"]), ("client", "Custom layout\n"))
 
     def test_file_language_defaults_to_english_and_is_asked_once(self):
         start = lambda: self.hook("session-start", "claude", {"cwd": str(self.repo), "session_id": "l"})["hookSpecificOutput"]["additionalContext"]
@@ -92,6 +107,8 @@ class HookTest(RepoTest):
         (self.repo / "a.php").write_text("<?php\n")
         reminder = self.hook("stop", "claude", payload)
         self.assertEqual(reminder["hookSpecificOutput"]["hookEventName"], "Stop")
+        self.assertIn("static, review, QA", reminder["hookSpecificOutput"]["additionalContext"])
+        self.assertIn("AskUserQuestion", reminder["hookSpecificOutput"]["additionalContext"])
         self.assertIsNone(self.hook("stop", "claude", payload))
         (self.repo / "a.php").write_text("<?php // changed\n")
         self.assertIsNone(self.hook("stop", "claude", dict(payload, stop_hook_active=True)))

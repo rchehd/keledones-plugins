@@ -15,7 +15,7 @@ class CustomizeTest(RepoTest):
     def test_same_item_is_added_once(self):
         self.assertTrue(self.add("Forms keep values")[1])
         self.assertFalse(self.add("  forms   keep values ")[1])
-        text = (self.repo / "ai/ready-check/extensions/drupal/review.md").read_text()
+        text = (self.repo / ".ai/ready-check/extensions/drupal/review.md").read_text()
         self.assertEqual(text.count("Forms keep values"), 1)
         self.assertIn("## D. Forms", text)
 
@@ -23,7 +23,7 @@ class CustomizeTest(RepoTest):
         self.add("Use DI")
         self.add("Use DI in forms")
         customize.remove("review", "Use DI", "project", self.repo, "drupal")
-        text = (self.repo / "ai/ready-check/extensions/drupal/review.md").read_text()
+        text = (self.repo / ".ai/ready-check/extensions/drupal/review.md").read_text()
         self.assertIn("Use DI in forms", text)
         self.add("Use DI in services")
         with self.assertRaisesRegex(ValueError, "2 items match"):
@@ -52,7 +52,7 @@ class CustomizeTest(RepoTest):
 
     def test_malformed_disabled_list_is_ignored(self):
         self.add("Item")
-        disabled = self.repo / "ai/ready-check/disabled.json"
+        disabled = self.repo / ".ai/ready-check/disabled.json"
         for content in ("[1, 2]", '{"hashes": 5}', "{"):
             disabled.write_text(content)
             customize.set_disabled("Item", "project", self.repo, True)
@@ -61,9 +61,9 @@ class CustomizeTest(RepoTest):
     def test_symlinked_parent_is_refused(self):
         target = self.root / "elsewhere"
         target.mkdir()
-        (self.repo / "ai/ready-check").mkdir(parents=True)
+        (self.repo / ".ai/ready-check").mkdir(parents=True)
         try:
-            (self.repo / "ai/ready-check/extensions").symlink_to(target, target_is_directory=True)
+            (self.repo / ".ai/ready-check/extensions").symlink_to(target, target_is_directory=True)
         except OSError as error:
             self.skipTest(f"Symlinks unavailable: {error}")
         with self.assertRaisesRegex(ValueError, "symlink"):
@@ -71,7 +71,7 @@ class CustomizeTest(RepoTest):
         self.assertEqual(list(target.iterdir()), [])
 
     def test_bare_rule_is_deduplicated_and_must_upgrades(self):
-        path = self.repo / "ai/ready-check/rules.md"
+        path = self.repo / ".ai/ready-check/rules.md"
         path.parent.mkdir(parents=True)
         path.write_text("Prefer switch\n")
         self.assertFalse(customize.add("rule", "prefer switch", "project", self.repo)[1])

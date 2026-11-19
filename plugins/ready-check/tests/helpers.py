@@ -44,7 +44,8 @@ class RepoTest(unittest.TestCase):
         self.environment = patch.dict(os.environ, {"READY_CHECK_DATA_DIR": str(self.data)})
         self.environment.start()
         self.addCleanup(self.environment.stop)
-        for name in ("CLAUDE_PLUGIN_OPTION_RULES", "READY_CHECK_RULES"):
+        for name in ("CLAUDE_PLUGIN_OPTION_RULES", "READY_CHECK_RULES",
+                     "CLAUDE_PLUGIN_OPTION_TASK_COMMENT_TEMPLATE", "READY_CHECK_TASK_COMMENT_TEMPLATE"):
             os.environ.pop(name, None)
         self.git("init", "-q", "-b", "main")
         self.git("commit", "-q", "--allow-empty", "-m", "init")

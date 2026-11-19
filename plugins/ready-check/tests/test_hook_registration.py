@@ -57,7 +57,7 @@ class RegisteredHookTest(RepoTest):
         return dict(cwd=str(self.repo), session_id=client, workspace_roots=[str(self.repo)], **extra)
 
     def records(self):
-        return [json.loads(line)["prompt"] for path in (self.repo / "ai/ready-check/tasks").glob("*/*.jsonl")
+        return [json.loads(line)["prompt"] for path in (self.repo / ".ai/ready-check/tasks").glob("*/*.jsonl")
                 for line in path.read_text(encoding="utf-8").splitlines()]
 
     def test_each_client_registers_every_event_with_its_own_root(self):

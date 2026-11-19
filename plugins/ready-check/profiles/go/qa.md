@@ -20,7 +20,7 @@ the commands executed when preparation is authorized, then recheck that the serv
 
 The service's own HTTP endpoints are the test surface: use the browser for pages and `curl` or the HTTP client for the
 API. When the service has accounts, create a test user through its own sign-up, seed command or admin endpoint when the
-approved plan covers test data. Keep credentials and tokens only in `ai/ready-check/qa-accounts.json` (local, never
+approved plan covers test data. Keep credentials and tokens only in `.ai/ready-check/qa-accounts.json` (local, never
 committed, never in the report) and list the user as test data. Never use real accounts or production databases.
 
 ## QA checklist by change type

@@ -47,12 +47,12 @@ class McpTest(unittest.TestCase):
                 self.assertEqual(env["PLAYWRIGHT_BROWSERS_PATH"], str(self.data / "browsers"))
             self.assertEqual(sorted(path.name for path in (self.project / MCP.OUTPUT).iterdir()),
                              ["config-chromium-headed.json", "config-chromium-headless.json"])
-            self.assertFalse((self.project / "ai/ready-check/reports").exists())
+            self.assertFalse((self.project / ".ai/ready-check/reports").exists())
 
     def test_outside_git_output_goes_to_data_root(self):
         with patch.object(MCP, "data_root", return_value=self.data):
             self.assertEqual(MCP.output_directory(self.project), self.data / "state/playwright-mcp")
-        self.assertFalse((self.project / "ai").exists())
+        self.assertFalse((self.project / ".ai").exists())
 
     def test_windows_launch_keeps_stdio_in_a_child_process(self):
         with patch.object(MCP.os, "name", "nt"), patch.object(MCP.os, "chdir") as chdir, patch.object(

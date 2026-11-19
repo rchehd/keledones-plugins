@@ -78,7 +78,7 @@ def mcp_smoke(project, env, command, reports=None, headed=False, argv=None, name
             artifact = re.search(r'\[Snapshot\]\(([^)]+)\)', snapshot)
             if artifact:
                 path = (project / artifact[1]).resolve()
-                if not path.is_relative_to(project / "ai/ready-check/tmp/playwright-mcp"):
+                if not path.is_relative_to(project / ".ai/ready-check/tmp/playwright-mcp"):
                     raise RuntimeError("MCP snapshot escaped the git-excluded output directory: " + str(path))
                 snapshot = path.read_text(encoding="utf-8")
             button = re.search(r'button "Smoke" \[ref=([^\]]+)\]', snapshot)
@@ -110,7 +110,7 @@ def mcp_smoke(project, env, command, reports=None, headed=False, argv=None, name
 
 def connection_smoke(project, env, command, reports=None):
     mcp_smoke(project, env, None, reports, argv=[*command, "mcp", "--project", str(project), "--headless"], name="mcp-bundled")
-    if (project / "ai/ready-check/reports").exists():
+    if (project / ".ai/ready-check/reports").exists():
         raise RuntimeError("MCP startup created report directories")
     print("Bundled MCP launcher started and kept output excluded")
 
@@ -143,7 +143,7 @@ def static_smoke(project, root, env, command, reports=None):
         file.parent.mkdir(parents=True, exist_ok=True)
         file.write_text(content, encoding="utf-8")
 
-    write(".gitignore", "vendor/\nnode_modules/\nai/ready-check/\nCLAUDE.local.md\n")
+    write(".gitignore", "vendor/\nnode_modules/\n.ai/ready-check/\nCLAUDE.local.md\n")
     write("phpstan.neon", "parameters:\n  level: 0\n  paths:\n    - web/modules/custom\n")
     for args in (("add", "."), ("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "Fixture")):
         subprocess.run(["git", *args], cwd=project, env=env, check=True, capture_output=True)

@@ -8,7 +8,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 sys.dont_write_bytecode = True
 import logs
 from dependency_support import PLUGIN, data_root
-from project import BASE, ensure_excluded, toplevel, write_json
+from project import BASE, LEGACY_BASE, ensure_excluded, migrate, project_file, toplevel, write_json
 
 DEFAULTS = {"browser": "ask", "install": "ask", "captureTasks": True, "remind": True, "artifactLanguage": "English"}
 CHOICES = {"browser": {"ask", "visible", "background"}, "install": {"ask", "auto", "never"},
@@ -17,7 +17,7 @@ BOOLEAN = {"captureTasks", "remind"}
 USER_ONLY = {"install"}
 SCALAR_SELECTION = {"profile", "runner", "application"}
 PROJECT_ONLY = SCALAR_SELECTION | {"profiles"}
-TEMPLATE_KEYS = {"commitTemplate", "pullRequestTemplate"}
+TEMPLATE_KEYS = {"commitTemplate", "pullRequestTemplate", "taskCommentTemplate"}
 KEYS = set(DEFAULTS) | PROJECT_ONLY | TEMPLATE_KEYS
 
 
@@ -90,7 +90,7 @@ def load(top=None):
     sources = [(user_path(), KEYS - PROJECT_ONLY)]
 
     if top:
-        sources.append((project_path(top), KEYS - USER_ONLY))
+        sources.append((project_file(top, "settings.json"), KEYS - USER_ONLY))
 
     for path, allowed in sources:
         for key, value in read(path).items():
@@ -118,6 +118,8 @@ def template_path(value, top=None):
     try:
         path = Path(value).expanduser()
         resolved = (top / path if top else path).resolve()
+        if top and resolved.is_relative_to(top / LEGACY_BASE) and not resolved.exists():
+            resolved = (top / BASE / resolved.relative_to(top / LEGACY_BASE)).resolve()
     except RuntimeError as error:
         raise ValueError(f"Cannot resolve template path {value!r}: {error}") from error
     if top and not resolved.is_relative_to(top):
@@ -135,7 +137,11 @@ def store(key, value, top=None):
             raise ValueError(f"Template file does not exist: {source}")
         value = source.relative_to(top).as_posix() if top else str(source)
 
-    data = read(path)
+    project = top and key not in USER_ONLY
+    if project:
+        migrate(top)
+        ensure_excluded(top)
+    data = read(project_file(top, path.name) if project else path)
     if key == "profiles":
         for item in value:
             application_root(top, item["application"])
@@ -146,13 +152,14 @@ def store(key, value, top=None):
     data[key] = value
     write_json(path, data, root)
 
-    if top and key not in USER_ONLY:
-        ensure_excluded(Path(top))
-
 
 def unset(key, top=None):
     path, root = setting_location(key, top)
-    data = read(path)
+    project = top and key not in USER_ONLY
+    if project:
+        migrate(top)
+        ensure_excluded(top)
+    data = read(project_file(top, path.name) if project else path)
     if key in data:
         del data[key]
         write_json(path, data, root)
@@ -171,7 +178,7 @@ def shared_config(application):
 
 def configured_profiles(top):
     shared = shared_config(top)
-    stored = read(project_path(top))
+    stored = read(project_file(top, "settings.json"))
     for config in (stored, shared):
         if "profiles" in config:
             if not valid("profiles", config["profiles"]):
@@ -217,7 +224,7 @@ def project_config(application, profile=None):
         if len(matching) == 1:
             config.update(matching[0])
     elif top:
-        stored = read(project_path(top))
+        stored = read(project_file(top, "settings.json"))
         if "runner" not in config:
             runner = (shared_config(top) | stored).get("runner")
             if valid("runner", runner):

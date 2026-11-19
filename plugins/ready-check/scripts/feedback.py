@@ -6,9 +6,9 @@ from datetime import datetime
 from pathlib import Path
 
 sys.dont_write_bytecode = True
-from project import BASE, ensure_excluded, toplevel
+from project import BASE, ensure_excluded, migrate, migration_lock, project_locations, toplevel
 from reports import all_tasks, branch_name, prepare
-from tasks import append
+from tasks import append, read_records
 
 
 def last_round(directory):
@@ -25,6 +25,7 @@ def path(top):
 
 
 def add(top, project, task, returned, by, reason, missed, area, source):
+    migrate(top)
     branch = branch_name(top) or "no-branch"
     known = {item["task_id"]: item for item in all_tasks(top)}
 
@@ -45,33 +46,14 @@ def add(top, project, task, returned, by, reason, missed, area, source):
     entry = dict(ts=datetime.now().isoformat(timespec="seconds"), task=task, branch=branch,
                  round=last_round(directory) if directory else None, returned=returned, by=by, reason=reason,
                  missed=missed, area=area, source=source)
-    ensure_excluded(top)
-    path(top).parent.mkdir(parents=True, exist_ok=True)
-    append(path(top), (json.dumps(entry, ensure_ascii=False) + "\n").encode("utf-8"))
+    with migration_lock(Path(top) / BASE):
+        ensure_excluded(top)
+        append(path(top), (json.dumps(entry, ensure_ascii=False) + "\n").encode("utf-8"))
     return entry
 
 
 def recent(top, limit=20):
-    try:
-        lines = path(top).read_text(encoding="utf-8").splitlines()
-    except OSError:
-        return []
-
-    items = []
-
-    for line in reversed(lines):
-        try:
-            item = json.loads(line)
-        except ValueError:
-            continue
-
-        if isinstance(item, dict):
-            items.append(item)
-
-        if len(items) >= limit:
-            break
-
-    return items
+    return read_records(project_locations(top, "feedback.jsonl"), limit)
 
 
 def main():

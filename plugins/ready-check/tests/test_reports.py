@@ -38,14 +38,14 @@ class ReportsTest(unittest.TestCase):
         result = self.reports()
         directory = Path(result["directory"])
         self.assertEqual((result["status"], result["branch"]), ("PASS", "feature/ABC-1@fix"))
-        self.assertEqual(directory.parent.parent, self.project / "ai/ready-check/reports")
+        self.assertEqual(directory.parent.parent, self.project / ".ai/ready-check/reports")
         self.assertRegex(directory.parent.name, r"^feature-ABC-1-fix-[0-9a-f]{12}$")
         self.assertRegex(directory.name, r"^clear-delivery-note-\d{4}-\d{2}-\d{2}$")
         self.assertEqual(result["task_id"], directory.name)
         self.assertEqual(result["report"], str(directory / "report.md"))
         self.assertTrue(directory.is_dir())
         self.assertFalse((directory / "report.md").exists())
-        self.assertIn("/ai/ready-check/", (self.project / ".git/info/exclude").read_text())
+        self.assertIn("/.ai/ready-check/", (self.project / ".git/info/exclude").read_text())
         self.assertEqual(result["git_exclude"]["status"], "PASS")
 
     def test_similarly_named_branches_keep_separate_resumable_reports(self):
@@ -74,7 +74,7 @@ class ReportsTest(unittest.TestCase):
         before = (self.project / ".git/info/exclude").read_bytes()
         result = self.reports("--dry-run")
         self.assertEqual((result["status"], result["git_exclude"]["status"]), ("PLANNED", "PLANNED"))
-        self.assertFalse((self.project / "ai").exists())
+        self.assertFalse((self.project / ".ai").exists())
         self.assertEqual((self.project / ".git/info/exclude").read_bytes(), before)
 
     def test_non_git_project_creates_directory_and_skips_exclusion(self):
@@ -109,7 +109,7 @@ class ReportsTest(unittest.TestCase):
         self.commit()
         for task in ("../../../..", "/tmp", "..\\x"):
             directory = Path(self.reports(task=task)["directory"]).resolve()
-            self.assertTrue(directory.is_relative_to((self.project / "ai/ready-check/reports").resolve()), task)
+            self.assertTrue(directory.is_relative_to((self.project / ".ai/ready-check/reports").resolve()), task)
         self.assertFalse((self.project / "summary.json").exists())
 
     def test_legacy_branch_report_counts_as_one_task(self):
@@ -127,7 +127,7 @@ class ReportsTest(unittest.TestCase):
         target = self.project.parent / "elsewhere"
         target.mkdir()
         try:
-            (self.project / "ai").symlink_to(target, target_is_directory=True)
+            (self.project / ".ai").symlink_to(target, target_is_directory=True)
         except OSError as error:
             self.skipTest(f"Symlinks unavailable: {error}")
         self.assertEqual(self.reports()["status"], "INCOMPLETE")

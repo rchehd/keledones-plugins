@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 
 sys.dont_write_bytecode = True
-from project import BASE, ensure_excluded, toplevel, write_json
+from project import BASE, ensure_excluded, migrate, project_file, toplevel, write_json
 
 
 def git_bytes(top, *args):
@@ -47,6 +47,7 @@ def marker(top):
 
 def mark_checked(top):
     top = Path(top)
+    migrate(top)
     ensure_excluded(top)
     data = dict(fingerprint=work_fingerprint(top), ts=datetime.now().isoformat(timespec="seconds"))
     write_json(marker(top), data, top)
@@ -55,7 +56,7 @@ def mark_checked(top):
 
 def last_checked(top):
     try:
-        data = json.loads(marker(top).read_text(encoding="utf-8"))
+        data = json.loads(project_file(top, "state", "last-check.json").read_text(encoding="utf-8"))
         return data.get("fingerprint") if isinstance(data, dict) else None
     except (OSError, ValueError):
         return None

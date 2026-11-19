@@ -5,8 +5,8 @@ macOS, native Windows, and WSL. Bash, executable mode preservation, and GNU grep
 The examples use `python3`; on Windows PowerShell use `py -3` (or an available Python 3 interpreter).
 
 ```sh
-python3 /path/to/ready-check/scripts/ready-check.py doctor --profile drupal --project /path/to/application --base main --output /path/to/repository/ai/ready-check/reports/<branch-slug>/doctor.json
-python3 /path/to/ready-check/scripts/ready-check.py static --profile drupal --project /path/to/application --base main --output /path/to/repository/ai/ready-check/reports/<branch-slug>/static.json
+python3 /path/to/ready-check/scripts/ready-check.py doctor --profile drupal --project /path/to/application --base main --output /path/to/repository/.ai/ready-check/reports/<branch-slug>/doctor.json
+python3 /path/to/ready-check/scripts/ready-check.py static --profile drupal --project /path/to/application --base main --output /path/to/repository/.ai/ready-check/reports/<branch-slug>/static.json
 ```
 
 Get the directory with `ready-check.py reports --project <app>`. Both commands take exactly one of `--base <ref>` or
@@ -82,7 +82,7 @@ baselines are respected; the checker does not generate a baseline or suppress ex
 
 The dispatcher runs the portable `scripts/lint.py` engine. Auto-fix is never enabled. Linters
 may create their normal caches. Generated configs use external temporary storage for local checks;
-containers use a unique bridge directory under `ai/ready-check/tmp`, removed after that check. All its
+containers use a unique bridge directory under `.ai/ready-check/tmp`, removed after that check. All its
 parent components must be real directories. A run never sweeps temporary directories from other or
 interrupted runs; inspect leftover directories before removing them manually.
 Legacy `.ready-check-lint.*` directories in the application root stay out of the task scope.

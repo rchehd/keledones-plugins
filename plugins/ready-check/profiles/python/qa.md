@@ -20,7 +20,7 @@ or `flush`. Record the commands executed when preparation is authorized, then re
 Use a test user, not a superuser, for non-admin behavior. When the approved plan covers test data, create one through the
 runner: Django `createsuperuser --noinput` with `DJANGO_SUPERUSER_PASSWORD` from the environment (admin checks only) or
 a short `manage.py shell` script that creates a plain user; FastAPI and Flask use the project's own user model or seed
-command. Keep the credentials only in `ai/ready-check/qa-accounts.json` (local, never committed, never in the report),
+command. Keep the credentials only in `.ai/ready-check/qa-accounts.json` (local, never committed, never in the report),
 log in through the app's form, and list the user as test data. Never use real accounts or production databases.
 
 ## QA checklist by change type

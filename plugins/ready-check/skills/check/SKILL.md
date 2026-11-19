@@ -207,10 +207,12 @@ results even without a new Git diff. Only a current successful QA gate proceeds 
 
 Follow [final result guidance](references/final-result.md). Check complete RC coverage, current gates,
 unresolved questions, and uncovered required scope before deciding readiness. A successful partial run
-produces PARTIAL CHECK COMPLETE with explicit unselected stages. Return the report's absolute link.
-For `READY TO PUSH`, discover the available GitHub/GitLab CLI or connector and offer creation with the
-proposed target branch or drafts in chat. Follow the user's choice and reuse explicit authorization for the
-same delivery. Use the actual diff, report and effective templates for the English commit message and PR/MR.
+produces PARTIAL CHECK COMPLETE with explicit unselected stages. Return the report's absolute link and
+offer a choice between remaining checks, delivery, and stopping. Continue selected checks in this same report.
+For delivery after either successful verdict, discover the available GitHub/GitLab CLI or connector and offer
+creation with the proposed target branch or drafts in chat. Follow the user's choice and reuse explicit
+authorization for the same delivery. Use the actual diff, report and effective templates for the English
+commit message and PR/MR. After providing the text or a PR/MR link, offer the task-comment draft.
 
 Whenever a run reaches a final result (any verdict), record it with `scripts/ready-check.py mark-checked --project <app>`
 so the end-of-turn reminder stays quiet until the code changes again. If authorized delivery commits the same
@@ -261,8 +263,8 @@ RCs and environment are unchanged; anything else returns to the earliest affecte
 Use [the report template](references/report-template.md). Every task has one folder in the shared repository.
 For a new task run `scripts/ready-check.py reports --project <repo> --task "<short task title>"`; to continue, run it without `--task`
 (the newest task on the branch) or with the title or `task_id`. The JSON gives `task_id`, `directory`, `report` and
-`summary`; the command git-excludes `/ai/ready-check/`. Write `report.md` in that folder
-(`<repo>/ai/ready-check/reports/<branch-slug>/<task_id>/`) and report its absolute path as a clickable link. Start the
+`summary`; the command git-excludes `/.ai/ready-check/`. Write to the returned `report` path
+and report its absolute path as a clickable link. Start the
 report with three English key lines regardless of the report language: `task_id: <id>`, `Round: <n>`,
 `Verdict: <verdict>`, and keep them current.
 
@@ -291,7 +293,7 @@ after the scope-appropriate verdict and any selected delivery action. Confirmed 
 `BLOCKED`; missing evidence or unresolved required questions yield `INCOMPLETE`. All required gates and
 acceptance conditions must be current and covered before `READY TO PUSH`.
 
-Ready Check writes under `ai/ready-check/` (git-excluded), in authorized QA test data, and in files
+Ready Check writes under `.ai/ready-check/` (git-excluded), in authorized QA test data, and in files
 approved through the fix offer. Environment preparation and cleanup require an established scope, as
 described by the QA skill. Commit, push and open a PR/MR only within the delivery the user authorized in
 step 8. Do not otherwise edit project code, use auto-fix, install dependencies outside the install

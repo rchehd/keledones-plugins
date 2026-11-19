@@ -9,6 +9,7 @@ import tempfile
 from pathlib import Path
 
 sys.dont_write_bytecode = True
+from project import BASE, ensure_excluded, migrate, toplevel
 from settings import project_config
 
 
@@ -39,15 +40,18 @@ def main():
             raise ValueError("A project directory and a positive timeout are required")
         if args.output:
             candidate = args.output.resolve()
-            git = subprocess.run(["git", "-C", str(project), "rev-parse", "--show-toplevel"],
-                                 capture_output=True, text=True, encoding="utf-8")
+            top = toplevel(project)
             forbidden = [plugin, project]
-            if git.returncode == 0:
-                forbidden.append(Path(git.stdout.strip()).resolve())
-            allowed = [root / "ai/ready-check" for root in forbidden[1:]]
-            inside = any(data.resolve() == data and candidate.is_relative_to(data) for data in allowed)
-            if not inside and any(candidate.is_relative_to(root) for root in forbidden):
-                raise ValueError("Save the result outside the project repository and plugin package, or in ai/ready-check")
+            if top:
+                forbidden.append(top)
+            allowed = [root for root in forbidden[1:] if (root / BASE).resolve() == root / BASE
+                       and candidate.is_relative_to(root / BASE)]
+            inside = bool(allowed)
+            if candidate.is_relative_to(plugin) or not inside and any(candidate.is_relative_to(root) for root in forbidden):
+                raise ValueError("Save the result outside the project repository and plugin package, or in .ai/ready-check")
+            if inside:
+                migrate(top or project)
+                ensure_excluded(allowed[-1])
             output = candidate
         if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", args.profile):
             raise ValueError("Invalid profile ID")

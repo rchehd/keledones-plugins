@@ -8,7 +8,7 @@ import tasks
 
 class TaskRecordTest(RepoTest):
     def lines(self):
-        return [json.loads(line) for path in sorted((self.repo / "ai/ready-check/tasks").glob("*/*.jsonl"))
+        return [json.loads(line) for path in sorted((self.repo / ".ai/ready-check/tasks").glob("*/*.jsonl"))
                 for line in path.read_text(encoding="utf-8").splitlines()]
 
     def test_long_prompt_is_cut_on_a_character_boundary(self):

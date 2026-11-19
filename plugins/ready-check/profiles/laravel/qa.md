@@ -22,7 +22,7 @@ executed and their results when preparation is authorized, then recheck the sour
 
 Use a test user, not an administrator, for non-admin behavior. When the approved plan covers test data, create
 one through the runner, for example `php artisan tinker --execute="App\Models\User::factory()->create([...])"`
-or the project's seeder. Keep the generated credentials only in `ai/ready-check/qa-accounts.json` (local, never
+or the project's seeder. Keep the generated credentials only in `.ai/ready-check/qa-accounts.json` (local, never
 committed, never in the report or PR draft), use them to log in through the app's form, and list the user as test data.
 Never reuse real accounts or production credentials; never create users on a shared or production database.
 

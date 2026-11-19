@@ -47,7 +47,7 @@ class AnswerHookTest(RepoTest):
         return process.stdout.strip()
 
     def records(self):
-        return [json.loads(line)["prompt"] for path in (self.repo / "ai/ready-check/tasks").glob("*/*.jsonl")
+        return [json.loads(line)["prompt"] for path in (self.repo / ".ai/ready-check/tasks").glob("*/*.jsonl")
                 for line in path.read_text(encoding="utf-8").splitlines()]
 
     def test_answer_is_recorded_once_even_when_it_also_arrives_as_a_prompt(self):
@@ -64,7 +64,7 @@ class AnswerHookTest(RepoTest):
         self.hook("answer", "claude", {"cwd": str(self.repo), "session_id": "s", "tool_name": "AskUserQuestion",
                                        "tool_input": {"questions": [QUESTION]},
                                        "tool_response": {"answers": {"Which checks should run?": "All checks"}}})
-        self.assertFalse((self.repo / "ai/ready-check/tasks").exists())
+        self.assertFalse((self.repo / ".ai/ready-check/tasks").exists())
 
 
 if __name__ == "__main__":

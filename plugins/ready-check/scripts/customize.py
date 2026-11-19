@@ -9,7 +9,7 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 import rules
 from dependency_support import data_root
-from project import BASE, ensure_excluded, toplevel, write_json
+from project import BASE, LEGACY_BASE, ensure_excluded, migrate, project_file, redirected, team_files, toplevel, write_json
 
 KINDS = ("rule", "review", "qa")
 SCOPES = ("project", "global")
@@ -33,6 +33,16 @@ def file_for(kind, scope, top, profile):
         raise ValueError("Review and QA items need a valid --profile")
 
     return base(scope, top) / "extensions" / profile / f"{kind}.md"
+
+
+def source_file(path, scope, top):
+    return project_file(top, path.relative_to(Path(top) / BASE)) if scope == "project" else path
+
+
+def item_files(path, scope, top):
+    if scope == "project":
+        return team_files(top, path.relative_to(Path(top) / BASE))
+    return [path] if path.is_file() and not redirected(path) else []
 
 
 def parse_extension(path):
@@ -65,44 +75,45 @@ def load(top=None, kind=None, profile=None):
             sources += [("global", rules.user_path(), text) for text in rules.read_file(rules.user_path())]
 
             if top:
-                sources += [("project", rules.team_path(top), text) for text in rules.read_file(rules.team_path(top))]
+                sources += [("project", path, text) for path in team_files(top, "rules.md")
+                            for text in rules.read_file(path)]
 
             found += [dict(kind="rule", profile=None, section=None, text=text, scope=scope,
                            file=str(path) if path else None, disabled=rules.item_hash(text) in disabled)
                       for scope, path, text in sources]
             continue
 
-        profiles = [profile] if profile else sorted({folder.name for root in (data_root(), Path(top) / BASE if top else None)
-                                                      if root for folder in (root / "extensions").glob("*") if folder.is_dir()})
+        roots = [data_root()] + ([Path(top) / relative for relative in (BASE, LEGACY_BASE)] if top else [])
+        profiles = [profile] if profile else sorted({folder.name for root in roots if root.resolve() == root
+                                                      for folder in (root / "extensions").glob("*") if folder.is_dir()})
 
         for name in profiles:
             for scope in SCOPES:
                 if scope == "project" and not top:
                     continue
 
-                path = file_for(wanted, scope, top, name)
                 found += [dict(kind=wanted, profile=name, section=section, text=text, scope=scope, file=str(path),
                                disabled=rules.item_hash(text) in disabled)
+                          for path in item_files(file_for(wanted, scope, top, name), scope, top)
                           for section, text in parse_extension(path)]
 
     return found
 
 
 def write(path, text, top, scope):
-    root = base(scope, top)
+    if scope == "project":
+        ensure_excluded(top)
+    root = Path(top) if scope == "project" else base(scope, top)
     current = root
 
     for part in path.relative_to(root).parts:
         current = current / part
 
-        if current.is_symlink():
+        if redirected(current):
             raise ValueError(f"Refusing to write through a symlink: {current}")
 
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
-
-    if scope == "project":
-        ensure_excluded(Path(top))
 
 
 def item_text(line, kind):
@@ -122,21 +133,22 @@ def add(kind, text, scope, top=None, profile=None, section=None, must=False):
         raise ValueError("Item text is empty")
 
     path = file_for(kind, scope, top, profile)
-    lines = path.read_text(encoding="utf-8").splitlines() if path.is_file() else []
+    if scope == "project":
+        migrate(top)
     digest = rules.item_hash(text)
-    same = [index for index, line in enumerate(lines)
-            if item_text(line, kind) is not None and rules.item_hash(item_text(line, kind)) == digest]
+    files = {source: source.read_text(encoding="utf-8").splitlines() for source in item_files(path, scope, top)}
+    for source, lines in files.items():
+        for index, line in enumerate(lines):
+            current = item_text(line, kind)
+            if current is None or rules.item_hash(current) != digest:
+                continue
+            if kind == "rule" and must and not current.upper().startswith("MUST:"):
+                lines[index] = f"- MUST: {text}"
+                write(source, "\n".join(lines) + "\n", top, scope)
+                return source, "upgraded"
+            return source, False
 
-    if same:
-        current = item_text(lines[same[0]], kind)
-
-        if kind == "rule" and must and not current.upper().startswith("MUST:"):
-            lines[same[0]] = f"- MUST: {text}"
-            write(path, "\n".join(lines) + "\n", top, scope)
-            return path, "upgraded"
-
-        return path, False
-
+    lines = files.get(path, [])
     if kind == "rule":
         lines.append(f"- {'MUST: ' if must else ''}{text}")
     else:
@@ -179,13 +191,13 @@ def set_disabled(text, scope, top, disabled):
     if scope == "project" and not top:
         raise ValueError("Project scope needs a Git work tree; pass --project")
 
+    if scope == "project":
+        migrate(top)
+        ensure_excluded(top)
     path = rules.disabled_path(top if scope == "project" else None)
-    hashes = read_hashes(path)
+    hashes = read_hashes(source_file(path, scope, top))
     hashes = hashes | {digest} if disabled else hashes - {digest}
     write_json(path, dict(hashes=sorted(hashes)), Path(top) if scope == "project" else data_root())
-
-    if scope == "project":
-        ensure_excluded(Path(top))
 
     note = None
 
@@ -197,19 +209,24 @@ def set_disabled(text, scope, top, disabled):
 
 def remove(kind, text, scope, top=None, profile=None):
     path = file_for(kind, scope, top, profile)
-
-    if not path.is_file():
+    if scope == "project":
+        migrate(top)
+    files = {source: source.read_text(encoding="utf-8").splitlines() for source in item_files(path, scope, top)}
+    if not files:
         raise ValueError(f"No file: {path}")
 
-    lines = path.read_text(encoding="utf-8").splitlines()
-    candidates = [(index, item_text(line, kind)) for index, line in enumerate(lines) if item_text(line, kind) is not None]
-    matches = [index for index, item in candidates if rules.item_hash(item) == rules.item_hash(text)]
-    matches = matches or [index for index, item in candidates if text.lower() in item.lower()]
+    candidates = [(source, index, item) for source, lines in files.items() for index, line in enumerate(lines)
+                  if (item := item_text(line, kind)) is not None]
+    digest = rules.item_hash(text)
+    matches = [(source, index) for source, index, item in candidates if rules.item_hash(item) == digest]
+    matches = matches or [(source, index) for source, index, item in candidates if text.lower() in item.lower()]
 
     if len(matches) != 1:
         raise ValueError(f"{len(matches)} items match {text!r}; give a text that matches exactly one")
 
-    del lines[matches[0]]
+    path, index = matches[0]
+    lines = files[path]
+    del lines[index]
     write(path, "\n".join(lines) + "\n", top, scope)
     return path
 

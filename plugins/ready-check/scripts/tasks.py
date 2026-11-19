@@ -4,12 +4,13 @@ import json
 import os
 import re
 import sys
+from contextlib import suppress
 from datetime import datetime, timedelta
 from pathlib import Path
 
 sys.dont_write_bytecode = True
 from git_exclude import git
-from project import BASE, ensure_excluded, toplevel
+from project import BASE, ensure_excluded, migrate, migration_lock, project_locations, redirected, toplevel
 from reports import branch_name, slug
 
 MAX_PROMPT = 20 * 1024
@@ -48,7 +49,7 @@ def directory(top, branch):
     for part in (*BASE.parts, "tasks", slug(branch)):
         current = current / part
 
-        if current.is_symlink() or current.exists() and not current.is_dir():
+        if current.resolve() != current or current.exists() and not current.is_dir():
             raise ValueError(f"Task records need real directories: {current}")
 
     return current
@@ -98,69 +99,100 @@ def record(top, client, session, prompt, now=None):
         return None
 
     top = Path(top)
+    migrate(top)
     now = now or datetime.now()
     branch = branch_name(top) or "no-branch"
-    folder = directory(top, branch)
-
-    if not folder.exists():
-        ensure_excluded(top)
-        folder.mkdir(parents=True, exist_ok=True)
-
-    path = folder / f"{now:%Y-%m-%d}.jsonl"
-
-    # A question answer can arrive both as a prompt and as a tool result; keep one record.
-    if prompt.startswith("Q: ") and repeated(path, session, prompt):
-        return path
-
     line = dict(ts=now.isoformat(timespec="seconds"), client=client, session=session, branch=branch,
                 head=git(top, "rev-parse", "HEAD"), prompt=truncate(prompt))
-    append(path, (json.dumps(line, ensure_ascii=False) + "\n").encode("utf-8"))
+    with migration_lock(top / BASE):
+        folder = directory(top, branch)
+        if not folder.exists():
+            ensure_excluded(top)
+        folder.mkdir(parents=True, exist_ok=True)
+        path = folder / f"{now:%Y-%m-%d}.jsonl"
+        if prompt.startswith("Q: ") and repeated(path, session, prompt):
+            return path
+        append(path, (json.dumps(line, ensure_ascii=False) + "\n").encode("utf-8"))
 
     return path
 
 
-def recent(top, branch=None, limit=20):
-    folder = directory(Path(top), branch or branch_name(Path(top)) or "no-branch")
-    found = []
-
-    if not folder.is_dir():
-        return found
-
-    for path in sorted((item for item in folder.iterdir() if DAY.match(item.name)), reverse=True):
-        for text in reversed(path.read_text(encoding="utf-8", errors="replace").splitlines()):
+def read_records(paths, limit):
+    found, seen = [], set()
+    sources = 0
+    for path in paths:
+        if redirected(path):
+            continue
+        try:
+            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue
+        sources += 1
+        keys = set()
+        for text in reversed(lines):
             try:
                 item = json.loads(text)
             except ValueError:
                 continue
-
             if isinstance(item, dict):
-                found.append(item)
+                key = json.dumps(item, sort_keys=True)
+                if key not in seen:
+                    found.append(item)
+                    keys.add(key)
+                    if len(paths) == 1 and len(found) >= limit:
+                        return found[:limit]
+        seen.update(keys)
+    if sources > 1:
+        found.sort(key=lambda item: str(item.get("ts") or ""), reverse=True)
+    return found[:limit]
 
-            if len(found) >= limit:
-                return found
 
+def recent(top, branch=None, limit=20):
+    folder = directory(Path(top), branch or branch_name(Path(top)) or "no-branch")
+    locations = project_locations(top, folder.relative_to(Path(top) / BASE))
+    daily = {}
+    for location in locations:
+        if location.is_dir() and not redirected(location):
+            for path in location.iterdir():
+                if DAY.match(path.name):
+                    daily.setdefault(path.name, []).append(path)
+
+    found = []
+    for day in sorted(daily, reverse=True):
+        found.extend(read_records(daily[day], limit - len(found)))
+        if len(found) >= limit:
+            break
     return found
 
 
 def prune(top, days=RETENTION_DAYS, now=None):
-    root = Path(top) / BASE / "tasks"
+    top = Path(top)
+    roots = [root for root in project_locations(top, "tasks") if root.is_dir() and not redirected(root)]
+    if not roots:
+        return 0
     cutoff = ((now or datetime.now()) - timedelta(days=days)).strftime("%Y-%m-%d")
     removed = 0
-
-    if root.is_symlink() or not root.is_dir():
+    tracked = git(top, "ls-files", "-z", "--", *(root.relative_to(top).as_posix() for root in roots))
+    if tracked is None:
         return removed
+    protected = {top / name for name in tracked.split("\0") if name}
 
-    for folder in root.iterdir():
-        if folder.is_symlink() or not folder.is_dir():
-            continue
-
-        for path in folder.iterdir():
-            if DAY.match(path.name) and path.name[:10] < cutoff and path.is_file() and not path.is_symlink():
-                path.unlink()
-                removed += 1
-
-        if not any(folder.iterdir()):
-            folder.rmdir()
+    storage = top / BASE
+    with migration_lock(storage):
+        ensure_excluded(top)
+        for root in roots:
+            if redirected(root) or not root.is_dir():
+                continue
+            for folder in root.iterdir():
+                if redirected(folder) or not folder.is_dir():
+                    continue
+                for path in folder.iterdir():
+                    if (DAY.match(path.name) and path.name[:10] < cutoff and path not in protected
+                            and path.is_file() and not redirected(path)):
+                        path.unlink(missing_ok=True)
+                        removed += 1
+                with suppress(OSError):
+                    folder.rmdir()
 
     return removed
 

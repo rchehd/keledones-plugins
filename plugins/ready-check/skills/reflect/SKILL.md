@@ -65,4 +65,4 @@ A Ready Check bug offers only "PR / bug report" or "skip". Example answers: "1: 
 - PR to Ready Check: follow the `contribute` skill with the proposal.
 
 Finish with what changed and where, and remind the user to commit shared project files
-(`git add -f ai/ready-check/rules.md ai/ready-check/extensions`).
+(`git add -f .ai/ready-check/rules.md .ai/ready-check/extensions`).
