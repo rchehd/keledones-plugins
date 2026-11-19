@@ -12,7 +12,7 @@ client makes available or a selection you provide.
 ## What the report shows
 
 1. A radar of your profile axes, this period against the previous one.
-2. Strengths and areas to grow, each with evidence sessions and a concrete tip.
+2. Strengths with supporting sessions, and areas to grow with examples and a concrete next step.
 3. Work style for fun (opt-in): Architect, Sprinter, Perfectionist, Explorer, Delegator or Detective. It describes
    behaviour in sessions only, not personality.
 4. Tasks and themes by project.
@@ -21,6 +21,7 @@ client makes available or a selection you provide.
 7. Friction: corrections, repeated requests, interrupted turns, context compactions.
 8. Spend: tokens for Claude Code and Codex (Cursor does not record them).
 9. Checks after edits, with session counts for the current and previous periods.
+10. How you work with agents, with common paths and observed criteria for review and bug-fix sessions.
 
 Personal axes and findings with evidence expand to the sessions behind them. Clicking a radar point opens its axis.
 The chart legend shows the calendar ranges it compares. Gnothi writes the report labels and analysis in the
@@ -43,6 +44,15 @@ The goal is to understand verification habits in recorded agent sessions. The qu
 with an edit call contains a test, lint, or build call after its last edit call. The report shows the matching
 session count, the total with edit calls, and their ratio. The ratio is unavailable when there are zero sessions
 with edit calls. The measure uses recognized tool calls in log order and covers check attempts.
+
+## Workflow analysis
+
+The workflow card groups recognizable review and bug-fix sessions. It shows who acted at each step and which
+criteria the available logs support. The most frequent path appears first, with other paths, criteria and session
+examples available on expansion. Detailed statistics have a separate expandable section.
+Use [workflow analysis](skills/portrait/references/workflow-analysis.md) to
+interpret the findings. For a project-level overview of review rounds, QA gaps and returned tasks, use
+[Ready Check reflect](https://github.com/rchehd/keledones-plugins/tree/main/plugins/ready-check#customize-and-improve).
 
 ## Foundations
 

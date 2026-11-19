@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from codecs import BOM_UTF8
 from pathlib import Path, PurePosixPath
 from types import SimpleNamespace
 
@@ -44,13 +45,15 @@ def syntax_run(lint):
 def script_shell(path):
     with path.open("rb") as stream:
         first = stream.readline(512)
+    if first.startswith(BOM_UTF8 + b"#!"):
+        return None, "Remove the UTF-8 BOM so the shebang starts at the first byte of the file."
     if not first.startswith(b"#!"):
-        return "bash" if path.suffix == ".bash" else "sh"
+        return ("bash" if path.suffix == ".bash" else "sh"), None
     words = first[2:].decode("utf-8", errors="replace").split()
     if words and PurePosixPath(words[0]).name == "env":
         words = [word for word in words[1:] if not word.startswith("-") and "=" not in word]
     name = PurePosixPath(words[0]).name if words else None
-    return name if name in SHELLS else None
+    return (name if name in SHELLS else None), None
 
 
 def local_shell(name):
@@ -66,10 +69,12 @@ def local_shell(name):
 
 
 def shell_plan(check, project, files, runner, spec):
-    scripts = {}
+    scripts, header_findings = {}, {}
     for file in files:
         if Path(file).suffix in SHELL_EXTENSIONS:
-            name = script_shell(project / file)
+            name, header_finding = script_shell(project / file)
+            if header_finding:
+                header_findings[file] = header_finding
             if name:
                 scripts[file] = name
 
@@ -79,13 +84,16 @@ def shell_plan(check, project, files, runner, spec):
         if not path:
             raise ValueError(f"{name} is missing in the selected runner. On native Windows use Git for Windows.")
         tools.append(dict(name=name, path=path, source="runner"))
-    return dict(tools=tools, environment={}, scripts=scripts)
+    return dict(tools=tools, environment={}, scripts=scripts, header_findings=header_findings)
 
 
 def shell_run(lint):
     scripts = lint.selected["scripts"]
-    if not scripts:
+    header_findings = lint.selected["header_findings"]
+    if not scripts and not header_findings:
         lint.na = "No changed sh or Bash scripts"
+    for file, message in header_findings.items():
+        lint.add(file, 1, message, source="shebang")
     for file, name in scripts.items():
         code, stdout, stderr = lint.call([lint.binary(name), "-n", "--", file], env={"BASH_ENV": None, "ENV": None})
         if code:

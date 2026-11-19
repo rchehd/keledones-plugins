@@ -1,7 +1,13 @@
 ---
 name: portrait
 description: >-
-  Run Gnothi to analyze AI work from ordinary ChatGPT or Claude chats and local Claude Code, Codex, and Cursor sessions. Give a private portrait in chat or an offline HTML report with the local report tool. Trigger on "show my AI work portrait", "review my chats with ChatGPT or Claude", "analyze my Codex history", "look at my Cursor sessions", "my habits or style with agents", "how good am I at prompting", "what do I do wrong with AI", "stats of my AI usage", "self-reflection on my work with AI", "як я працюю з ШІ", "проаналізуй мої чати з агентами", "що я роблю не так у промптах", "покажи статистику моєї роботи з AI". An explicit request for a Gnothi report starts the workflow. With an indirect matching request, offer to run Gnothi first.
+  Build a private portrait of how the user gives instructions, delegates, clarifies and redirects AI agents.
+  Trigger on "show my AI work portrait", "review my chats with ChatGPT or Claude", "analyze my Codex history",
+  "look at my Cursor sessions", "how good am I at prompting", "stats of my AI usage", "self-reflection on my work
+  with AI", "show my typical workflow with agents", "як я працюю з ШІ", "проаналізуй мої чати з агентами",
+  "покажи мій типовий воркфлоу з агентами", or "що я роблю не так у промптах".
+  An explicit Gnothi request starts the workflow. For an indirect match, offer Gnothi first. Clarify broad
+  requests about typical mistakes before selecting a workflow.
 ---
 
 # Gnothi portrait
@@ -14,6 +20,10 @@ user's computer. On the local path, resolve the plugin root two directories abov
 `"status": "FAIL"` with its `reason`. Use the digest for the local report.
 If the user only asks what Gnothi can do, explain that it analyzes available agent sessions and ordinary chats.
 Offer to run it. Treat an affirmative follow-up as the user's choice to proceed with this workflow.
+
+If a request such as "show my typical mistakes" or "покажи мої типові помилки" is ambiguous, ask whether the user means their interaction
+with agents or recurring gaps in preparing tasks for PR. Wait for their choice before reading history.
+Use this portrait for the former and offer Ready Check's `reflect` for the latter if it is available.
 
 Use the client's built-in question UI for every choice, one question at a time, and wait for the reply. Use
 Claude Code's `AskUserQuestion`, Codex's `request_user_input` when available (or `request_user_input_async`),
@@ -34,7 +44,7 @@ accepts only three options, offer the remembered period or Choose another period
 Discover available chat inputs using the reference. Run `collect --period <period>` with any applicable
 `--chat-export` or `--chat-sample` flags. Add `--metrics-only` only if the user asks for it this time. Read the JSON:
 `sources` (what was found, how many sessions), `current` and `previous` (signals, universal axes, archetypes),
-`trend`, `activity`, `tools`, `friction`, `tokens`, `projects` and `evidence` (session ids, flags and redacted
+`trend`, `activity`, `tools`, `friction`, `tokens`, `projects`, `workflow` and `evidence` (session ids, flags and redacted
 excerpts). If no sessions were found, state what was accessible and offer a specific supported chat input.
 Let the script read raw local history and exports. When metrics-only is active, leave native conversation retrieval
 off unless the host supplies aggregate counts; offer a local export for chat counts without exposing message text.
@@ -49,7 +59,7 @@ Write it next to the digest (`tmp/portrait.json` in the data root, the folder of
 {"schema_version": 1, "language": "<language code>", "summary": "<2–3 sentences>",
  "axes": [{"id": "<profile axis id>", "name": "<localized name>", "measures": "<localized meaning>",
            "score": 0-10 or null, "reason": "<what raised or lowered the score>", "evidence": ["<session id>"]}],
- "strengths": [{"title": "", "detail": "", "tip": "", "evidence": ["<id>", "<id>"], "cause": "<optional>"}],
+ "strengths": [{"title": "", "detail": "", "evidence": ["<id>", "<id>"], "cause": "<optional>"}],
  "growth": [{"title": "", "detail": "", "tip": "", "evidence": ["<id>", "<id>"], "cause": "<optional>"}],
  "observations": [{"title": "", "detail": ""}],
  "themes": [{"project": "<name from projects>", "topics": ["<short topic>"]}],
@@ -72,7 +82,11 @@ Rules:
   elapsed time, focus, completion and work-style metrics. Compare periods only where their source coverage supports it.
 - Strengths and growth: 3–5 each when the data allows, never more than 5. Each needs at least two evidence
   sessions, or one session plus a clear `cause`. Anything weaker goes to `observations`.
-- Tips are concrete next steps ("name the file and the expected result in the first request"), not slogans.
+- Follow [workflow analysis](references/workflow-analysis.md) when interpreting common sequences and criteria.
+  Put supported insights in the existing strengths or growth fields, with the optional `criterion` ID.
+  The HTML block renders counts and paths directly from the digest.
+- For a strength, describe the effective behavior and support it with evidence.
+- For an area to grow, give one concrete next step, such as naming the file and expected result in the first request.
 - `archetype` only when `current.archetypes` is not null: pick the highest score as lead and the next one as
   second when it is within 1.5 points; explain with numbers ("70% of sessions started from a plan").
 - `coverage.uncovered_share`: the share of the period's work that fits none of the personal axes.
@@ -88,6 +102,7 @@ Run `render`. If storage access fails here or at another local step, follow
 
 5–8 lines: the summary, the top strengths and growth areas, a comparable change when there is one, and the
 report path from `html` to open in a browser. Give the count for each source and mark exports and retrieved samples.
+When the workflow evidence supports it, include one common interaction sequence or concrete point of friction.
 
 ## Privacy
 

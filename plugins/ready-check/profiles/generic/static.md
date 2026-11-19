@@ -4,6 +4,10 @@ Use `generic` for a Git repository in any language, including mixed-language rep
 
 The built-in syntax checks apply to changed Python files, plain JSON and `.sh` or `.bash` files for POSIX `sh` or Bash. Python files are compiled in memory using Ready Check's Python interpreter. Shell files use the interpreter's `-n` mode. Native Windows discovers Bash and sh from Git for Windows. The JSON check skips JSONC and common JSON-with-comments layouts such as VS Code settings and TypeScript, JavaScript and Dev Container configs.
 
+A Bash shebang selects Bash even on a `.sh` file. A UTF-8 BOM before the shebang is reported at line 1 because
+it prevents direct execution from selecting the declared interpreter. For a file sourced or explicitly passed to
+a shell, use the project's invocation when choosing any additional syntax check.
+
 Changed `.yml` and `.yaml` files use `yamllint` from the selected runner. The nearest project config
 sets lint rules. With no project config the checker validates syntax. Helm templates under a chart's
 `templates/` directory need `helm lint` or the project's render command. For other templated sources,

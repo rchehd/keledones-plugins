@@ -33,13 +33,22 @@ def read(path):
         moment = parse_ts(record.get("timestamp"))
         cwd = record.get("cwd")
         project = project or (PurePath(cwd).name if isinstance(cwd, str) and cwd else "")
+        if isinstance(cwd, str) and cwd and not record.get("isSidechain"):
+            builder.cwd = cwd
 
         if record.get("isCompactSummary"):
             builder.compactions += 1
             continue
 
         if kind == "user" and not record.get("isMeta") and not record.get("isSidechain"):
-            text = text_of(message.get("content"))
+            content = message.get("content")
+            for block in content if isinstance(content, list) else []:
+                if isinstance(block, dict) and block.get("type") == "tool_result":
+                    value = record.get("toolUseResult")
+                    if not isinstance(value, dict) or "answers" not in value:
+                        value = block.get("content")
+                    builder.tool_answer(block.get("tool_use_id"), value)
+            text = text_of(content)
 
             if text.strip().startswith(INTERRUPTED):
                 builder.outcome("interrupted")
@@ -76,8 +85,9 @@ def read(path):
                 continue
 
             if block.get("type") == "tool_use":
-                builder.act(str(block.get("name", "")), block.get("input"))
+                builder.act(str(block.get("name", "")), block.get("input"), block.get("id"))
             elif block.get("type") == "text":
+                builder.visible("assistant", block.get("text"))
                 builder.outcome("completed", force=False)
 
     return builder.build(CLIENT, path, project or Path(path).parent.name)

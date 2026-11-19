@@ -42,6 +42,24 @@ class GenericTest(RepoTest):
         self.assertEqual(findings, {("scripts/task.py", "python"), ("scripts/task.bash", "bash"), ("config.json", "json")})
         self.assertFalse(result["can_proceed"])
 
+    def test_sh_files_use_bash_when_declared(self):
+        self.write("scripts/direct.sh", "#!/bin/bash\nitems=(one two)\n")
+        self.write("scripts/via-env.sh", "#!/usr/bin/env bash\nitems=(one two)\n")
+        result = self.static()
+        check = next(check for check in result["checks"] if check["id"] == "shell")
+        self.assertEqual(check["status"], "PASS")
+        self.assertTrue(result["can_proceed"])
+
+    def test_shell_bom_reports_the_header_instead_of_sh_syntax_errors(self):
+        self.write("scripts/task.sh", "\ufeff#!/bin/bash\nitems=(one two)\n")
+        result = self.static(code=1)
+        check = next(check for check in result["checks"] if check["id"] == "shell")
+        self.assertEqual(check["status"], "FAIL")
+        self.assertEqual(len(check["findings"]), 1)
+        finding = check["findings"][0]
+        self.assertEqual((finding["file"], finding["line"], finding["source"]), ("scripts/task.sh", 1, "shebang"))
+        self.assertIn("UTF-8 BOM", finding["message"])
+
     def test_compose_file_alone_leaves_generic_checks_local(self):
         self.write("compose.yml", "services: {}\n")
         self.write("scripts/task.py", "print('ready')\n")

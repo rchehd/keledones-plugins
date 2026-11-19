@@ -71,6 +71,8 @@ unavailable, use the chat sources below.
    Paraphrase, avoid names and sensitive material, and omit token, task-completion or tool metrics that the chats
    cannot establish. If metrics-only was requested, report only accessible aggregate figures or explain how to
    use a local export with metrics-only mode.
+4. Apply the [workflow criteria](workflow-analysis.md) to supported evidence. If you used a local digest, take
+   the interaction counts and common paths from it. State which steps were visible in chat-only sources.
 
 Keep this portrait in the current private chat. If the user wants an offline HTML report, show the local import
 path. For exports, use the [ChatGPT export guide](https://help.openai.com/en/articles/7260999-exporting-your-chatgpt-history-and-data)

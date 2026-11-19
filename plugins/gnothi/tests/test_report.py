@@ -46,6 +46,20 @@ class ReportTest(unittest.TestCase):
     def test_accepts_valid_portrait(self):
         self.assertEqual(report.validate(portrait(self.digest), self.digest, self.profile), [])
 
+    def test_only_growth_findings_require_and_display_a_next_step(self):
+        data = portrait(self.digest)
+        strength, growth = data["strengths"][0], data["growth"][0]
+        strength["tip"] = "Legacy strength advice from fixture"
+        self.assertFalse(strength["tip"] in self.html(data))
+        strength.pop("tip")
+        self.assertEqual(report.validate(data, self.digest, self.profile), [])
+        page = self.html(data)
+        self.assertEqual(page.count('<div class="finding-action">'), 1)
+        self.assertIn("<strong>Next step</strong>", page)
+        self.assertIn("Name the file", page)
+        growth.pop("tip")
+        self.assertIn("growth 1: needs tip", report.validate(data, self.digest, self.profile))
+
     def test_rejects_unknown_evidence(self):
         data = portrait(self.digest)
         data["strengths"][0]["evidence"] = ["cc-deadbeef", self.digest["evidence"][0]["id"]]
@@ -148,12 +162,12 @@ class ReportTest(unittest.TestCase):
         page = report.render_html(styled, data, self.profile, None)
         self.assertIn('<html lang="de-DE">', page)
         self.assertIn('<title>Gnothi-Bericht</title>', page)
-        self.assertIn("Aufgabenstellung <span class=\"axis-meaning\">(Ziele und Vorgaben)", page)
+        self.assertIn('<h4>Aufgabenstellung</h4><p class="axis-meaning">Ziele und Vorgaben</p>', page)
         self.assertIn("<strong>Versuch</strong>", page)
         self.assertIn("<summary>Belege (2)</summary>", page)
         self.assertIn("Aktueller Zeitraum (2026-10-18 – 2026-11-16)", page)
         self.assertIn("Vorheriger Zeitraum (2026-09-18 – 2026-10-17)", page)
-        self.assertIn('<ol class="style-scores"><li><span>Delegierer</span><strong>9.0 / 10</strong>', page)
+        self.assertIn('<ol class="style-scores" role="list"><li><span>Delegierer</span><strong>9.0 / 10</strong>', page)
         self.assertNotIn("For fun:", page)
         chart = json.loads(re.search(r"const DATA = (.*);", page).group(1))
         self.assertEqual(chart["style"]["labels"][0], "Delegierer")
@@ -171,7 +185,29 @@ class ReportTest(unittest.TestCase):
         self.assertEqual(radar["earlier"][0], 4.0)
         self.assertEqual(radar["earlier_label"], "Earlier portrait (2026-09-19 – 2026-10-18)")
         self.assertIn('<strong class="score">6.5</strong><span class="prior-score">Previous: 4.0 · 2026-09-19', page)
-        self.assertIn('<p class="axis-reason"><strong>Why 6.5</strong> — Steady</p>', page)
+        self.assertIn('<details class="axis-reason"><summary>Why 6.5</summary><p>Steady</p>', page)
+
+    def test_section_links_and_highlights_follow_available_content(self):
+        page = self.html()
+        navigation = re.search(r'<nav class="section-nav"[^>]*>(.*?)</nav>', page).group(1)
+        self.assertEqual(re.findall(r'href="#([^"]+)"', navigation), ["summary", "profile", "findings", "stats"])
+        highlights = re.search(r'<section class="report-section" id="summary">(.*?)</section>', page).group(1)
+        self.assertEqual(re.findall(r'href="#([^"]+)"', highlights), ["finding-1", "finding-2"])
+        empty = self.html(strengths=[], growth=[])
+        self.assertNotIn('href="#summary"', empty)
+        self.assertNotIn('id="summary"', empty)
+
+    def test_score_bars_keep_zero_and_only_mark_aligned_comparisons(self):
+        rows = [
+            ("axis-p-zero", "Zero", "Measure", 0, 1, None, None, None),
+            ("axis-p-missing", "Missing", "Measure", None, 3, "2026-09-01", None, None),
+        ]
+        page = report.render_axes(rows, {}, report.strings_for({}))
+        self.assertIn('width:0%', page)
+        self.assertIn('inset-inline-start:10%', page)
+        self.assertIn('aria-label="Declined -1.0"', page)
+        self.assertNotIn('inset-inline-start:30%', page)
+        self.assertIn('<strong class="score">—</strong>', page)
 
     def test_trend_needs_two_months(self):
         data = digest.build("all", TODAY)

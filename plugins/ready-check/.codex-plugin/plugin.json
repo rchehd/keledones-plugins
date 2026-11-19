@@ -1,6 +1,6 @@
 {
   "name": "ready",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Check task readiness against requirements, static checks, and browser QA.",
   "author": {
     "name": "Roman Chekhaniuk"

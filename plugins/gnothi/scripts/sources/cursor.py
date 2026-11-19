@@ -62,8 +62,15 @@ def read(path):
 
         if record.get("type") == "turn_ended":
             builder.outcome(outcome(record.get("status")))
-        elif role == "user":
-            text = text_of(message.get("content"))
+        elif role in ("user", "tool"):
+            content = message.get("content")
+            for block in content if isinstance(content, list) else []:
+                if isinstance(block, dict) and block.get("type") == "tool_result":
+                    builder.tool_answer(block.get("tool_use_id"), block.get("content"))
+            if role == "tool":
+                builder.tool_answer(message.get("tool_call_id"), content)
+                continue
+            text = text_of(content)
             request = clean_request(text)
 
             if request:
@@ -71,8 +78,14 @@ def read(path):
         elif role == "assistant":
             content = message.get("content")
 
+            if isinstance(content, str):
+                builder.visible("assistant", content)
             for block in content if isinstance(content, list) else []:
-                if isinstance(block, dict) and block.get("type") == "tool_use":
-                    builder.act(str(block.get("name", "")), block.get("input"))
+                if not isinstance(block, dict):
+                    continue
+                if block.get("type") == "tool_use":
+                    builder.act(str(block.get("name", "")), block.get("input"), block.get("id"))
+                elif block.get("type") == "text":
+                    builder.visible("assistant", block.get("text"))
 
     return builder.build(CLIENT, path, project_name(Path(path).parents[2].name))

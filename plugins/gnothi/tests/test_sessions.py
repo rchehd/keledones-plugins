@@ -82,6 +82,35 @@ class ClassifyTest(unittest.TestCase):
         self.assertEqual(classify("Skill", "superpowers:brainstorming"), Action("Skill", "skill", "superpowers:brainstorming"))
         self.assertEqual(classify("mcp__context7__query-docs"), Action("mcp__context7__query-docs", "mcp", "context7"))
 
+    def test_checks_are_commands_not_words_in_arguments(self):
+        for command in ("cat build.log", 'rg "pytest"', "echo npm run lint", "git show build",
+                        'printf "%s" "x && pytest"', "echo escaped\\; pytest", "echo x # check; pytest"):
+            with self.subTest(command=command):
+                self.assertEqual(self.kind("Bash", command), "shell")
+
+        for command in ("pytest tests", "python3 -B -m unittest", "npm run lint", "go test ./...",
+                        "cargo build", 'cd "build folder" && rtk proxy python -m pytest',
+                        r".\.venv\Scripts\python.exe -m pytest", "pnpm exec eslint ."):
+            with self.subTest(command=command):
+                self.assertEqual(self.kind("Bash", command), "test")
+
+    def test_runner_options_distinguish_checks_from_information_commands(self):
+        for command in ("pytest --version", "python -m pytest -V", "ruff check --help",
+                        "pnpm exec eslint --version", "pytest --collect-only", "tsc --showConfig",
+                        "make -C frontend --just-print test", "npm --prefix frontend run lint --help",
+                        "pytest --fixtures", "go test -list .", "go test -list=.", "jest --listTests", "jest --list-tests",
+                        "ruff rule E501", "ruff check --show-settings", "ruff format .",
+                        "cat <<EOF\npytest\nEOF"):
+            with self.subTest(command=command):
+                self.assertEqual(self.kind("Bash", command), "shell")
+
+        for command in ("npm --prefix frontend run lint", 'npm --prefix="front end" run lint',
+                        "make -C frontend test", "make -Cfrontend test", "pnpm --filter @scope/app test",
+                        "go -C backend test ./...", "pytest -n 2", "ruff check .", "ruff format --check .",
+                        "pytest && cat <<EOF\nFinished\nEOF"):
+            with self.subTest(command=command):
+                self.assertEqual(self.kind("Bash", command), "test")
+
 
 class WindowTest(unittest.TestCase):
     def test_month(self):

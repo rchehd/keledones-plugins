@@ -51,6 +51,10 @@ class HookTest(RepoTest):
             self.assertIn("template commit --project <repo>", text)
             self.assertIn("template pr --project <repo>", text)
             self.assertIn("template task-comment --project <repo>", text)
+            self.assertIn("working with agents or preparing tasks for PR", text)
+            self.assertIn("покажи мої типові помилки", text)
+            self.assertIn("покажи статистику Ready Check", text)
+            self.assertIn("Wait for the choice before reading either history.", text)
             self.assertIn("Do not investigate or fix the reported problem until the user asks", text)
             self.assertIn("Never edit, copy or patch the Ready Check plugin", text)
 

@@ -1,12 +1,20 @@
 ---
 name: reflect
-description: Show an overview of recent Ready Check tasks (rounds, defects, returns after human review, typical errors) as text and an HTML report with charts, and only on request propose improvements to the review and QA checklists, rules or the plugin. Use when the user asks for Ready Check stats, how recent tasks went, typical mistakes, or to reflect on or analyze recent tasks; ask first when triggered by such a phrase.
+description: >-
+  Show recent Ready Check task outcomes, recurring review or QA gaps, and returns after human review.
+  On request propose improvements to pre-PR review and QA checklists, rules or the plugin.
+  Trigger on "show my Ready Check stats", "what should I improve before PRs?",
+  "покажи статистику Ready Check", or "що покращити в підготовці задач до PR?".
 ---
 
 # Reflect on recent tasks
 
 Respond in the user's language. Counting is done by the script; you group free text and write proposals.
 Resolve the plugin root two directories above this file's directory; Python is `python3` (`py -3` on Windows).
+
+For an ambiguous request such as "what are my typical mistakes?" or "покажи мої типові помилки", ask whether the user means preparing
+tasks for PR or working with AI agents. Use `reflect` for the former and offer Gnothi's `portrait` for the latter
+if available. Wait for the choice before reading data. An explicit request for `reflect` selects the PR scope.
 
 ## 1. Overview (no proposals)
 

@@ -41,6 +41,18 @@ class ReflectTest(RepoTest):
         task = digest["tasks"][0]
         self.assertEqual((task["verdict"], task["rounds"], digest["totals"]["without_summary"]), ("READY TO PUSH", None, 1))
 
+    def test_feedback_reasons_are_scoped_to_selected_tasks(self):
+        older = self.task("Older task", [("BLOCKED", [])])
+        newer = self.task("Newer task", [("READY TO PUSH", [])])
+        for task, reason in ((older, "Older fixture"), (newer, "Shared storage concurrency")):
+            self.entry_json("feedback", "add", "--project", str(self.repo), "--task", task,
+                            "--returned", "yes", "--reason", reason)
+        data = self.entry_json("reflect-collect", "--project", str(self.repo), "--tasks", "1")
+        self.assertEqual([item["task_id"] for item in data["tasks"]], [newer])
+        self.assertEqual([(item["task"], item["reason"]) for item in data["feedback_reasons"]],
+                         [(newer, "Shared storage concurrency")])
+        self.assertEqual(data["totals"]["returned"], 1)
+
     def test_html_escapes_untrusted_text(self):
         bad = "</script><script>alert(1)</script>"
         task = self.task("Bad", [("BLOCKED", ["--finding", f"F-1:issue (blocking):review:{bad}:RC-1:open"])])

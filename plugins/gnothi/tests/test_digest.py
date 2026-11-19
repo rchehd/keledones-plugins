@@ -8,7 +8,7 @@ import digest
 
 TODAY = date(2026, 11, 16)
 KEYS = {"schema_version", "period", "sources", "metrics_only", "current", "previous", "trend", "activity", "tools",
-        "friction", "tokens", "projects", "evidence"}
+        "friction", "tokens", "projects", "evidence", "workflow"}
 
 
 class DigestTest(unittest.TestCase):

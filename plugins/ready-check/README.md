@@ -42,7 +42,7 @@ after one consent, records your prompts per branch and passes your coding rules 
 | `setup` | `/ready:setup` · `/setup` · `$setup` | “Set up Ready Check.” “Change the profile or runner for this project.” |
 | `customize` | `/ready:customize` · `/customize` · `$customize` | “Remember this coding rule for this project.” “Use my template for task comments.” |
 | `feedback` | `/ready:feedback` · `/feedback` · `$feedback` | “QA returned this task. Record the reason in Ready Check.” |
-| `reflect` | `/ready:reflect` · `/reflect` · `$reflect` | “Show my Ready Check stats.” “Suggest improvements based on my recent tasks.” |
+| `reflect` | `/ready:reflect` · `/reflect` · `$reflect` | “Show my Ready Check stats.” “Where do my tasks get stuck before PR?” |
 | `contribute` | `/ready:contribute` · `/contribute` · `$contribute` | “Prepare a contribution for this improvement to the Ready Check plugin.” |
 | `uninstall` | `/ready:uninstall` · `/uninstall` · `$uninstall` | “Preview what uninstalling Ready Check would remove.” |
 
@@ -205,6 +205,8 @@ If the same report already exists in both folders, each copy keeps its own evide
 - **Reflect:** "show my Ready Check stats" gives an overview of the last 10 tasks (rounds, defects, returns, typical
   errors) in the chat and an HTML report with charts in `.ai/ready-check/reflect/`. Only if you ask does it propose
   improvements; for each you choose any of: project, global, PR to Ready Check, skip.
+  For a private portrait of how you give instructions, delegate and redirect agents, use the
+  [Gnothi portrait](https://github.com/rchehd/keledones-plugins/tree/main/plugins/gnothi).
 - **Contribute:** general improvements go to the Ready Check repository as a pull request from the
   [improvement template](templates/improvement.md), prepared by `contribute` and published only
   after your yes. No client code or data leaves your environment; see [CONTRIBUTING](CONTRIBUTING.md).

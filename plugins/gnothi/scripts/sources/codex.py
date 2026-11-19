@@ -24,6 +24,8 @@ def read(path):
     builder, project = Builder(), ""
 
     def start(moment, text):
+        if builder.menu_reply(text):
+            return
         request = clean_request(text)
         current = builder.current
 
@@ -42,11 +44,21 @@ def read(path):
         builder.seen(moment)
 
         if kind == "session_meta" and isinstance(payload.get("cwd"), str) and payload["cwd"]:
-            project = PurePath(payload["cwd"]).name
+            builder.cwd = payload["cwd"]
+            project = PurePath(builder.cwd).name
+        elif kind == "turn_context" and isinstance(payload.get("cwd"), str) and payload["cwd"]:
+            builder.cwd = payload["cwd"]
         elif kind == "compacted" or (kind == "response_item" and payload.get("type") == "compaction"):
             builder.compactions += 1
-        elif kind == "response_item" and payload.get("type") in ("function_call", "custom_tool_call"):
-            builder.act(str(payload.get("name", "")), payload.get("arguments") or payload.get("input"))
+        elif kind == "response_item":
+            payload_type = payload.get("type")
+            if payload_type in ("function_call", "custom_tool_call"):
+                builder.act(str(payload.get("name", "")), payload.get("arguments") or payload.get("input"),
+                            payload.get("call_id"))
+            elif payload_type in ("function_call_output", "custom_tool_call_output"):
+                builder.tool_answer(payload.get("call_id"), payload.get("output"))
+            elif payload_type == "message" and payload.get("role") == "assistant":
+                builder.visible("assistant", text_of(payload.get("content")))
         elif kind == "event_msg":
             event = payload.get("type")
             item = obj(payload.get("item"))

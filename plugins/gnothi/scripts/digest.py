@@ -6,6 +6,7 @@ from datetime import date
 from itertools import groupby
 
 import signals
+import workflows
 from redact import excerpt
 from sessions import CHAT_CLIENTS, load, window
 from sources import chat_history
@@ -48,7 +49,7 @@ def ordered(sessions):
     return result
 
 
-def evidence_item(session):
+def evidence_item(session, workflow=None):
     previous, flagged, found = [], [], set()
 
     for index, turn in enumerate(session.turns):
@@ -65,9 +66,17 @@ def evidence_item(session):
             flagged.append((rank, index, turn.request))
 
     picks = [request for _, _, request in sorted(flagged)[:2]]
-    return {"id": session.id, "client": session.client, "project": session.project,
+    item = {"id": session.id, "client": session.client, "project": session.project,
             "date": session.started.astimezone().date().isoformat(), "turns": len(session.turns),
             "flags": sorted(found), "excerpts": [excerpt(text) for text in [session.turns[0].request, *picks]]}
+    if workflow and workflow["kind"] in workflows.CRITERIA:
+        item["workflow"] = {
+            "kind": workflow["kind"], "steps": workflows.path_steps(workflow["steps"]),
+            "criteria": workflow["criteria"],
+            "support": [{"actor": "user" if entry.kind == "answer" else "agent",
+                         "text": entry.text, "question": entry.question} for entry in workflow["support"]],
+        }
+    return item
 
 
 def block(sessions, archetypes_on):
@@ -146,6 +155,7 @@ def build(period, today=None, budget=30000, metrics_only=False, archetypes_on=Fa
 
     now = block(current, archetypes_on)
     summary = now["summary"]
+    workflow, cases = workflows.summarize(current)
 
     data = {
         "schema_version": 1,
@@ -154,6 +164,7 @@ def build(period, today=None, budget=30000, metrics_only=False, archetypes_on=Fa
         "sources": sources,
         "metrics_only": metrics_only,
         "current": now,
+        "workflow": workflow,
         "previous": block(earlier, archetypes_on) if previous else None,
         "trend": monthly_axes(current) if period == "all" else [],
         "activity": {"by_weekday": summary["by_weekday"], "by_hour": summary["by_hour"]},
@@ -173,7 +184,7 @@ def build(period, today=None, budget=30000, metrics_only=False, archetypes_on=Fa
     size = len(json.dumps(data, ensure_ascii=False))
 
     for session in ordered(current):
-        item = evidence_item(session)
+        item = evidence_item(session, cases.get(session.id))
         cost = len(json.dumps(item, ensure_ascii=False)) + 2
 
         if (size + cost) / 4 > budget:

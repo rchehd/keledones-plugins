@@ -89,18 +89,19 @@ def task_record(item, feedback):
 def collect(top, limit):
     feedback = feedback_records(top, 10000)
     tasks = [task_record(item, feedback) for item in all_tasks(top)[:limit]]
+    selected_ids = {task["task_id"] for task in tasks}
+    returns = [record for record in feedback if record.get("returned") and record.get("task") in selected_ids]
     with_summary = [task for task in tasks if task["has_summary"]]
     labels = Counter(finding.get("label", "unknown") for task in tasks for finding in task["findings"])
     areas = Counter(finding.get("area") or "unknown" for task in tasks for finding in task["findings"])
     weeks = Counter()
 
-    for record in feedback:
-        if record.get("returned") and record.get("task") in {task["task_id"] for task in tasks}:
-            try:
-                year, week, _ = datetime.fromisoformat(record["ts"]).isocalendar()
-                weeks[f"{year}-W{week:02d}"] += 1
-            except (KeyError, ValueError, TypeError):
-                weeks["unknown"] += 1
+    for record in returns:
+        try:
+            year, week, _ = datetime.fromisoformat(record["ts"]).isocalendar()
+            weeks[f"{year}-W{week:02d}"] += 1
+        except (KeyError, ValueError, TypeError):
+            weeks["unknown"] += 1
 
     totals = dict(
         tasks=len(tasks),
@@ -114,7 +115,7 @@ def collect(top, limit):
         without_summary=len(tasks) - len(with_summary),
     )
     reasons = [dict(task=record.get("task"), reason=record.get("reason"), area=record.get("area"),
-                    missed=record.get("missed")) for record in feedback if record.get("returned")]
+                    missed=record.get("missed")) for record in returns]
     return dict(tasks=tasks, totals=totals, areas=areas.most_common(), returns_per_week=sorted(weeks.items()),
                 feedback_reasons=reasons)
 

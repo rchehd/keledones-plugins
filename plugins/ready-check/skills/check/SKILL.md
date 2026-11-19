@@ -114,7 +114,10 @@ Run this stage only when selected and the task requirements, acceptance conditio
 application roots, and diff scope are clear. Save the report using step 9 first. For each applicable pair,
 read `instructions.static` and run `scripts/ready-check.py doctor --profile <id> --project <application-root>`
 with the agreed `--base` or `--commits`. Use the available Python 3 interpreter (`python3` on Unix, `py -3` or
-`python` on native Windows). A shell syntax check needs the script's interpreter. Save the JSON with
+`python` on native Windows). For shell syntax, use the profile's result. For extra project checks, use the
+interpreter declared by the script's shebang or the one the project actually uses to invoke it. A `.sh`
+extension alone is insufficient to choose `sh`. Compare any interpreter mismatch with the saved profile
+result and project command before deciding which check failed. Save the JSON with
 `--output` into the reports directory (step 9). Use a distinct filename for each pair and action, for example
 `doctor-01-drupal.json` and `static-01-drupal.json`. Doctor and static can outlive the harness's default
 command timeout: run them in the background or with the maximum timeout, wait for completion, and never kill

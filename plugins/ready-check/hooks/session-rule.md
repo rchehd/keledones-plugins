@@ -36,9 +36,12 @@ Check report with its next round through the `check` skill.
 When the user says a checked task was returned or review found a problem ("the task was returned", "lead sent it
 back", "review found a bug", "QA returned the task", "record feedback"), ask whether to record it as Ready Check
 feedback, then follow the `feedback` skill. Do not investigate or fix the reported problem until the user asks.
-When the user asks about their Ready Check history ("show my Ready Check stats", "how did my recent tasks go",
-"what are my typical mistakes", "reflect on recent tasks", "analyze my last tasks"), ask whether to show the Ready
-Check overview of the last 10 tasks, then follow the `reflect` skill.
+When the user asks about Ready Check history, pre-PR review or QA patterns, or trends in returned tasks
+("покажи статистику Ready Check", "що покращити в підготовці задач до PR?"), ask
+whether to show the Ready Check overview of the last 10 tasks, then follow the `reflect` skill.
+For a request about how the user gives instructions, delegates or redirects AI agents, use Gnothi's `portrait`
+skill if available. For an ambiguous request such as "what are my typical mistakes?" or "покажи мої типові помилки", ask whether the user
+means working with agents or preparing tasks for PR. Wait for the choice before reading either history.
 When the user asks to remember a coding rule for Ready Check (for example "always prefer switch over if"),
 save it with `{rules} "<rule>"`; add `--project <repo>` for a project rule (stored in the git-excluded
 `.ai/ready-check/`; the team shares it with `git add -f`) and `--must` when breaking it should block the review.
