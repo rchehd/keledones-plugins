@@ -13,6 +13,7 @@ application from the conversation or workspace.
    (`py -3` instead of `python3` on Windows PowerShell).
 2. Show the user what will be removed and what is kept. By default the project's settings, last-check marker and
    temporary files go; `.ai/ready-check/reports/` and `.ai/ready-check/tasks/` stay, and so do the installed tools.
+   Ready Check entries in Git's `info/exclude` are kept with any choice of flags.
 3. Ask once whether to also remove your rules and checklist extensions (`--custom`, kept by default), reports, task
    records and feedback (`--reports`) and the installed tools, user settings and hook state shared
    by all projects on this machine (`--data`; this includes the runner-side checkers, for example in the DDEV global cache).

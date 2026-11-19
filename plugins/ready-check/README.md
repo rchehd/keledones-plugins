@@ -350,3 +350,5 @@ python3 -B scripts/bump-version.py 0.2.0
 
 To remove Ready Check, run `uninstall` first (it previews, then removes project settings and, on request,
 reports, task records and installed tools), then remove the plugin with your client's plugin controls.
+Uninstall leaves the Ready Check entries in Git's `info/exclude` to protect private data in other worktrees
+and sessions.

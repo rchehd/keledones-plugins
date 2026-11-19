@@ -15,8 +15,8 @@ from project import BASE, LEGACY_BASE, redirected, toplevel
 
 REPORTS = {"reports", "tasks", "feedback.jsonl", "reflect"}
 CUSTOM = {"rules.md", "extensions", "disabled.json"}
-ENTRIES = {b"/" + path.as_posix().encode() + b"/" for path in (BASE, LEGACY_BASE)}
-NOTE = "Remove the plugin itself with your client's plugin controls."
+NOTE = ("Ready Check rules in Git's info/exclude are kept to protect project data. "
+        "Remove the plugin itself with your client's plugin controls.")
 
 
 def keep(name, reports, custom):
@@ -53,13 +53,6 @@ def storage_items(top, relative, reports, custom):
     if all(item["action"] == "remove" for item in items):
         items.append(dict(path=str(base), kind="project", action="remove"))
 
-    return items
-
-
-def project_items(top, reports, custom):
-    items = [item for relative in (BASE, LEGACY_BASE) for item in storage_items(top, relative, reports, custom)]
-    if all(item["action"] == "remove" for item in items):
-        items.append(dict(path=str(top), kind="git-exclude", action="remove"))
     return items
 
 
@@ -107,7 +100,10 @@ def data_items(custom):
 
 def plan(project, reports, data, custom=False):
     top = toplevel(project)
-    items = project_items(top, reports, custom) if top else []
+    items = []
+    if top:
+        for relative in (BASE, LEGACY_BASE):
+            items.extend(storage_items(top, relative, reports, custom))
 
     if data:
         if top:
@@ -115,27 +111,6 @@ def plan(project, reports, data, custom=False):
         items.extend(data_items(custom))
 
     return items
-
-
-def remove_exclude(top):
-    exclusion = git_exclude.plan(top, [])
-
-    if exclusion is None or exclusion["original"] is None:
-        return
-
-    lines = exclusion["original"].splitlines(keepends=True)
-    begin = [index for index, line in enumerate(lines) if line.strip() == git_exclude.BEGIN]
-    if not begin:
-        return
-
-    start = begin[0]
-    end = next(index for index, line in enumerate(lines) if line.strip() == git_exclude.END)
-    entries = [line for line in lines[start + 1:end] if line.strip() not in ENTRIES]
-    kept = lines[:start] + ([lines[start], *entries, lines[end]] if entries else []) + lines[end + 1:]
-
-    exclusion["updated"] = b"".join(kept)
-    exclusion["action"] = "unchanged" if exclusion["updated"] == exclusion["original"] else "update"
-    git_exclude.apply(exclusion)
 
 
 def remove_path(path):
@@ -161,16 +136,15 @@ def apply(items):
 
 
 def remove(item):
-    if item["kind"] == "git-exclude":
-        remove_exclude(Path(item["path"]))
-        return
-
     if item["kind"] == "runner-data":
         code, _, error = item["runner"].exec(["rm", "-rf", item["path"].split(":", 1)[1]], timeout=120)
 
         if code:
             raise ValueError(f"Cannot remove runner data: {error.decode(errors='replace')}")
         return
+
+    if item["kind"] not in {"project", "data"}:
+        raise ValueError(f"Unknown uninstall item kind: {item['kind']}")
 
     remove_path(Path(item["path"]))
 

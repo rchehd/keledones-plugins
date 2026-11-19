@@ -4,8 +4,9 @@ from unittest.mock import patch
 
 from helpers import RepoTest
 import customize
+import tasks
 import uninstall
-from project import BASE, LEGACY_BASE
+from project import BASE, LEGACY_BASE, ensure_excluded
 
 
 class UninstallCustomTest(RepoTest):
@@ -30,10 +31,61 @@ class UninstallCustomTest(RepoTest):
         self.assertIn("git rm", items["rules.md"]["reason"])
         self.assertEqual(items["extensions"]["action"], "remove")
 
-    def test_full_removal_clears_the_exclude_entry(self):
+    def test_full_removal_preserves_git_exclusions(self):
+        ensure_excluded(self.repo, legacy=True)
+        exclude = self.repo / ".git/info/exclude"
+        before = exclude.read_bytes()
+
         self.entry_json("uninstall", "--project", str(self.repo), "--custom", "--reports")
-        self.assertFalse((self.repo / ".ai/ready-check").exists())
-        self.assertNotIn("/.ai/ready-check/", (self.repo / ".git/info/exclude").read_text())
+
+        self.assertFalse((self.repo / BASE).exists())
+        self.assertEqual(exclude.read_bytes(), before)
+
+    def linked_worktree(self):
+        tree = self.root / "linked"
+        self.git("worktree", "add", "-q", "-b", "linked", str(tree))
+        return tree
+
+    def test_uninstall_in_empty_worktree_skips_shared_git_exclusions(self):
+        journal = tasks.record(self.repo, "codex", "main", "Private prompt fixture")
+        tree = self.linked_worktree()
+
+        result = self.entry_json("uninstall", "--project", str(tree))
+        self.assertEqual(result["items"], [])
+        relative = journal.relative_to(self.repo).as_posix()
+        self.assertEqual(self.git("check-ignore", "--", relative).strip(), relative)
+
+    def test_full_uninstall_in_linked_worktree_keeps_peer_data_excluded(self):
+        journal = tasks.record(self.repo, "codex", "main", "Private prompt fixture")
+        ensure_excluded(self.repo, legacy=True)
+        legacy = self.repo / LEGACY_BASE / "feedback.jsonl"
+        legacy.parent.mkdir(parents=True)
+        legacy.write_text("{}\n", encoding="utf-8")
+        tree = self.linked_worktree()
+        tasks.record(tree, "codex", "linked", "Another prompt fixture")
+
+        self.entry_json("uninstall", "--project", str(tree), "--custom", "--reports")
+        self.assertFalse((tree / BASE).exists())
+        paths = [path.relative_to(self.repo).as_posix() for path in (journal, legacy)]
+        self.assertEqual(self.git("check-ignore", "--", *paths).splitlines(), paths)
+
+    def test_journal_in_worktree_created_during_uninstall_remains_excluded(self):
+        remove_path = uninstall.remove_path
+        journals = []
+
+        def add_worktree_after_storage_removal(path):
+            remove_path(path)
+            if path == self.repo / BASE:
+                tree = self.linked_worktree()
+                journals.append(tasks.record(tree, "codex", "linked", "Private prompt fixture"))
+
+        with patch.object(uninstall, "remove_path", side_effect=add_worktree_after_storage_removal):
+            uninstall.apply(uninstall.plan(self.repo, reports=True, data=False, custom=True))
+
+        journal, = journals
+        tree = self.root / "linked"
+        relative = journal.relative_to(tree).as_posix()
+        self.assertEqual(uninstall.git_exclude.git(tree, "check-ignore", "--", relative), relative)
 
     def legacy_parent_link(self):
         external = self.root / "external"
