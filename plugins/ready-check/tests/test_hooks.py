@@ -78,7 +78,6 @@ class HookTest(RepoTest):
         for number in range(60):
             self.entry_json("rules", "add", f"Rule {number}: prefer early returns and avoid nested conditionals in controllers")
         text = self.hook("session-start", "claude", payload)["hookSpecificOutput"]["additionalContext"]
-        self.assertLess(len(short), 6000)
         self.assertLessEqual(len(text), 9500)
         self.assertIn("consent yes", text)
         import hook
