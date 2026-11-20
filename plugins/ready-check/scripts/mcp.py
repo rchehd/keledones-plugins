@@ -9,6 +9,7 @@ from pathlib import Path
 
 sys.dont_write_bytecode = True
 from dependency_support import PLUGIN, bundle_path, data_root, installed
+from git_exclude import git
 from process_support import execute, find_command, node_entry
 from project import BASE, ensure_excluded, migrate, toplevel
 
@@ -42,7 +43,7 @@ def command(project, browser, headless):
     if axe.is_file():
         # Exposes window.axe for the accessibility check; nothing runs until QA calls axe.run().
         settings["initScript"] = [str(axe)]
-    write_atomic(config, json.dumps(dict(browser=settings, outputDir=str(output), webmcp=False)))
+    write_atomic(config, json.dumps(dict(browser=settings, outputDir=str(output), capabilities=["devtools"], webmcp=False)))
     return node, [node, str(binary), "--config", str(config)], env, project
 
 
@@ -58,6 +59,8 @@ def output_directory(project):
 
     migrate(top)
     ensure_excluded(top)
+    if git(top, "check-ignore", "-q", "--", OUTPUT.as_posix() + "/") is None:
+        raise ValueError(f"Playwright MCP output directory must be ignored by Git: {top / OUTPUT}")
     current = top
     for part in OUTPUT.parts:
         current = current / part

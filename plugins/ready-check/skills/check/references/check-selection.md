@@ -9,7 +9,7 @@ to the offer means `full`. A later instruction to narrow or expand the selection
 | All / `full` | `static`, `review` (requirements, framework/stack practices and security), `qa` |
 | Lints / statics | `static` |
 | Code review / security | `review`, including version-aware framework/stack practices and security from the applicable profiles |
-| Behavioral QA | `qa` for applicable browser, mobile, API, CLI and CI outcomes, with an approved scenario plan |
+| Behavioral QA | `qa` for applicable browser, mobile, desktop, API, CLI and CI outcomes, with an approved scenario plan |
 
 Accept explicit combinations. Selecting all three stages with all applicable coverage is full validation.
 When the user names only a QA kind, such as Playwright QA, record the requested scope and leave other

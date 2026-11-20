@@ -123,6 +123,8 @@ Time: [Execution start/end or not run]
 Environment: [Target URL, runner, fixture or CI run; application and scope mapping, data and revision identity]
 Browser execution: [If applicable, project runner and selected specs or interactive mode, browser/version, viewport and approved fallback]
 Mobile target: [If applicable, app ID, build and flavor, platform, device and OS, tool and version]
+Desktop target: [If applicable, build, platform, window and interaction method]
+Recording approval: [Scenario IDs, method, failure footage / demo / required video, and user's approval, or no video]
 Design reference: [If applicable, agreed Figma node or export, version, mapped viewport, variant and state]
 Risk map: [Changed areas with likelihood × impact (H/M/L) and the change types they come from]
 Role sessions: [Actual test roles/accounts and isolation; no credentials or authentication links]
@@ -132,7 +134,7 @@ QA gate evidence: [Path to qa-gate output for the current approved plan, or reas
 
 | Scenario | Kind | RC / regression | Required, risk | Technique | Oracle | Depends on | Role and preconditions | Steps | Expected | Actual | Status (round) | Evidence / time |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| QA-001 | Browser / Mobile / API / CLI / CI | RC-001 | [Required/optional, H/M/L and why] | [Boundary values, state transition…] | [RC expected result or HICCUPPS item] | [Profile/root pairs and files/components] | [Context] | [UI actions, request, command or job] | [Observable outcome] | [Observed outcome or not run] | PASS (round 1) / FAIL / INCOMPLETE / NOT_RUN / N/A | [Redacted response, exit/log, job/artifact, screenshot or state proof and time] |
+| QA-001 | Browser / Mobile / Desktop / API / CLI / CI | RC-001 | [Required/optional, H/M/L and why] | [Boundary values, state transition…] | [RC expected result or HICCUPPS item] | [Profile/root pairs and files/components] | [Context] | [UI actions, request, command or job] | [Observable outcome] | [Observed outcome, failed attempts and retry outcome, or not run] | PASS (round 1) / FAIL / INCOMPLETE / NOT_RUN / N/A | [Actual state evidence, action journal, retained video by attempt or capture limitation, and time] |
 
 ### Exploratory session
 

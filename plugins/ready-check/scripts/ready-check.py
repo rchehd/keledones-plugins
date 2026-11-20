@@ -23,11 +23,11 @@ def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description="Ready Check native entry point for Linux, macOS, Windows and WSL.")
-    parser.add_argument("action", choices=("setup", "profiles", "doctor", "static", "playwright", "qa-gate", "mcp", "validate-package", "reports", "config", "template", "tasks", "hook", "mark-checked", "consent", "uninstall", "rules", "a11y", "customize", "summary", "feedback", "reflect-collect", "publication"))
+    parser.add_argument("action", choices=("setup", "profiles", "doctor", "static", "playwright", "qa-gate", "qa-record", "qa-replay", "mcp", "validate-package", "reports", "config", "template", "tasks", "hook", "mark-checked", "consent", "uninstall", "rules", "a11y", "customize", "summary", "feedback", "reflect-collect", "publication"))
     args = parser.parse_args(sys.argv[1:2])
     remaining = sys.argv[2:]
     root = Path(__file__).resolve().parent
-    filename = {"doctor": "check-profile.py", "static": "check-profile.py", "config": "settings.py", "template": "draft_template.py", "profiles": "profile_selection.py", "mark-checked": "fingerprint.py", "reflect-collect": "reflect_collect.py"}.get(args.action, args.action + ".py")
+    filename = {"doctor": "check-profile.py", "static": "check-profile.py", "config": "settings.py", "template": "draft_template.py", "profiles": "profile_selection.py", "mark-checked": "fingerprint.py", "reflect-collect": "reflect_collect.py", "qa-replay": "qa-record.py"}.get(args.action, args.action + ".py")
     spec = importlib.util.spec_from_file_location("ready_check_entry", root / filename)
     module = importlib.util.module_from_spec(spec)
 
@@ -39,6 +39,8 @@ def main():
         raise
 
     sys.argv = [str(root / filename), *([args.action] if args.action in {"doctor", "static"} else []), *remaining]
+    if args.action == "qa-replay":
+        return module.replay_main()
     return module.main()
 
 

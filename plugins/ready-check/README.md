@@ -67,6 +67,7 @@ Checks live in framework profiles. See [supported profiles](#supported-profiles)
 | Bug reports | RIMGEA (Kaner's bug advocacy): replicate, isolate, maximize, generalize, externalize; steps, expected and actual result, severity, evidence |
 | Browser automation | [Playwright best practices](https://playwright.dev/docs/best-practices): user-facing locators, web-first waits, isolated sessions; official Playwright CLI and MCP |
 | Automated test changes | [ISTQB CTFL v4.0.1](https://istqb.org/?sdm_process_download=1&download_id=3345) (§1.4.4 and §4.2) for reviewing requirements coverage against existing assertions. [Playwright Test](https://playwright.dev/docs/test-cli) and [Cypress best practices](https://docs.cypress.io/app/core-concepts/best-practices) for browser test review and targeted runs. |
+| QA recording | Capture approved cases from the first attempt and keep failure footage even when a retry passes. [Playwright retention modes](https://playwright.dev/docs/test-use-options#video-modes) · [Cypress video retention](https://docs.cypress.io/app/guides/screenshots-and-videos#delete-videos-for-specs-without-failing-or-retried-tests) |
 | Web platform review | [Modern Web Guidance](https://developer.chrome.com/docs/modern-web-guidance) and [Baseline](https://web.dev/baseline) for browser compatibility, progressive enhancement and fallback scenarios |
 | Technical QA | Project tests and fixtures, [OpenAPI](https://spec.openapis.org/oas/latest.html) for API contracts, and [CI run evidence](skills/qa/references/technical-qa.md#ci-and-artifacts) tied to the tested revision |
 | Design and native QA | [Figma Dev Mode and MCP](https://developers.figma.com/docs/figma-mcp-server/tools-and-prompts/) for agreed design references, existing [Flutter integration tests](https://docs.flutter.dev/cookbook/testing/integration/introduction), [Maestro](https://docs.maestro.dev/get-started/supported-platform/flutter) for device flows, and [OWASP MASVS](https://mas.owasp.org/MASVS/) for mobile security |
@@ -140,6 +141,16 @@ the **background** (Playwright CLI). The agent asks for a mode unless you set a 
 `config set browser visible|background`. In Drupal the agent logs in through `drush uli`, in Symfony through `login_link` when configured, elsewhere
 with a local test user it creates and keeps in `.ai/ready-check/qa-accounts.json`; it never asks for or types
 real credentials. A visible browser needs a graphical session.
+
+**QA evidence.** The agent journals the actions and observed results of executed cases. During QA plan approval,
+choose which browser or mobile cases to record. Recording starts on the first attempt. A routine `PASS` gives
+you the result and journal, and its temporary video is discarded. A `FAIL` gives you the failed attempt's video
+when available, including failures on the first attempt. If a retry passes, you still get the failed attempt's
+video with the final `PASS`. Saved clips live with the QA report so later runs can clean their own output.
+Request a demo or make video part of the acceptance criteria to get video of a successful attempt too.
+The bundled Chromium supports captions, a pointer and target highlighting, and the
+local player can seek to steps in the journal.
+[QA action journal and video](skills/qa/references/evidence.md).
 
 **Language.** The agent talks in your language; reports, QA plans and handoffs are written in English unless you
 choose another language at first run or with `config set artifactLanguage Ukrainian`. Commit messages and

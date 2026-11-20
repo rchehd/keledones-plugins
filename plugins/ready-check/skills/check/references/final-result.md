@@ -26,7 +26,7 @@ Check the following before marking the task ready:
 - Review includes applicable framework/stack practices from every applicable profile for actual installed versions and security paths,
   with code evidence and no missing essential coverage or unresolved blocking finding.
 - QA has a matching `PASS` or justified whole-stage `N/A` gate, environment evidence, and current coverage
-  for every RC acceptance condition. Include each applicable kind of scenario (browser, mobile, API, CLI or CI).
+  for every RC acceptance condition. Include each applicable kind of scenario (browser, mobile, desktop, API, CLI or CI).
   For whole-stage `N/A`, record why no QA scenario applies and cite current evidence for every condition.
 - The user approved the current QA plan when scenarios apply. The report records the approved revision,
   each required result and the QA gate output. General validation consent is insufficient.
@@ -51,6 +51,11 @@ Use one overall verdict:
 Describe advisory findings and explicit scope limitations even on a ready result. These cannot excuse an
 unverified acceptance condition or required check. Readiness applies to the recorded code and runtime state;
 it does not include publication or an assurance about untested environments.
+
+In the local chat result, link the action journals and the clips selected by the
+[QA recording handoff rules](../../qa/references/evidence.md#create-a-replay-and-hand-off-from-qa).
+Keep the failed attempt's video link when a retry passes. Report when expected footage was unavailable.
+Keep these links in the local handoff and out of shareable delivery text.
 
 ## Continue a successful partial run
 

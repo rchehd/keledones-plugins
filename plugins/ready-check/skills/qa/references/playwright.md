@@ -120,6 +120,7 @@ capabilities map as follows; use the actual schema rather than assuming these id
 | Act through the UI | `browser_click`, `browser_fill_form`, `browser_press_key`, `browser_select_option` |
 | Console and requests | `browser_console_messages`, `browser_network_requests` |
 | Capture UI and viewport | `browser_take_screenshot`, `browser_resize` |
+| Record an approved scenario | `browser_start_video`, `browser_video_show_actions`, `browser_video_chapter`, `browser_stop_video` |
 | End the run-owned browser | `browser_close` |
 
 Confirm an isolated test context is available before login. Tabs normally share authentication; if separate
@@ -136,6 +137,7 @@ evidence `INCOMPLETE`; do not silently contaminate the checked diff. Do not chan
 
 Check real navigation, UI, console, network, and persistence just as for CLI. Missing observability needed
 for a requirement remains a coverage gap. Changing transport is not permission to lower the QA criteria.
-If neither transport can execute required browser cases, save `INCOMPLETE` and the concrete setup need.
+If neither transport can execute required browser cases, use the approved tool or user-guided fallback from
+the QA plan when it can observe the required outcomes. Otherwise save `INCOMPLETE` and the concrete setup need.
 
 MCP reference: [Microsoft Playwright MCP](https://github.com/microsoft/playwright-mcp).

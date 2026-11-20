@@ -41,6 +41,7 @@ class McpTest(unittest.TestCase):
                 config = json.loads(Path(args[-1]).read_text())
                 self.assertEqual(config["browser"]["launchOptions"]["headless"], headless)
                 self.assertTrue(config["browser"]["isolated"])
+                self.assertIn("devtools", config["capabilities"])
                 self.assertEqual(Path(config["outputDir"]), self.project / MCP.OUTPUT)
                 self.assertEqual(MCP.command(self.project, "chromium", headless)[1][-1], args[-1])
                 self.assertNotIn("PLAYWRIGHT_MCP_HEADLESS", env)
@@ -53,6 +54,16 @@ class McpTest(unittest.TestCase):
         with patch.object(MCP, "data_root", return_value=self.data):
             self.assertEqual(MCP.output_directory(self.project), self.data / "state/playwright-mcp")
         self.assertFalse((self.project / ".ai").exists())
+
+    def test_rejects_output_exposed_by_a_project_gitignore_override(self):
+        subprocess.run(["git", "init", "-q", str(self.project)], check=True)
+        (self.project / ".gitignore").write_text(
+            "!/.ai/ready-check/\n!/.ai/ready-check/tmp/\n!/.ai/ready-check/tmp/playwright-mcp/\n",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(ValueError, "ignored by Git"):
+            MCP.output_directory(self.project)
+        self.assertFalse((self.project / MCP.OUTPUT).exists())
 
     def test_windows_launch_keeps_stdio_in_a_child_process(self):
         with patch.object(MCP.os, "name", "nt"), patch.object(MCP.os, "chdir") as chdir, patch.object(
