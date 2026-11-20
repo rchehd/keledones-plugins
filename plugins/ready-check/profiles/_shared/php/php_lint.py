@@ -44,7 +44,11 @@ def phpmd_report(lint, data):
     for entry in data["files"]:
         for item in entry["violations"]:
             reported = True
-            lint.add(entry["file"], item["beginLine"], item["description"], "warning", item.get("rule"), True)
+            begin = item["beginLine"]
+            scope = lint.lines.get(lint.relative(entry["file"]))
+            span = range(begin, int(item.get("endLine") or begin) + 1)
+            line = next((n for n in span if scope is None or n in scope), begin)
+            lint.add(entry["file"], line, item["description"], "warning", item.get("rule"), True)
 
     if data.get("errors"):
         raise ValueError(str(data["errors"]))

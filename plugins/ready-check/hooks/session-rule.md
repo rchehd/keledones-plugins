@@ -4,49 +4,35 @@ Write Ready Check files (reports, QA plans and handoffs) in {language}; keep cha
 These stay in English everywhere: the report's `task_id:`, `Round:` and `Verdict:` lines, finding labels and IDs,
 commit messages, PR/MR text and contributed changes.
 
-When drafting a commit message or preparing an authorized commit, run `{template_command} commit --project <repo>`.
-For a project PR description, run `{template_command} pr --project <repo>`.
-Use the selected content as layout and prompts for the draft. If it reports an error, show the cause.
-When the user asks for a commit message, PR/MR description, or task comment, follow the `draft` skill at
-any point in the task. Return the requested text in chat. For a task comment, run
-`{template_command} task-comment --project <repo>{comment_option}` and use the current chat's language.
-A request for draft text alone does not start validation or authorize publication.
+When the user asks for a commit message, PR/MR description or task comment, follow the `draft` skill at any point
+and return the text in chat. For its layout run `{template_command} commit --project <repo>`,
+`{template_command} pr --project <repo>`, or `{template_command} task-comment --project <repo>{comment_option}`
+(task comments use the current chat's language); if it reports an error, show the cause. A draft request does not
+start validation or authorize publication. When preparing an authorized commit, also write its message from
+`{template_command} commit --project <repo>`.
 
-After completing a task that changes this project, before the final handoff, ask once in the user's
-language whether to validate the task with Ready Check.
-Wait for the answer. If the user declines, finish without running it or asking again for the same task.
-If validation and its check selection were already requested or accepted for this task, reuse them.
-Respect any explicit instruction to skip validation.
+After completing a task that changes this project, before the final handoff, ask once in the user's language
+whether to validate the task with Ready Check. First read `{offer}` and ask with its choices (all checks,
+static + review, QA only, turn off for this session); a yes/no question alone is not enough. Wait for the answer.
+If the user declines, do not run it or ask again for the same task. If the user turns Ready Check off for this
+session, run `{offers_off}` once and make no more unprompted offers in this conversation. Reuse a selection
+already made for this task; respect an instruction to skip.
+When the user asks to check before pushing, validate the changes or confirm the task is ready to push, merge or
+open a PR, make the same offer instead of starting a check on your own.
+When accepted, run the `check` skill ({check}) in this conversation, reusing the known task, scope and
+requirements. Validation consent is not approval of an unseen QA plan, and a partial run cannot establish
+readiness to push. On "retest", "check again" or "re-run the check", continue the same report's next round.
 
-{check_offer}
+When the user says a checked task was returned or review found a problem, ask whether to record it as Ready
+Check feedback, then follow the `feedback` skill. Do not investigate or fix the reported problem until the user asks.
+For Ready Check history or pre-PR trends ("покажи статистику Ready Check"), ask whether to show the overview of
+the last 10 tasks, then follow the `reflect` skill. For how the user instructs or delegates to AI agents, use
+Gnothi's `portrait` skill if available. If a request such as "what are my typical mistakes?"
+("покажи мої типові помилки") fits both, ask whether the user means working with agents or preparing tasks for PR.
+Wait for the choice before reading either history.
+To remember a coding rule, run `{rules} "<rule>"`; add `--project <repo>` for a project rule and `--must` when
+breaking it should block the review. Confirm what was saved.
 
-When the user asks to check before pushing, validate the task or changes, or confirm it is ready to push, merge
-or open a PR (for example "check before push", "pre-push check", "validate this", "validate my changes",
-"is it ready to push?"), do not start a check on your own: ask once whether to run the Ready Check check and
-which checks, then follow the answer.
-
-When accepted, run the installed Ready Check `check` skill ({check}) in the current conversation and follow it.
-Reuse the task requirements, application and diff scope already known; clarify missing requirements or
-consequential ambiguities with the user. Validation consent alone is not approval of an unseen QA plan.
-A partial run reports only its checked scope; it cannot establish that the task is ready to push.
-After a successful partial run, offer the remaining checks, commit and PR/MR delivery, or stop. After delivering
-commit or PR/MR text or creating the PR/MR, offer a task-comment draft in the user's language.
-When the user asks to retest after a fix ("retest", "check again", "re-run the check"), continue the same Ready
-Check report with its next round through the `check` skill.
-When the user says a checked task was returned or review found a problem ("the task was returned", "lead sent it
-back", "review found a bug", "QA returned the task", "record feedback"), ask whether to record it as Ready Check
-feedback, then follow the `feedback` skill. Do not investigate or fix the reported problem until the user asks.
-When the user asks about Ready Check history, pre-PR review or QA patterns, or trends in returned tasks
-("покажи статистику Ready Check", "що покращити в підготовці задач до PR?"), ask
-whether to show the Ready Check overview of the last 10 tasks, then follow the `reflect` skill.
-For a request about how the user gives instructions, delegates or redirects AI agents, use Gnothi's `portrait`
-skill if available. For an ambiguous request such as "what are my typical mistakes?" or "покажи мої типові помилки", ask whether the user
-means working with agents or preparing tasks for PR. Wait for the choice before reading either history.
-When the user asks to remember a coding rule for Ready Check (for example "always prefer switch over if"),
-save it with `{rules} "<rule>"`; add `--project <repo>` for a project rule (stored in the git-excluded
-`.ai/ready-check/`; the team shares it with `git add -f`) and `--must` when breaking it should block the review.
-Confirm what was saved.
 Never edit, copy or patch the Ready Check plugin or its scripts to work around an error; report the failing command
-and its error instead.
-Do not start another AI harness or a headless agent. This offer does not apply to setup, review or
-Ready Check verification itself; do not create a loop.
+and its error instead. Do not start another AI harness or a headless agent. These offers do not apply to setup,
+review or Ready Check verification itself.

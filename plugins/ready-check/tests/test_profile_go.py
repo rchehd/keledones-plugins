@@ -63,7 +63,7 @@ if os.environ.get("FAKE_GOFMT") == "syntax":
 if os.environ.get("FAKE_GOFMT") == "clean":
     sys.exit(0)
 name = sys.argv[2]
-print("diff " + name + ".orig " + name + "\\n--- " + name + ".orig\\n+++ " + name + "\\n@@ -1,4 +1,4 @@\\n package main\\n \\n func a() {\\n-\\tx:=1\\n+\\tx := 1\\n }")
+print("diff " + name + ".orig " + name + "\\n--- " + name + ".orig\\n+++ " + name + "\\n@@ -1,3 +1,3 @@\\n package main\\n \\n-func a() { x:=1 }\\n+func a() { x := 1 }")
 sys.exit(1)
 '''
 GOLANGCI = '''#!/usr/bin/env python3
@@ -260,9 +260,26 @@ class GofmtOutputTest(unittest.TestCase):
         lint.add.assert_called_once_with(file, "2", "expected ')'", "error", "gofmt")
 
         lint.reset_mock()
+        lint.lines, lint.relative = {file: None}, lambda name: name
         diff = f"--- {file}.orig\r\n+++ {file}\r\n@@ -2 +2 @@\r\n-x:=1\r\n+x := 1\r\n"
         self.assertTrue(gofmt_report(lint, diff))
         lint.add.assert_called_once_with(file, 2, "File is not formatted as gofmt would write it", "error", "gofmt")
+
+    def test_gofmt_diff_is_reported_only_inside_the_task_lines(self):
+        sys.path.insert(0, str(PLUGIN / "profiles/go/scripts"))
+        from go_lint import gofmt_report
+
+        diff = "--- a.go.orig\n+++ a.go\n@@ -2 +2 @@\n-x:=1\n+x := 1\n@@ -9,2 +9,3 @@\n a\n+b\n c\n"
+
+        def found(scope):
+            lint = Mock(lines={"a.go": scope}, relative=lambda name: name)
+            gofmt_report(lint, diff)
+            return [call.args[1] for call in lint.add.call_args_list]
+
+        self.assertEqual(found(None), [2])
+        self.assertEqual(found({9, 10}), [9])
+        self.assertEqual(found({10}), [10])
+        self.assertEqual(found({5}), [])
 
 
 @unittest.skipUnless(shutil.which("git"), "Git is required")
@@ -315,7 +332,7 @@ class FakeToolsTest(unittest.TestCase):
         self.write("app.go", CHANGED)
         gofmt = self.static()["gofmt"]
         self.assertEqual(gofmt["status"], "FAIL", gofmt)
-        self.assertEqual([(f["file"], f["line"], f["source"]) for f in gofmt["findings"]], [("app.go", 4, "gofmt")])
+        self.assertEqual([(f["file"], f["line"], f["source"]) for f in gofmt["findings"]], [("app.go", 3, "gofmt")])
         self.assertEqual(gofmt["tools"][0]["name"], "gofmt")
         self.assertEqual(Path(gofmt["tools"][0]["path"]).resolve(), self.gofmt)
 

@@ -28,7 +28,7 @@ Checks never write into the project: `go build` discards its output and Go's own
 
 Required when their inputs apply:
 
-- `gofmt -d` on changed `.go` files (file-level finding at the first differing line; syntax errors are findings).
+- `gofmt -d` on changed `.go` files (one finding per file at the first line it would change inside the task's lines, formatting elsewhere in the file is ignored; syntax errors are findings on any line).
 - `go vet` on the packages of changed files; findings on changed lines. Type errors reported by vet fail the check on
   any line.
 - golangci-lint on the packages of changed files with a project `.golangci.yml|yaml|toml|json` when present, otherwise

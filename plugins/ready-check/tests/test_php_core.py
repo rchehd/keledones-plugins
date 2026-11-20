@@ -91,5 +91,28 @@ class SharedCoreTest(unittest.TestCase):
                     self.assertNotIn(word, text)
 
 
+
+class PhpmdScopeTest(unittest.TestCase):
+    def report(self, scope, violation):
+        from types import SimpleNamespace
+        from core_checks import Lint
+        from php_lint import phpmd_report
+
+        lint = SimpleNamespace(lines={"a.php": scope}, findings=[], check="phpmd", relative=lambda file: file)
+        lint.add = lambda *args, **kwargs: Lint.add(lint, *args, **kwargs)
+        phpmd_report(lint, dict(files=[dict(file="a.php", violations=[dict(description="Complex", rule="CyclomaticComplexity", **violation)])]))
+        return [f["line"] for f in lint.findings]
+
+    def test_violation_is_kept_when_a_changed_line_is_inside_its_span(self):
+        sys.path.insert(0, str(SHARED / "php"))
+        span = dict(beginLine=10, endLine=30)
+        self.assertEqual(self.report({15, 16}, span), [15])
+        self.assertEqual(self.report(None, span), [10])
+        self.assertEqual(self.report({10}, span), [10])
+        self.assertEqual(self.report({31}, span), [])
+        self.assertEqual(self.report({11}, dict(beginLine=10)), [])
+        self.assertEqual(self.report({10}, dict(beginLine=10)), [10])
+
+
 if __name__ == "__main__":
     unittest.main()

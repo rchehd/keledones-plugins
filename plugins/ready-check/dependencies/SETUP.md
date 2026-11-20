@@ -38,11 +38,14 @@ Manual paths stay available through the `setup` skill: `/ready:setup` (Claude Co
 
 - Session start: injects the rule "offer Ready Check after a finished task", the browser-tool status and the
   first-run question. It never installs anything and finishes in about a second.
-- Prompt submit: appends the prompt to `.ai/ready-check/tasks/<branch>/<date>.jsonl` (see below).
+- Prompt submit: appends the prompt to `.ai/ready-check/tasks/<branch>/<date>.jsonl` (see below). In Cursor the
+  first prompt of each chat also returns the session-start context, because Cursor can drop `sessionStart` context
+  that arrives after the chat's first request.
 - Question answers: answers chosen in the client's question tool reach the agent as a tool result, not as a prompt;
   the tool hook records them in the same file as `Q: … A: …`, once even when the client also sends them as a prompt.
 - Stop: after files changed in the session, reminds the agent once per change set to offer the check; quiet
-  again after a check reaches a result. Cursor has no stop hook because its only option posts a visible message
+  again after a check reaches a result, and for the rest of the session once the user turns offers off
+  (`ready-check.py offers off`, run by the agent). Cursor has no stop hook because its only option posts a visible message
   as the user; there the session-start rule applies.
 - Hooks always exit 0 and log errors to `<data root>/logs/hooks-YYYY-MM-DD.log`.
 - Codex requires a one-time trust step for plugin hooks in `/hooks`. Codex runs hook commands through

@@ -32,8 +32,11 @@ def prune(days=7):
         return removed
 
     for item in folder.glob("*.json"):
-        if item.is_file() and not item.is_symlink() and item.stat().st_mtime < cutoff:
-            item.unlink()
-            removed += 1
+        try:
+            if item.is_file() and not item.is_symlink() and item.stat().st_mtime < cutoff:
+                item.unlink(missing_ok=True)
+                removed += 1
+        except OSError:
+            continue
 
     return removed

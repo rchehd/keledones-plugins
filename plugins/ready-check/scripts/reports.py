@@ -15,11 +15,34 @@ from project import (BASE, LEGACY_BASE, TASK_REPORT, branch_report_directory, en
                      migrate, migration_lock, redirected, toplevel)
 
 
+def rebase_branch(project):
+    for kind in ("rebase-merge", "rebase-apply"):
+        path = git(project, "rev-parse", "--git-path", kind + "/head-name")
+
+        try:
+            target = Path(path if Path(path).is_absolute() else Path(project) / path)
+            name = target.read_text(encoding="utf-8").strip()
+        except (OSError, TypeError):
+            continue
+
+        if name.startswith("refs/heads/"):
+            return name[len("refs/heads/"):]
+
+    return None
+
+
 def branch_name(project):
-    name = git(project, "rev-parse", "--abbrev-ref", "HEAD") or git(project, "symbolic-ref", "--short", "HEAD") or ""
-    if name == "HEAD":
-        return "detached-" + (git(project, "rev-parse", "--short", "HEAD") or "")
-    return name
+    ref = git(project, "symbolic-ref", "--quiet", "HEAD")
+
+    if ref:
+        return re.sub(r"^refs/heads/", "", ref)
+
+    sha = git(project, "rev-parse", "--short", "HEAD")
+
+    if not sha:
+        return ""
+
+    return rebase_branch(project) or "detached-" + sha
 
 
 def slug(branch):

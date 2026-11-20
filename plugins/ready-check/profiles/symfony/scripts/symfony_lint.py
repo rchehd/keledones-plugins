@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_shared/core"))
-from core_checks import Parser
+from core_checks import Parser, format_line
 
 CONFIGS = (".php-cs-fixer.php", ".php-cs-fixer.dist.php")
 YAML = {".yml", ".yaml"}
@@ -46,28 +46,16 @@ def csfixer_config(project, evidence):
     return evidence(project, config, "PHP-CS-Fixer, @Symfony ruleset")
 
 
-def first_change(diff):
-    match = re.search(r"^@@ -(\d+)", diff or "", re.M)
-
-    if not match:
-        return 0
-    line = int(match[1])
-
-    for row in diff[match.end():].splitlines()[1:]:
-        if row.startswith(("+", "-")):
-            return line
-        line += 1
-
-    return int(match[1])
-
-
 def csfixer_report(lint, data):
     reported = False
 
     for entry in data["files"]:
         reported = True
         fixers = ", ".join(entry.get("appliedFixers", []))
-        lint.add(entry["name"], first_change(entry.get("diff")), "Style differs from the PHP-CS-Fixer rules" + (": " + fixers if fixers else ""), "error", "csfixer")
+        line = format_line(lint, entry["name"], entry.get("diff"))
+
+        if line is not None:
+            lint.add(entry["name"], line, "Style differs from the PHP-CS-Fixer rules" + (": " + fixers if fixers else ""), "error", "csfixer")
 
     return reported
 

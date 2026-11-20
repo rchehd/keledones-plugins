@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime
@@ -11,32 +12,74 @@ sys.dont_write_bytecode = True
 from project import BASE, ensure_excluded, migrate, project_file, toplevel, write_json
 
 
-def git_bytes(top, *args):
-    result = subprocess.run(["git", "-C", str(top), *args], capture_output=True)
-    return result.stdout if result.returncode == 0 else b""
+def git_bytes(top, *args, stdin=None):
+    try:
+        result = subprocess.run(["git", "-C", str(top), *args], input=stdin, capture_output=True)
+    except OSError as error:
+        raise ValueError(f"git {args[0]} failed: {error}") from error
+
+    if result.returncode != 0:
+        raise ValueError(f"git {args[0]} failed: {result.stderr.decode(errors='replace').strip()}")
+
+    return result.stdout
+
+
+def raw_blob_id(content):
+    return hashlib.sha1(b"blob %d\0" % len(content) + content, usedforsecurity=False).hexdigest().encode()
+
+
+def blob_ids(top, names):
+    ids, files = {}, []
+
+    for name in names:
+        path = top / os.fsdecode(name)
+
+        try:
+            if path.is_symlink():
+                ids[name] = raw_blob_id(os.fsencode(os.readlink(path)))
+            elif path.is_dir():
+                ids[name] = git_bytes(path, "rev-parse", "HEAD").strip()
+            elif b"\n" in name or name.startswith(b'"') or not os.access(path, os.R_OK):
+                ids[name] = raw_blob_id(path.read_bytes())
+            else:
+                files.append(name)
+        except (OSError, ValueError):
+            ids[name] = b"unreadable"
+
+    if files:
+        # hash-object applies the same autocrlf and clean filters as staging, so staged content keeps its ID.
+        hashed = git_bytes(top, "hash-object", "--stdin-paths", stdin=b"\n".join(files) + b"\n").split()
+        ids.update(zip(files, hashed))
+
+    return ids
 
 
 def work_fingerprint(top):
+    # Git blob IDs of the working tree's files: staging or committing the same content keeps the fingerprint.
     top = Path(top)
+    entries = {}
+
+    for row in git_bytes(top, "ls-files", "-s", "-z").split(b"\0"):
+        if row:
+            info, name = row.split(b"\t", 1)
+            entries[name] = entries.get(name, b"") + info.split()[1]
+
+    changed = git_bytes(top, "diff", "--name-only", "--no-renames", "-z").split(b"\0")
+    untracked = git_bytes(top, "ls-files", "-z", "--others", "--exclude-standard").split(b"\0")
+    present = []
+
+    for name in dict.fromkeys(filter(None, changed + untracked)):
+        if os.path.lexists(top / os.fsdecode(name)):
+            present.append(name)
+        else:
+            entries.pop(name, None)
+
+    entries.update(blob_ids(top, present))
+
     digest = hashlib.sha256()
 
-    plain = ("--no-ext-diff", "--no-textconv", "--no-color", "--binary")
-
-    for args in (("rev-parse", "HEAD"), ("diff", *plain), ("diff", "--cached", *plain)):
-        digest.update(git_bytes(top, *args) + b"\0")
-
-    untracked = git_bytes(top, "ls-files", "-z", "--others", "--exclude-standard").split(b"\0")
-
-    for name in sorted(item for item in untracked if item):
-        path = top / name.decode("utf-8", "surrogateescape")
-
-        try:
-            info = path.stat()
-            content = f"{info.st_size}:{info.st_mtime_ns}".encode()
-        except OSError:
-            content = b"missing"
-
-        digest.update(name + b"\0" + content + b"\0")
+    for name in sorted(entries):
+        digest.update(name + b"\0" + entries[name] + b"\0")
 
     return digest.hexdigest()
 

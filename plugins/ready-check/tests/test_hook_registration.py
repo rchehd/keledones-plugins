@@ -89,7 +89,11 @@ class RegisteredHookTest(RepoTest):
         for client in CLIENTS:
             output = self.run_hook(client, "beforeSubmitPrompt" if client == "cursor" else "UserPromptSubmit",
                                    self.payload(client, prompt=f"Task from {client}"))
-            self.assertEqual(output, {"continue": True} if client == "cursor" else None)
+            if client == "cursor":
+                self.assertIs(output["continue"], True)
+                self.assertIn("Ready Check is enabled", output["additional_context"])
+            else:
+                self.assertIsNone(output)
 
         self.assertEqual(sorted(self.records()), ["Task from claude", "Task from codex", "Task from cursor"])
 
@@ -130,7 +134,7 @@ class RegisteredHookTest(RepoTest):
             (folder / name).symlink_to(shutil.which(name))
         (folder / "python3").chmod(0o755)
         output = self.run_hook("cursor", "beforeSubmitPrompt", self.payload("cursor", prompt="Fallback task"), path=str(folder))
-        self.assertEqual(output, {"continue": True})
+        self.assertIs(output["continue"], True)
         self.assertEqual(self.records(), ["Fallback task"])
 
 

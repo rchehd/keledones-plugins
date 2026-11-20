@@ -242,7 +242,9 @@ Never fix without an answer. A fix changes only the approved findings, with the 
 scope: no unrelated refactoring, whole-file auto-fixers (`phpcbf`, `--fix` modes), baselines or suppressions,
 checker configuration changes, dependency installs or Git writes. Ask instead of fixing when a finding needs a
 design decision, changes a requirement, or is `INCOMPLETE` because of setup, access or an unanswered question;
-pre-existing issues and advisory notes are not offered. Record in the report's Decisions who fixed what, the
+pre-existing issues are not offered. List open nonblocking notes of this task (`suggestion`, `nitpick`,
+`question`, advisory checker findings on task lines) separately and include them only if the user asks; after a
+successful verdict they are offered as described in [final result](references/final-result.md#offer-fixes-for-open-notes). Record in the report's Decisions who fixed what, the
 files changed, and the user's choice. If a fix does not resolve the same finding after two attempts, stop and
 hand it to the user.
 

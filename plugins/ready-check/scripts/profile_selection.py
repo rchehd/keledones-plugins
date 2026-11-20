@@ -49,7 +49,7 @@ def discover(project):
     preferences = settings.shared_config(top) | settings.read(settings.project_path(top))
     explicit = preferences.get("application")
     roots = [settings.application_root(top, explicit)] if explicit is not None else detect.application_roots(top, manifests.values())
-    selected, conflicts = [], []
+    selected, conflicts, found = [], [], {}
     for directory in roots:
         if not directory.is_relative_to(project):
             continue
@@ -60,6 +60,10 @@ def discover(project):
             evidence = detect.evidence(directory, manifest, top if explicit is None else None)
             if evidence or local.get("profile") == profile:
                 matches[profile] = evidence
+        if "profile" not in local:
+            for profile in [name for name in matches if manifests[name]["detection"].get("composer_packages") and
+                            any(directory.is_relative_to(parent) for parent in found.get(name, ()))]:
+                del matches[profile]
         php = [profile for profile in matches if manifests[profile]["detection"].get("composer_packages")]
         if "profile" in local:
             if not settings.valid("profile", local["profile"]):
@@ -68,6 +72,8 @@ def discover(project):
             matches = {local["profile"]: matches[local["profile"]]}
         elif len(php) > 1:
             conflicts.append(dict(application=application, profiles=php))
+        for profile in matches:
+            found.setdefault(profile, []).append(directory)
         for profile, evidence in matches.items():
             runner = (local.get("runner") or preferences.get("runner") or
                       manifests[profile].get("default_runner") or

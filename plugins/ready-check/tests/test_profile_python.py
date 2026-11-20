@@ -7,6 +7,7 @@ import tempfile
 import unittest
 import venv
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from helpers import write_fake_command
@@ -347,6 +348,33 @@ class FakeToolsTest(unittest.TestCase):
 
         for name in ("ruff", "format", "syntax", "mypy", "django", "migrations", "bandit", "audit"):
             self.assertEqual(checks[name]["status"], "N/A", checks[name])
+
+
+class RuffFormatScopeTest(unittest.TestCase):
+    DIFF = ("--- a.py\n+++ a.py\n@@ -1,2 +1,2 @@\n-x  = 1\n+x = 1\n y = 2\n"
+            "@@ -10,3 +10,4 @@\n a = 1\n+b = 2\n c = 3\n@@ -20,2 +20,2 @@\n-z  = 3\n+z = 3\n w = 4\n")
+
+    def report(self, scope):
+        sys.path.insert(0, str(PLUGIN / "profiles/python/scripts"))
+        from python_lint import format_report
+
+        found = []
+        lint = SimpleNamespace(lines={"a.py": scope}, relative=lambda file: file,
+                               add=lambda *args, **kwargs: found.append(args[1]))
+        self.assertTrue(format_report(lint, self.DIFF))
+        return found
+
+    def test_only_ruff_changed_lines_in_the_task_scope_are_reported(self):
+        self.assertEqual(self.report(None), [1])
+        self.assertEqual(self.report({20, 21}), [20])
+        self.assertEqual(self.report({11}), [11])
+        self.assertEqual(self.report({5, 6}), [])
+
+    def test_a_replaced_block_is_not_attributed_to_the_next_unchanged_line(self):
+        self.assertEqual(self.report({2}), [])
+        self.assertEqual(self.report({21}), [])
+
+
 
 
 if __name__ == "__main__":

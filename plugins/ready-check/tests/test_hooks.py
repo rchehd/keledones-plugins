@@ -16,7 +16,18 @@ class HookTest(RepoTest):
 
     def test_cursor_prompt_is_always_allowed(self):
         for stdin in ("", "not json", "[1, 2]", json.dumps({"prompt": "x", "workspace_roots": [str(self.repo)]})):
-            self.assertEqual(self.hook("prompt", "cursor", stdin), {"continue": True})
+            self.assertIs(self.hook("prompt", "cursor", stdin)["continue"], True)
+
+    def test_cursor_first_prompt_of_a_chat_repeats_the_session_context(self):
+        payload = {"prompt": "Add a clear button", "conversation_id": "chat", "workspace_roots": [str(self.repo)]}
+        first = self.hook("prompt", "cursor", payload)
+        self.assertIs(first["continue"], True)
+        self.assertIn("Ready Check is enabled", first["additional_context"])
+        self.assertIn("offers off --client cursor --session chat", first["additional_context"])
+        self.assertEqual(self.hook("prompt", "cursor", dict(payload, prompt="More")), {"continue": True})
+        self.assertIn("additional_context", self.hook("prompt", "cursor", dict(payload, conversation_id="other")))
+        self.assertIsNone(self.hook("prompt", "claude", dict(payload, session_id="c")))
+        self.assertEqual(len(list((self.repo / ".ai/ready-check/tasks").glob("*/*.jsonl"))), 1)
 
     def test_prompt_outside_git_writes_nothing(self):
         outside = self.root / "outside"
@@ -37,18 +48,16 @@ class HookTest(RepoTest):
             output = self.hook("session-start", client, {"cwd": str(self.repo), "session_id": client})
             text = output[key[0]][key[1]] if len(key) == 2 else output[key[0]]
             self.assertIn("ask once in the user's", text)
-            self.assertIn("A workflow-only change can offer CI QA", text)
-            self.assertIn("A stack elsewhere in the", text)
-            self.assertIn("An explicit subset stays scoped.", text)
-            self.assertIn("AskUserQuestion", text)
-            self.assertIn("**Static checks**", text)
-            self.assertIn("**Code and\n  security review**", text)
-            self.assertIn("**QA**", text)
-            self.assertIn("**Skip**", text)
-            self.assertNotIn("{check_offer}", text)
+            self.assertIn("skills/check/references/check-offer.md", text)
+            self.assertIn("turn off for this session", text)
+            self.assertIn("make no more unprompted offers", text)
+            self.assertIn(f"offers off --client {client} --session {client}", text)
+            self.assertNotIn("{offer}", text)
+            self.assertLess(text.index("Ready Check setup for this project"), text.index("Ready Check is enabled"))
             self.assertIn("Ready Check browser tools:", text)
             self.assertIn("consent yes", text)
             self.assertIn("template commit --project <repo>", text)
+            self.assertIn("When preparing an authorized commit", text)
             self.assertIn("template pr --project <repo>", text)
             self.assertIn("template task-comment --project <repo>", text)
             self.assertIn("working with agents or preparing tasks for PR", text)
@@ -57,6 +66,36 @@ class HookTest(RepoTest):
             self.assertIn("Wait for the choice before reading either history.", text)
             self.assertIn("Do not investigate or fix the reported problem until the user asks", text)
             self.assertIn("Never edit, copy or patch the Ready Check plugin", text)
+
+    def test_session_start_outside_git_adds_nothing(self):
+        outside = self.root / "outside"
+        outside.mkdir()
+        self.assertIsNone(self.hook("session-start", "claude", {"cwd": str(outside), "session_id": "o"}))
+
+    def test_session_start_stays_under_the_claude_context_limit(self):
+        payload = {"cwd": str(self.repo), "session_id": "big"}
+        short = self.hook("session-start", "claude", payload)["hookSpecificOutput"]["additionalContext"]
+        for number in range(60):
+            self.entry_json("rules", "add", f"Rule {number}: prefer early returns and avoid nested conditionals in controllers")
+        text = self.hook("session-start", "claude", payload)["hookSpecificOutput"]["additionalContext"]
+        self.assertLess(len(short), 6000)
+        self.assertLessEqual(len(text), 9500)
+        self.assertIn("consent yes", text)
+        import hook
+        with patch.object(hook, "CONTEXT_LIMIT", len(short) + 500):
+            text = hook.session_start("claude", payload)["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("rules list --project", text)
+        self.assertIn("consent yes", text)
+        self.assertNotIn("Rule 0:", text)
+
+    def test_commands_use_bash_quoting_for_claude_in_git_bash_on_windows(self):
+        import hook
+        parts = ["C:\\Program Files\\Python\\python.exe", "rules", "add"]
+        with patch.object(hook.os, "name", "nt"), patch.dict(hook.os.environ, {"MSYSTEM": "MINGW64"}):
+            self.assertEqual(hook.shell_command(parts, "claude"), "'C:\\Program Files\\Python\\python.exe' rules add")
+            self.assertTrue(hook.shell_command(parts, "codex").startswith("& 'C:"))
+        with patch.object(hook.os, "name", "nt"), patch.dict(hook.os.environ, {}, clear=True):
+            self.assertTrue(hook.shell_command(parts, "claude").startswith("& 'C:"))
 
     def test_claude_passes_native_task_comment_template_to_the_draft_command(self):
         path = "task comments.md"
@@ -111,7 +150,7 @@ class HookTest(RepoTest):
         (self.repo / "a.php").write_text("<?php\n")
         reminder = self.hook("stop", "claude", payload)
         self.assertEqual(reminder["hookSpecificOutput"]["hookEventName"], "Stop")
-        self.assertIn("static, review, QA", reminder["hookSpecificOutput"]["additionalContext"])
+        self.assertIn("turned Ready Check off for this session", reminder["hookSpecificOutput"]["additionalContext"])
         self.assertIn("AskUserQuestion", reminder["hookSpecificOutput"]["additionalContext"])
         self.assertIsNone(self.hook("stop", "claude", payload))
         (self.repo / "a.php").write_text("<?php // changed\n")
@@ -120,6 +159,48 @@ class HookTest(RepoTest):
         self.assertIsNone(self.hook("stop", "claude", payload))
         (self.repo / "b.php").write_text("<?php\n")
         self.assertIn("ask once", self.hook("stop", "claude", payload)["hookSpecificOutput"]["additionalContext"])
+
+    def test_committing_checked_work_does_not_remind_again(self):
+        payload = {"cwd": str(self.repo), "session_id": "commit"}
+        self.hook("session-start", "claude", payload)
+        (self.repo / "a.php").write_text("<?php\n")
+        self.entry_json("mark-checked", "--project", str(self.repo))
+        self.git("add", "a.php")
+        self.git("commit", "-q", "-m", "Checked work")
+        self.assertIsNone(self.hook("stop", "claude", payload))
+
+    def test_committing_checked_crlf_work_with_autocrlf_does_not_remind_again(self):
+        payload = {"cwd": str(self.repo), "session_id": "crlf"}
+        self.git("config", "core.autocrlf", "true")
+        self.hook("session-start", "claude", payload)
+        (self.repo / "a.php").write_bytes(b"<?php\r\necho 1;\r\n")
+        self.entry_json("mark-checked", "--project", str(self.repo))
+        self.git("add", "a.php")
+        self.git("commit", "-q", "-m", "Checked work")
+        self.assertIsNone(self.hook("stop", "claude", payload))
+
+    def test_stop_without_git_answer_saves_nothing(self):
+        import hook_state
+        payload = {"cwd": str(self.repo), "session_id": "broken"}
+        self.hook("session-start", "claude", payload)
+        before = hook_state.load("claude", "broken")
+        (self.repo / "a.php").write_text("<?php\n")
+        (self.repo / ".git/index").write_bytes(b"broken")
+        self.assertIsNone(self.hook("stop", "claude", payload))
+        self.assertEqual(hook_state.load("claude", "broken"), before)
+        self.assertIn("start", before)
+
+    def test_offers_off_silences_stop_for_the_session_only(self):
+        for client in ("claude", "codex"):
+            payload = {"cwd": str(self.repo), "session_id": "quiet-" + client}
+            self.hook("session-start", client, payload)
+            self.entry_json("offers", "off", "--client", client, "--session", "quiet-" + client)
+            (self.repo / f"{client}.php").write_text("<?php\n")
+            self.assertIsNone(self.hook("stop", client, payload))
+        other = {"cwd": str(self.repo), "session_id": "other"}
+        self.hook("session-start", "claude", other)
+        (self.repo / "other.php").write_text("<?php\n")
+        self.assertIsNotNone(self.hook("stop", "claude", other))
 
     def test_codex_stop_uses_block_with_reason(self):
         payload = {"cwd": str(self.repo), "session_id": "c"}

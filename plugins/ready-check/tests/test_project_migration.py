@@ -231,7 +231,8 @@ class MigrationTest(RepoTest):
                          {branch_id: resumed, task: current.parent})
 
         summary = self.entry_json("summary", "--project", str(self.repo), "--task", branch_id,
-                                  "--round", "8", "--verdict", "PARTIAL CHECK COMPLETE")
+                                  "--round", "8", "--verdict", "PARTIAL CHECK COMPLETE", "--static", "PASS",
+                                  "--review", "NOT_SELECTED", "--qa", "NOT_SELECTED")
         self.assertEqual(Path(summary["file"]), resumed / "summary.json")
         rounds = json.loads(Path(summary["file"]).read_text())["rounds"]
         self.assertEqual([item["round"] for item in rounds], [7, 8])

@@ -33,6 +33,20 @@ def parse_items(values, keys):
     return items
 
 
+def allowed_verdicts(stages, findings):
+    states = set(stages.values())
+    blocking = any(item["label"].startswith("issue (blocking)") and item["status"] == "open" for item in findings)
+
+    if "FAIL" in states or blocking:
+        return {"BLOCKED"}
+
+    if states & {"INCOMPLETE", "NOT_RUN"} or states == {"NOT_SELECTED"}:
+        return {"INCOMPLETE"}
+
+    # A stage can pass with scope left out of it (for example QA kinds excluded from the plan), which is partial too.
+    return {"PARTIAL CHECK COMPLETE", "INCOMPLETE"} | (set() if "NOT_SELECTED" in states else {"READY TO PUSH"})
+
+
 def append(directory, entry, top):
     path = Path(directory) / "summary.json"
     data = read(path)
@@ -71,6 +85,17 @@ def main():
             if getattr(args, name) not in STATUSES:
                 raise ValueError(f"--{name} must be one of {sorted(STATUSES)}")
 
+        stages = dict(static=args.static, review=args.review, qa=args.qa)
+        findings = parse_items(args.finding, ("id", "label", "stage", "area", "rc", "status"))
+
+        if any(item["status"] not in {"open", "fixed"} for item in findings):
+            raise ValueError("A --finding status must be open or fixed")
+        allowed = allowed_verdicts(stages, findings)
+
+        if args.verdict not in allowed:
+            raise ValueError(f"Verdict {args.verdict!r} contradicts the stages {stages} and open blocking findings; "
+                             f"expected {' or '.join(sorted(allowed))}")
+
         migrate(top)
         target = prepare(args.project, args.task, dry_run=True)
         directory = Path(target["directory"])
@@ -81,8 +106,7 @@ def main():
 
         entry = dict(task_id=target["task_id"], round=args.round, ts=datetime.now().isoformat(timespec="seconds"),
                      head=git(top, "rev-parse", "HEAD"), fingerprint=work_fingerprint(top), verdict=args.verdict,
-                     stages=dict(static=args.static, review=args.review, qa=args.qa),
-                     findings=parse_items(args.finding, ("id", "label", "stage", "area", "rc", "status")),
+                     stages=stages, findings=findings,
                      qa=parse_items(args.qa_case, ("id", "status", "attempt")))
         result.update(status="PASS", file=str(append(target["directory"], entry, top)), task_id=target["task_id"])
     except (OSError, ValueError) as error:

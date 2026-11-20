@@ -38,8 +38,8 @@ and a bootable application.
 
 Required when their inputs apply:
 
-- PHP-CS-Fixer (`check --dry-run --format=json --diff`, changed PHP files; the line is the first changed line
-  of the diff).
+- PHP-CS-Fixer (`check --dry-run --format=json --diff`, changed PHP files; one finding per file at the first line it would
+  change inside the task's lines; formatting elsewhere in the file is ignored).
 - PHPStan with phpstan-symfony (and phpstan-doctrine), PHP and YAML syntax (`php -l`, `Yaml::parseFile` with custom
   tags enabled).
 - `bin/console lint:container`, when PHP files or YAML under `config/` changed. Console output is not

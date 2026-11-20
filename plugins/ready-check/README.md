@@ -111,7 +111,8 @@ nothing is downloaded and the question is not repeated; review, reminders and ta
 
 After you finish a task that changed the project, the agent offers checks based on the changed behavior,
 paths and applicable profiles. A workflow change can get CI QA, while a changed web flow and API can get both
-Playwright and API QA. Choose all applicable checks, a subset or skip. You can also start a check yourself
+Playwright and API QA. Choose all checks, static + review, QA only, another combination, or turn the offers
+off for the rest of the session. You can also start a check yourself
 with the commands in [How it works](#how-it-works).
 
 **Test-only tasks.** Ready Check reviews the coverage, assertions and fixtures of added or changed tests.
@@ -121,7 +122,8 @@ which cases executed. Use the project's configured environment and its installed
 [project test runner guidance](skills/qa/references/project-tests.md).
 
 Ready Check works through plugin hooks and does not write `AGENTS.md`, `CLAUDE.md` or project MCP configs. In
-Codex, trust the plugin's hooks once in `/hooks`. Cursor gets the rule at session start but no end-of-turn
+Codex, trust the plugin's hooks once in `/hooks`. Cursor gets the rule at session start and again with the first
+message of each chat, because its session-start context can arrive after that message; Cursor has no end-of-turn
 reminder.
 
 **QA.** The agent ranks changed areas by risk, designs cases with standard techniques (equivalence classes,

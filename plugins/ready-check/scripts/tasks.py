@@ -21,6 +21,10 @@ DAY = re.compile(r"\d{4}-\d{2}-\d{2}\.jsonl\Z")
 CODEX_REPLY = re.compile(r"<send_user_message_question_reply>\s*(.*?)\s*</send_user_message_question_reply>", re.S)
 
 
+def text(value):
+    return value.strip() if isinstance(value, str) else ""
+
+
 def codex_answers(match):
     try:
         items = json.loads(match.group(1))
@@ -30,7 +34,7 @@ def codex_answers(match):
     if not isinstance(items, list):
         return match.group(0)
 
-    lines = [f"Q: {item.get('question', '').strip()}\nA: {str(item.get('answer', '')).strip()}"
+    lines = [f"Q: {text(item.get('question'))}\nA: {text(item.get('answer'))}"
              for item in items if isinstance(item, dict)]
     return "\n".join(lines) or match.group(0)
 
@@ -82,7 +86,7 @@ def repeated(path, session, prompt):
     try:
         with open(path, "rb") as stream:
             stream.seek(max(0, stream.seek(0, os.SEEK_END) - 4 * MAX_PROMPT))
-            last = json.loads(stream.read().decode("utf-8", "replace").strip().splitlines()[-1])
+            last = json.loads(stream.read().decode("utf-8", "replace").strip().split("\n")[-1])
     except (OSError, ValueError, IndexError):
         return False
 
@@ -124,7 +128,7 @@ def read_records(paths, limit):
         if redirected(path):
             continue
         try:
-            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+            lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
         except OSError:
             continue
         sources += 1
@@ -186,11 +190,18 @@ def prune(top, days=RETENTION_DAYS, now=None):
             for folder in root.iterdir():
                 if redirected(folder) or not folder.is_dir():
                     continue
-                for path in folder.iterdir():
-                    if (DAY.match(path.name) and path.name[:10] < cutoff and path not in protected
-                            and path.is_file() and not redirected(path)):
-                        path.unlink(missing_ok=True)
-                        removed += 1
+                try:
+                    items = list(folder.iterdir())
+                except OSError:
+                    continue
+                for path in items:
+                    try:
+                        if (DAY.match(path.name) and path.name[:10] < cutoff and path not in protected
+                                and path.is_file() and not redirected(path)):
+                            path.unlink(missing_ok=True)
+                            removed += 1
+                    except OSError:
+                        continue
                 with suppress(OSError):
                     folder.rmdir()
 

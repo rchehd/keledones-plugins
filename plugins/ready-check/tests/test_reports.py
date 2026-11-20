@@ -32,6 +32,22 @@ class ReportsTest(unittest.TestCase):
     def commit(self):
         self.git("commit", "-q", "--allow-empty", "-m", "init")
 
+    def test_branch_name_ignores_a_tag_with_the_same_name(self):
+        self.git("init", "-q", "-b", "foo")
+        self.commit()
+        self.git("tag", "foo")
+        self.assertEqual(self.reports()["branch"], "foo")
+
+    def test_detached_head_uses_the_rebased_branch_when_present(self):
+        self.git("init", "-q", "-b", "feature/x")
+        self.commit()
+        self.git("checkout", "-q", "--detach")
+        self.assertTrue(self.reports()["branch"].startswith("detached-"))
+        folder = self.project / ".git" / "rebase-apply"
+        folder.mkdir()
+        (folder / "head-name").write_text("refs/heads/feature/x\n")
+        self.assertEqual(self.reports()["branch"], "feature/x")
+
     def test_branch_slug_directory_and_exclusion(self):
         self.git("init", "-q", "-b", "feature/ABC-1@fix")
         self.commit()

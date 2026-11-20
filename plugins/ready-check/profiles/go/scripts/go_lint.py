@@ -7,14 +7,13 @@ from pathlib import Path, PurePosixPath
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_shared/core"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from core_checks import Parser
+from core_checks import Parser, format_line
 import go_tools as tools
 
 GoCheck = namedtuple("GoCheck", "applies run plan")
 MODULE_FILES = {"go.mod", "go.sum"}
 POSITION = re.compile(r"^(vet: )?(?:\./)?((?:[A-Za-z]:[\\/])?[^\s:][^:\r\n]*\.go):(\d+)(?::\d+)?: ([^\r\n]*)\r?$", re.M)
 DIFF_FILE = re.compile(r"^--- (.+?)\.orig(?:\t[^\r\n]*)?\r?$", re.M)
-HUNK = re.compile(r"^@@ -(\d+)", re.M)
 WARNING = {"warning", "info"}
 
 
@@ -44,21 +43,6 @@ def command(lint, name):
     return next(t["path"] for t in lint.selected["tools"] if t["name"] == name)
 
 
-def first_change(diff):
-    match = HUNK.search(diff)
-
-    if not match:
-        return 0
-    line = int(match[1])
-
-    for row in diff[match.end():].splitlines()[1:]:
-        if row.startswith(("+", "-")):
-            return line
-        line += 1
-
-    return int(match[1])
-
-
 def gofmt_report(lint, text):
     reported = False
 
@@ -69,7 +53,10 @@ def gofmt_report(lint, text):
 
     for name, diff in zip(parts[1::2], parts[2::2]):
         reported = True
-        lint.add(name, first_change(diff), "File is not formatted as gofmt would write it", "error", "gofmt")
+        line = format_line(lint, name, diff)
+
+        if line is not None:
+            lint.add(name, line, "File is not formatted as gofmt would write it", "error", "gofmt")
 
     return reported
 

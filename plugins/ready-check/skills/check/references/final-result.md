@@ -60,7 +60,8 @@ Keep these links in the local handoff and out of shareable delivery text.
 ## Continue a successful partial run
 
 After reporting `PARTIAL CHECK COMPLETE`, ask one question in the user's language using the client's
-native choice tool or chat. Offer **Run remaining checks**, **Continue to commit and PR/MR**, and **Stop**.
+native choice tool or chat. Offer **Run remaining checks**, **Continue to commit and PR/MR**, and **Stop**, plus
+**Fix open notes** when [open notes](#offer-fixes-for-open-notes) remain.
 Name the outstanding stages. When there is room, list the remaining stages as individual choices in that
 question alongside delivery and stop. Otherwise, if the user chooses remaining checks, show each unselected
 applicable stage and accept any subset, all remaining stages, or stop. When only one stage remains, selecting
@@ -68,6 +69,20 @@ remaining checks selects that stage. Resume in the same task report using [check
 
 Selecting delivery keeps the partial verdict and proceeds to the delivery choices below. It does not authorize
 a commit, push, or PR/MR. Stopping ends the handoff at the current report.
+
+## Offer fixes for open notes
+
+When a `READY TO PUSH` or `PARTIAL CHECK COMPLETE` result leaves open nonblocking notes of this task
+(`suggestion`, `nitpick`, `question`, advisory checker findings on task lines), add **Fix open notes** to the
+question that follows the verdict and name their IDs, for example "Fix F-010, F-011":
+
+- After `PARTIAL CHECK COMPLETE`: **Run remaining checks**, **Fix open notes**, **Continue to commit and PR/MR**
+  and **Stop**.
+- After `READY TO PUSH`, in the delivery question: **Create PR/MR into `<target>`** when creation is available,
+  **Show commit message and PR/MR title and description in chat**, and **Fix open notes**.
+
+Claude Code's question UI adds Other and Skip itself. A `question` note needs the user's answer before any edit.
+On this choice make the [fix offer](../SKILL.md#fix-offer) for the selected notes; the fix starts the next round.
 
 ## Discover delivery options
 
@@ -95,7 +110,7 @@ and Git configuration to identify the destination repository and the source bran
   If a requested branch changes the checked scope, update the affected validation before publication.
 
 When creation is available, offer **Create PR/MR into `<target>`** and **Show commit message and PR/MR
-title and description in chat**. Show the destination repository, source branch, target branch and
+title and description in chat**, plus **Fix open notes** when [open notes](#offer-fixes-for-open-notes) remain. Show the destination repository, source branch, target branch and
 proposed title. Make the proposed English text available in the report before asking for creation.
 Let the user choose another target branch. If a commit or push is needed, show the
 proposed commit message and task files to be committed, and identify the source branch and remote to push.
