@@ -23,10 +23,13 @@ EVENTS = ("session-start", "prompt", "answer", "stop")
 CLIENTS = ("claude", "cursor", "codex")
 CHECK = {"claude": "/ready:check", "cursor": "/check", "codex": "$check"}
 RUNNERS = {"ddev": "DDEV", "compose": "Docker Compose", "local": "local"}
-REMINDER = ("If you have finished the user's task, ask once about Ready Check ({check}) using the shared choice instructions: "
-            "all applicable checks, each applicable stage (static, review, QA), combinations, or skip. "
-            "Use {question} when available. A yes/no prompt alone is insufficient.")
+OFFER = PLUGIN / "skills/check/references/check-offer.md"
+REMINDER = ("If you have finished the user's task and the user has not turned Ready Check off for this session, "
+            "ask once about Ready Check ({check}) with the choices in `{offer}`: all checks, static + review, QA only, "
+            "or turn off for this session. Use {question} when available. A yes/no prompt alone is insufficient.")
 QUESTION_TOOL = {"claude": "AskUserQuestion", "codex": "request_user_input or request_user_input_async"}
+# Claude Code drops additionalContext over 10,000 characters to a file the model is not told to read.
+CONTEXT_LIMIT = 9500
 
 
 def session_id(payload):
@@ -72,10 +75,15 @@ def status_line(status, client):
             f"Tell the user once; they can retry with {setup} after fixing the cause.")
 
 
-def quote(value):
+def posix(client):
+    # Claude Code runs commands in Git Bash on Windows when it is installed; Git Bash sets MSYSTEM.
+    return os.name != "nt" or client == "claude" and bool(os.environ.get("MSYSTEM"))
+
+
+def quote(value, client):
     value = str(value)
 
-    if os.name != "nt":
+    if posix(client):
         return shlex.quote(value)
 
     if any(character in value for character in " &()[]{}^=;!'\"+,\x60~$|<>"):
@@ -83,19 +91,19 @@ def quote(value):
     return value
 
 
-def shell_command(parts):
-    line = " ".join(quote(part) for part in parts)
+def shell_command(parts, client):
+    line = " ".join(quote(part, client) for part in parts)
     # PowerShell runs a quoted executable path only through the call operator.
-    return "& " + line if os.name == "nt" and line.startswith("'") else line
+    return "& " + line if not posix(client) and line.startswith("'") else line
 
 
-def command(top, decision, selected):
+def command(top, decision, selected, client):
     parts = [sys.executable, PLUGIN / "scripts/ready-check.py", "consent", decision, "--project", top]
 
     for item in selected:
         parts += ["--selection", argument(item)]
 
-    return shell_command(parts)
+    return shell_command(parts, client)
 
 
 def describe(found):
@@ -158,58 +166,69 @@ def first_run(top, client, values, status):
 
     fallback = "; in Claude Code the user can run it by typing ! followed by the command" if client == "claude" else ""
     return template("first-run.md", question=question(selected, conflicts, values, status, confirmed), fallback=fallback,
-                    yes=command(top, "yes", selected), no=command(top, "no", selected), language=language_note(values))
+                    yes=command(top, "yes", selected, client), no=command(top, "no", selected, client),
+                    language=language_note(values, client))
 
 
-def language_note(values):
+def language_note(values, client):
     if "artifactLanguage" in settings.read(settings.user_path()):
         return ""
 
-    config = f"{quote(sys.executable)} {quote(PLUGIN / 'scripts/ready-check.py')} config set artifactLanguage"
+    config = shell_command([sys.executable, PLUGIN / "scripts/ready-check.py", "config", "set", "artifactLanguage"], client)
     return (f"In the same question add one line: Ready Check writes its reports and other files in {values['artifactLanguage']}; "
             f"another language can be chosen. If the user names one, run `{config} \"<language in English>\"`.\n\n")
 
 
-def session_start(client, payload):
-    top = toplevel(start_directory(payload)) if start_directory(payload) else None
+def session_context(client, payload, top):
     migration_error = None
-    if top:
-        try:
-            migrate(top)
-        except (OSError, ValueError, RuntimeError) as error:
-            migration_error = str(error)
+    try:
+        migrate(top)
+    except (OSError, ValueError, RuntimeError) as error:
+        migration_error = str(error)[:500]
     values = settings.load(top)
     hook_state.prune()
     status = browser_status()
     entry = [sys.executable, PLUGIN / "scripts/ready-check.py"]
-    rules_command = shell_command([*entry, "rules", "add"])
-    template_command = shell_command([*entry, "template"])
     comment_template = client_comment_template()
-    comment_option = (" " + quote("--client-template=" + comment_template)
+    comment_option = (" " + quote("--client-template=" + comment_template, client)
                       if settings.valid("taskCommentTemplate", comment_template) else "")
-    check_offer = (PLUGIN / "skills/check/references/check-offer.md").read_text(encoding="utf-8").strip()
-    parts = [template("session-rule.md", check=CHECK[client], rules=rules_command, template_command=template_command,
-                      comment_option=comment_option, language=values["artifactLanguage"], check_offer=check_offer),
-             status_line(status, client)]
+    offers_off = shell_command([*entry, "offers", "off", "--client", client, "--session", session_id(payload)], client)
+    rule = template("session-rule.md", check=CHECK[client], rules=shell_command([*entry, "rules", "add"], client),
+                    template_command=shell_command([*entry, "template"], client), comment_option=comment_option,
+                    language=values["artifactLanguage"], offer=OFFER.as_posix(), offers_off=offers_off)
+    tasks.prune(top)
+
+    if "start" not in hook_state.load(client, session_id(payload)):
+        try:
+            start = work_fingerprint(top)
+            # Reload right before saving: Cursor runs sessionStart and the first prompt at the same time.
+            hook_state.save(client, session_id(payload), dict(hook_state.load(client, session_id(payload)), start=start))
+        except ValueError as error:
+            logs.error(f"{client} session-start fingerprint skipped: {error}")
+
+    parts = [first_run(top, client, values, status), rules.context(top), rule, status_line(status, client)]
+
     if migration_error:
         parts.append(f"Ready Check project data migration could not complete: {migration_error}")
-    coding_rules = rules.context(top)
 
-    if coding_rules:
-        parts.append(coding_rules)
+    text = "\n\n".join(part for part in parts if part)
 
-    if top:
-        tasks.prune(top)
-        state = hook_state.load(client, session_id(payload))
+    if len(text) > CONTEXT_LIMIT and parts[1]:
+        parts[1] = ("Ready Check coding rules are too long for the session context. Read them with "
+                    f"`{shell_command([*entry, 'rules', 'list', '--project', top], client)}` before writing code; "
+                    "the Ready Check review checks changed code against them (MUST rules block).")
+        text = "\n\n".join(part for part in parts if part)
 
-        if "start" not in state:
-            hook_state.save(client, session_id(payload), dict(state, start=work_fingerprint(top)))
-        request = first_run(top, client, values, status)
+    return text
 
-        if request:
-            parts.append(request)
 
-    text = "\n\n".join(parts)
+def session_start(client, payload):
+    top = toplevel(start_directory(payload)) if start_directory(payload) else None
+
+    if not top:
+        return None
+
+    text = session_context(client, payload, top)
 
     if client == "cursor":
         return {"additional_context": text}
@@ -221,8 +240,19 @@ def prompt(client, payload):
     directory = start_directory(payload)
     top = toplevel(directory) if directory else None
 
-    if top and settings.load(top)["captureTasks"]:
+    if not top:
+        return None
+
+    if settings.load(top)["captureTasks"]:
         tasks.record(top, client, session_id(payload), payload.get("prompt"))
+
+    # Cursor may drop sessionStart context that arrives after the chat's first request, so the first prompt repeats it.
+    if client != "cursor" or hook_state.load(client, session_id(payload)).get("context"):
+        return None
+
+    text = session_context(client, payload, top)
+    hook_state.save(client, session_id(payload), dict(hook_state.load(client, session_id(payload)), context=True))
+    return {"continue": True, "additional_context": text}
 
 
 def answer(client, payload):
@@ -243,6 +273,10 @@ def stop(client, payload):
 
     session = session_id(payload)
     state = hook_state.load(client, session)
+
+    if state.get("off"):
+        return None
+
     current = work_fingerprint(top)
 
     if "start" not in state:
@@ -252,8 +286,9 @@ def stop(client, payload):
     if current in {state.get("start"), state.get("reminded"), last_checked(top)}:
         return None
 
-    hook_state.save(client, session, dict(state, reminded=current))
-    text = REMINDER.format(check=CHECK[client], question=QUESTION_TOOL.get(client, "the client's question tool"))
+    hook_state.save(client, session, dict(hook_state.load(client, session), reminded=current))
+    text = REMINDER.format(check=CHECK[client], offer=OFFER.as_posix(),
+                           question=QUESTION_TOOL.get(client, "the client's question tool"))
 
     if client == "codex":
         return {"decision": "block", "reason": text}
@@ -277,7 +312,10 @@ def handle(event, client, payload):
             answer(client, payload)
             return None
 
-        prompt(client, payload)
+        output = prompt(client, payload)
+
+        if output:
+            return output
     except Exception as error:
         logs.error(f"{client} {event} hook failed: {type(error).__name__}: {error}")
 

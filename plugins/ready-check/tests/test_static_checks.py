@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 
 PLUGIN = Path(__file__).resolve().parent.parent
@@ -602,6 +603,84 @@ class Yaml {
         self.assertEqual(self.checker(self.check(), "debug")["status"], "FAIL")
         self.write("web/modules/custom/demo/demo.php", "<?php\n\nxdump($value);\n")
         self.assertEqual(self.checker(self.check(), "debug")["status"], "PASS")
+
+
+class EslintFatalTest(unittest.TestCase):
+    def report(self, lines, messages):
+        sys.path.insert(0, str(PLUGIN / "profiles/_shared/core"))
+        from core_checks import Lint, eslint_report
+
+        lint = SimpleNamespace(lines=lines, findings=[], check="js", relative=lambda file: file)
+        lint.add = lambda *args, **kwargs: Lint.add(lint, *args, **kwargs)
+        eslint_report(lint, [dict(filePath="a.js", messages=messages)])
+        return lint.findings
+
+    def test_fatal_parse_error_ignores_the_changed_line_filter(self):
+        fatal = dict(line=40, message="Parsing error", severity=2, ruleId=None, fatal=True)
+        plain = dict(line=40, message="Unused", severity=2, ruleId="no-unused-vars")
+        self.assertEqual([f["message"] for f in self.report({"a.js": {1}}, [fatal, plain])], ["Parsing error"])
+        self.assertEqual(len(self.report({"b.js": None}, [fatal])), 0)
+        self.assertEqual(len(self.report({"a.js": None}, [fatal, plain])), 2)
+
+
+
+class StylelintSyntaxErrorTest(unittest.TestCase):
+    def report(self, lines, warnings):
+        sys.path.insert(0, str(PLUGIN / "profiles/_shared/core"))
+        from core_checks import Lint, stylelint_report
+
+        lint = SimpleNamespace(lines=lines, findings=[], check="js", relative=lambda file: file)
+        lint.add = lambda *args, **kwargs: Lint.add(lint, *args, **kwargs)
+        stylelint_report(lint, [dict(source="a.css", warnings=warnings)])
+        return lint.findings
+
+    def test_css_syntax_error_ignores_the_changed_line_filter(self):
+        syntax = dict(line=40, text="Unclosed block (CssSyntaxError)", severity="error", rule="CssSyntaxError")
+        plain = dict(line=40, text="Unexpected", severity="error", rule="color-no-invalid-hex")
+        self.assertEqual([f["message"] for f in self.report({"a.css": {1}}, [syntax, plain])], [syntax["text"]])
+        self.assertEqual(len(self.report({"b.css": None}, [syntax])), 0)
+        self.assertEqual(len(self.report({"a.css": None}, [syntax, plain])), 2)
+
+
+class FormatterDiffLinesTest(unittest.TestCase):
+    def setUp(self):
+        sys.path.insert(0, str(PLUGIN / "profiles/_shared/core"))
+
+    def test_insertions_count_on_both_neighbours_and_replacements_do_not(self):
+        from core_checks import changed_lines
+
+        self.assertEqual(changed_lines("@@ -10,3 +10,4 @@\n a\n+b\n c\n"), [10, 11])
+        self.assertEqual(changed_lines("@@ -5,0 +6,2 @@\n+x\n+y\n"), [5, 6])
+        self.assertEqual(changed_lines("@@ -0,0 +1,2 @@\n+x\n+y\n"), [1])
+        self.assertEqual(changed_lines("@@ -6,3 +6,2 @@\n-x=[1,\n-2]\n+x = [1, 2]\n y\n"), [6, 7])
+        self.assertEqual(changed_lines("@@ -1,2 +1,2 @@\n-a\n+b\n c\n\\ No newline at end of file\n"), [1])
+
+    def test_a_diff_without_numbered_hunks_is_reported_at_line_zero(self):
+        from core_checks import format_line
+
+        lint = SimpleNamespace(lines={"a.php": {7}}, relative=lambda name: name)
+        self.assertEqual(format_line(lint, "a.php", "--- Original\n+++ New\n@@ @@\n-a\n+b\n"), 0)
+        self.assertEqual(format_line(lint, "a.php", None), 0)
+        self.assertIsNone(format_line(lint, "b.php", "@@ @@\n-a\n+b\n"))
+        self.assertIsNone(format_line(lint, "a.php", "@@ -1,2 +1,2 @@\n-a\n+b\n"))
+
+
+class GitWhitespaceCheckTest(unittest.TestCase):
+    def run_check(self, stdout, lines):
+        sys.path.insert(0, str(PLUGIN / "profiles/_shared/core"))
+        from core_checks import Lint
+
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        lint = SimpleNamespace(temp=Path(temporary.name), files=["a.txt"], merge="", lines={"a.txt": lines}, findings=[],
+                               check="diff", relative=lambda file: file, call=lambda *args, **kwargs: (2, stdout, b""))
+        lint.add = lambda *args, **kwargs: Lint.add(lint, *args, **kwargs)
+        Lint.diff(lint)
+        return [(f["line"], f["message"]) for f in lint.findings]
+
+    def test_echoed_content_rows_are_not_parsed_as_findings(self):
+        out = b"a.txt:2: trailing whitespace.\n+meeting at 10:30: standup  \n"
+        self.assertEqual(self.run_check(out, None), [(2, "trailing whitespace.")])
 
 
 if __name__ == "__main__":

@@ -1,0 +1,22 @@
+{
+  "typeCheckingMode": "off",
+  "executionEnvironments": [
+    {
+      "root": "plugins/ready-check",
+      "extraPaths": [
+        "plugins/ready-check/scripts",
+        "plugins/ready-check/tests",
+        "plugins/ready-check/profiles/_shared/core",
+        "plugins/ready-check/profiles/_shared/php"
+      ]
+    },
+    {
+      "root": "plugins/gnothi",
+      "extraPaths": ["plugins/gnothi/scripts", "plugins/gnothi/tests"]
+    },
+    {
+      "root": ".",
+      "extraPaths": ["scripts", "tests"]
+    }
+  ]
+}

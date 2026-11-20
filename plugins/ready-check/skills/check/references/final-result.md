@@ -26,7 +26,7 @@ Check the following before marking the task ready:
 - Review includes applicable framework/stack practices from every applicable profile for actual installed versions and security paths,
   with code evidence and no missing essential coverage or unresolved blocking finding.
 - QA has a matching `PASS` or justified whole-stage `N/A` gate, environment evidence, and current coverage
-  for every RC acceptance condition. Include each applicable kind of scenario (browser, mobile, API, CLI or CI).
+  for every RC acceptance condition. Include each applicable kind of scenario (browser, mobile, desktop, API, CLI or CI).
   For whole-stage `N/A`, record why no QA scenario applies and cite current evidence for every condition.
 - The user approved the current QA plan when scenarios apply. The report records the approved revision,
   each required result and the QA gate output. General validation consent is insufficient.
@@ -52,10 +52,16 @@ Describe advisory findings and explicit scope limitations even on a ready result
 unverified acceptance condition or required check. Readiness applies to the recorded code and runtime state;
 it does not include publication or an assurance about untested environments.
 
+In the local chat result, link the action journals and the clips selected by the
+[QA recording handoff rules](../../qa/references/evidence.md#create-a-replay-and-hand-off-from-qa).
+Keep the failed attempt's video link when a retry passes. Report when expected footage was unavailable.
+Keep these links in the local handoff and out of shareable delivery text.
+
 ## Continue a successful partial run
 
 After reporting `PARTIAL CHECK COMPLETE`, ask one question in the user's language using the client's
-native choice tool or chat. Offer **Run remaining checks**, **Continue to commit and PR/MR**, and **Stop**.
+native choice tool or chat. Offer **Run remaining checks**, **Continue to commit and PR/MR**, and **Stop**, plus
+**Fix open notes** when [open notes](#offer-fixes-for-open-notes) remain.
 Name the outstanding stages. When there is room, list the remaining stages as individual choices in that
 question alongside delivery and stop. Otherwise, if the user chooses remaining checks, show each unselected
 applicable stage and accept any subset, all remaining stages, or stop. When only one stage remains, selecting
@@ -63,6 +69,20 @@ remaining checks selects that stage. Resume in the same task report using [check
 
 Selecting delivery keeps the partial verdict and proceeds to the delivery choices below. It does not authorize
 a commit, push, or PR/MR. Stopping ends the handoff at the current report.
+
+## Offer fixes for open notes
+
+When a `READY TO PUSH` or `PARTIAL CHECK COMPLETE` result leaves open nonblocking notes of this task
+(`suggestion`, `nitpick`, `question`, advisory checker findings on task lines), add **Fix open notes** to the
+question that follows the verdict and name their IDs, for example "Fix F-010, F-011":
+
+- After `PARTIAL CHECK COMPLETE`: **Run remaining checks**, **Fix open notes**, **Continue to commit and PR/MR**
+  and **Stop**.
+- After `READY TO PUSH`, in the delivery question: **Create PR/MR into `<target>`** when creation is available,
+  **Show commit message and PR/MR title and description in chat**, and **Fix open notes**.
+
+Claude Code's question UI adds Other and Skip itself. A `question` note needs the user's answer before any edit.
+On this choice make the [fix offer](../SKILL.md#fix-offer) for the selected notes; the fix starts the next round.
 
 ## Discover delivery options
 
@@ -90,7 +110,7 @@ and Git configuration to identify the destination repository and the source bran
   If a requested branch changes the checked scope, update the affected validation before publication.
 
 When creation is available, offer **Create PR/MR into `<target>`** and **Show commit message and PR/MR
-title and description in chat**. Show the destination repository, source branch, target branch and
+title and description in chat**, plus **Fix open notes** when [open notes](#offer-fixes-for-open-notes) remain. Show the destination repository, source branch, target branch and
 proposed title. Make the proposed English text available in the report before asking for creation.
 Let the user choose another target branch. If a commit or push is needed, show the
 proposed commit message and task files to be committed, and identify the source branch and remote to push.

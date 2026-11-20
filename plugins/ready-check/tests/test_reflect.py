@@ -7,6 +7,9 @@ from helpers import RepoTest
 import reflect_collect
 
 
+STAGES = {"READY TO PUSH": ("--static", "PASS", "--review", "PASS", "--qa", "PASS"), "BLOCKED": ("--review", "FAIL")}
+
+
 class ReflectTest(RepoTest):
     def task(self, title, rounds):
         target = self.entry_json("reports", "--project", str(self.repo), "--task", title)
@@ -14,7 +17,7 @@ class ReflectTest(RepoTest):
 
         for number, (verdict, extra) in enumerate(rounds, 1):
             self.entry_json("summary", "--project", str(self.repo), "--task", target["task_id"], "--round", str(number),
-                            "--verdict", verdict, *extra)
+                            "--verdict", verdict, *STAGES[verdict], *extra)
 
         return target["task_id"]
 

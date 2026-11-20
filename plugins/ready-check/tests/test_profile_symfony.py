@@ -231,5 +231,25 @@ class FakeToolsTest(unittest.TestCase):
         self.assertEqual(self.static()["schema"]["status"], "N/A")
 
 
+class CsFixerScopeTest(unittest.TestCase):
+    DIFF = "--- a/a.php\n+++ b/a.php\n@@ -3,3 +3,3 @@\n x\n-y  \n+y\n z\n@@ -20,2 +20,3 @@\n k\n+m\n l\n"
+
+    def found(self, scope):
+        from types import SimpleNamespace
+
+        sys.path.insert(0, str(PLUGIN / "profiles/symfony/scripts"))
+        from symfony_lint import csfixer_report
+
+        lines = []
+        lint = SimpleNamespace(lines={"a.php": scope}, relative=lambda name: name, add=lambda *args: lines.append(args[1]))
+        csfixer_report(lint, dict(files=[dict(name="a.php", appliedFixers=["x"], diff=self.DIFF)]))
+        return lines
+
+    def test_style_finding_requires_a_changed_line_in_the_task_scope(self):
+        self.assertEqual(self.found(None), [4])
+        self.assertEqual(self.found({21}), [21])
+        self.assertEqual(self.found({1, 2, 10}), [])
+
+
 if __name__ == "__main__":
     unittest.main()

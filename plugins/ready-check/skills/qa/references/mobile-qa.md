@@ -1,7 +1,8 @@
 # Native mobile QA
 
-Use existing device tests first. Use Maestro flows for native UI or OS-level behavior within the approved
-scenario. Playwright covers browser flows such as Flutter Web. Some changes need both.
+Use existing device tests first. Use Maestro flows or an available device UI tool for native UI and
+OS-level behavior. A user-guided procedure can also exercise a native scenario when approved in the plan
+and the required results can be observed. Playwright covers browser flows such as Flutter Web.
 
 1. Identify the app ID, build or commit, variant or flavor, test data, and expected result. Confirm the
    scenario's device, OS version and accessibility or permission state.
@@ -11,10 +12,11 @@ scenario. Playwright covers browser flows such as Flutter Web. Some changes need
 3. Review the approved flow for fixture effects like permission changes or clearing app data. Use accessible
    labels or stable identifiers to select elements. On supported Flutter versions, expose identifiers
    through `Semantics`. Match the flow to the test data and initial app state.
-4. Run `maestro --device <id> test <flow>` or the project's existing device test command. Compare the
+4. Run `maestro --device <id> test <flow>`, the project's existing device test command, or the approved manual procedure. Compare the
    test result and observable UI or platform behavior with the expected outcome. Record evidence under
    the same QA case as the app build, device and OS identity, tool version, exit or report status, and
    relevant logs and screenshots. Use existing device scopes when running `flutter test integration_test -d <id>`.
+5. Record observed steps in the journal. Follow [QA evidence](evidence.md) for any approved device recording.
 
 For a changed mobile security boundary, check the relevant OWASP MASVS controls and the approved negative
 case. For an approved design comparison, apply the [UI design checklist](../../review/references/ui-design.md)

@@ -8,7 +8,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 sys.dont_write_bytecode = True
 import logs
 from dependency_support import PLUGIN, data_root
-from project import BASE, LEGACY_BASE, ensure_excluded, migrate, project_file, toplevel, write_json
+from project import BASE, LEGACY_BASE, ensure_excluded, migrate, migration_lock, project_file, toplevel, write_json
 
 DEFAULTS = {"browser": "ask", "install": "ask", "captureTasks": True, "remind": True, "artifactLanguage": "English"}
 CHOICES = {"browser": {"ask", "visible", "background"}, "install": {"ask", "auto", "never"},
@@ -44,7 +44,7 @@ def valid(key, value):
                 (PLUGIN / "profiles" / value / "profile.json").is_file())
 
     if key == "artifactLanguage":
-        return isinstance(value, str) and re.fullmatch(r"[A-Za-z][A-Za-z -]{1,39}", value) is not None
+        return isinstance(value, str) and re.fullmatch(r"[A-Za-z][A-Za-z ()-]{1,39}", value) is not None
 
     if key == "application":
         path = PurePosixPath(value) if isinstance(value, str) else None
@@ -141,16 +141,17 @@ def store(key, value, top=None):
     if project:
         migrate(top)
         ensure_excluded(top)
-    data = read(project_file(top, path.name) if project else path)
-    if key == "profiles":
-        for item in value:
-            application_root(top, item["application"])
-        for field in SCALAR_SELECTION:
-            data.pop(field, None)
-    elif key in SCALAR_SELECTION and "profiles" in data:
-        raise ValueError("Replace the profiles list to change a configured selection")
-    data[key] = value
-    write_json(path, data, root)
+    with migration_lock(path.parent):
+        data = read(project_file(top, path.name) if project else path)
+        if key == "profiles":
+            for item in value:
+                application_root(top, item["application"])
+            for field in SCALAR_SELECTION:
+                data.pop(field, None)
+        elif key in SCALAR_SELECTION and "profiles" in data:
+            raise ValueError("Replace the profiles list to change a configured selection")
+        data[key] = value
+        write_json(path, data, root)
 
 
 def unset(key, top=None):
@@ -159,10 +160,11 @@ def unset(key, top=None):
     if project:
         migrate(top)
         ensure_excluded(top)
-    data = read(project_file(top, path.name) if project else path)
-    if key in data:
-        del data[key]
-        write_json(path, data, root)
+    with migration_lock(path.parent):
+        data = read(project_file(top, path.name) if project else path)
+        if key in data:
+            del data[key]
+            write_json(path, data, root)
 
 
 def shared_config(application):

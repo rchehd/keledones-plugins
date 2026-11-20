@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_shared/core"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from core_checks import TEMP, Parser
+from core_checks import TEMP, Parser, format_line
 import python_tools as tools
 
 PyCheck = namedtuple("PyCheck", "applies run plan")
@@ -17,7 +17,6 @@ SYNTAX = ("import ast, json, sys\nout = []\nfor name in sys.argv[1:]:\n    try:\
           "    except (ValueError, OSError) as error:\n        out.append({'file': name, 'line': 0, 'message': str(error)})\n"
           "print(json.dumps(out))\n")
 DIFF_FILE = re.compile(r"^--- ([^\r\n]+?)(?:\t[^\r\n]*)?\r?$", re.M)
-HUNK = re.compile(r"^@@ -(\d+)", re.M)
 MYPY_LINE = re.compile(r"^(.+?):(\d+)(?::\d+)?: (error|warning): (.*)$", re.M)
 DJANGO_ITEM = re.compile(r"^(\S[^:]*): \(([\w.]+)\) (.*)$")
 SEVERITY = {"HIGH": "error", "MEDIUM": "warning", "LOW": "warning"}
@@ -66,28 +65,16 @@ def ruff_report(lint, data):
     return reported
 
 
-def first_change(diff):
-    match = HUNK.search(diff)
-
-    if not match:
-        return 0
-    line = int(match[1])
-
-    for row in diff[match.end():].splitlines()[1:]:
-        if row.startswith(("+", "-")):
-            return line
-        line += 1
-
-    return int(match[1])
-
-
 def format_report(lint, text):
     reported = False
     parts = DIFF_FILE.split(text)
 
     for name, diff in zip(parts[1::2], parts[2::2]):
         reported = True
-        lint.add(name, first_change(diff), "File is not formatted as ruff format would write it", "error", "format")
+        line = format_line(lint, name, diff)
+
+        if line is not None:
+            lint.add(name, line, "File is not formatted as ruff format would write it", "error", "format")
 
     return reported
 

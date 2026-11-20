@@ -9,9 +9,10 @@ to the offer means `full`. A later instruction to narrow or expand the selection
 | All / `full` | `static`, `review` (requirements, framework/stack practices and security), `qa` |
 | Lints / statics | `static` |
 | Code review / security | `review`, including version-aware framework/stack practices and security from the applicable profiles |
-| Behavioral QA | `qa` for applicable browser, mobile, API, CLI and CI outcomes, with an approved scenario plan |
+| Behavioral QA | `qa` for applicable browser, mobile, desktop, API, CLI and CI outcomes, with an approved scenario plan |
 
-Accept explicit combinations. Selecting all three stages with all applicable coverage is full validation.
+Accept explicit combinations. Selecting every applicable stage with all applicable coverage is full validation;
+a stage that does not apply is `N/A` with a reason, not `NOT_SELECTED`.
 When the user names only a QA kind, such as Playwright QA, record the requested scope and leave other
 applicable QA kinds outside the verdict. Such an exclusion makes the result partial.
 Never silently narrow a failing full

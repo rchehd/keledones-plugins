@@ -14,6 +14,48 @@ from core_scope import DATA
 from core_toolchain import JS, STYLES
 
 TEMP = DATA + "/tmp"
+HUNK = re.compile(r"^@@ -(\d+)(?:,(\d+))? ")
+
+
+def changed_lines(diff):
+    lines, line, replacing = [], 0, False
+
+    for row in (diff or "").splitlines():
+        match = HUNK.match(row)
+
+        if match:
+            # "-N,0" inserts after line N, so the next old line is N + 1.
+            line, replacing = int(match[1]) + (match[2] == "0"), False
+        elif row.startswith("-") and line:
+            lines.append(line)
+            line, replacing = line + 1, True
+        elif row.startswith("+") and line:
+            # Added rows that replace removed rows are already covered by those rows.
+            if not replacing:
+                lines += [n for n in (line - 1, line) if n and n not in lines]
+        elif row.startswith(" ") and line:
+            line, replacing = line + 1, False
+
+    return lines
+
+
+def format_line(lint, name, diff):
+    relative = lint.relative(name)
+
+    if relative not in lint.lines:
+        return None
+
+    scope = lint.lines[relative]
+    changed = changed_lines(diff)
+
+    if not changed:
+        rows = [row for row in (diff or "").splitlines() if row[:1] in "+-" and row[:3] not in ("+++", "---")]
+        # A missing diff or one without numbered hunks has no position, so the file is reported at line 0 as before.
+        return 0 if rows or not diff else None
+
+    found = [n for n in changed if scope is None or n in scope]
+
+    return found[0] if found else None
 
 
 def checkstyle_report(lint, raw):
@@ -39,12 +81,9 @@ def eslint_report(lint, data):
     for entry in data:
         for item in entry["messages"]:
             reported = True
+            fatal = item.get("fatal") and lint.relative(entry["filePath"]) in lint.lines
             lint.add(entry["filePath"], item.get("line"), item["message"], "error" if item["severity"] == 2 else "warning",
-                     item.get("ruleId") or item.get("rule") or "eslint", True)
-
-        for item in entry.get("parseErrors", []):
-            reported = True
-            lint.add(entry["filePath"], item.get("line"), item.get("text", "Parse error"))
+                     item.get("ruleId") or item.get("rule") or "eslint", not fatal)
     return reported
 
 
@@ -57,8 +96,9 @@ def stylelint_report(lint, data):
     for entry in data:
         for item in entry.get("warnings", []):
             reported = True
+            fatal = item.get("rule") == "CssSyntaxError" and lint.relative(entry["source"]) in lint.lines
             lint.add(entry["source"], item.get("line"), item["text"], item.get("severity", "error"),
-                     item.get("ruleId") or item.get("rule") or "stylelint", True)
+                     item.get("ruleId") or item.get("rule") or "stylelint", not fatal)
 
         for item in entry.get("parseErrors", []):
             reported = True
@@ -243,7 +283,7 @@ class Lint:
             matched = False
 
             for row in stdout.decode(encoding="utf-8", errors="replace").splitlines():
-                match = re.match(r".*:(\d+): (.+)", row)
+                match = re.match(r"^(?!\+).*?:(\d+): (.+)", row)
 
                 if match:
                     matched = True

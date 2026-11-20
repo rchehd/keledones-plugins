@@ -30,7 +30,8 @@ Required when their inputs apply:
 
 - `ruff check` on changed Python files (project `[tool.ruff]`, `ruff.toml` or `.ruff.toml` wins; otherwise the managed
   default `E4, E7, E9, F, B`). Findings are limited to changed lines.
-- `ruff format --check --diff` (file-level finding at the first differing line).
+- `ruff format --check --diff` (one finding per file at the first line it would change inside the task's lines;
+  formatting elsewhere in the file is ignored).
 - Python syntax (`ast` compile with the project interpreter), debug leftovers (`breakpoint()`, `pdb`/`ipdb`
   `set_trace`, and `print(` outside `tests/`, `test_*.py` and `management/commands/`), diff formatting, ESLint/Stylelint.
 - mypy only when the project configures it (`[tool.mypy]`, `mypy.ini`, `setup.cfg`); otherwise `N/A`.

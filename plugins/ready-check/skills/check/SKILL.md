@@ -1,6 +1,6 @@
 ---
 name: check
-description: Check whether a task is ready to push through profile-based static analysis, framework/stack practices and security review, and user-approved browser, mobile, API, CLI or CI QA. Report scope and readiness. Use when the user asks to check before pushing, validate the task or changes, or confirm it is ready to push, merge or open a PR, for example "check before push", "pre-push check", "validate this", "validate my changes", "is it ready to push?", "make sure it's ready for review". When triggered by such a phrase rather than the explicit command, ask first whether to run Ready Check.
+description: Check whether a task is ready to push through profile-based static analysis, framework/stack practices and security review, and user-approved browser, mobile, desktop, API, CLI or CI QA. Report scope and readiness. Use when the user asks to check before pushing, validate the task or changes, or confirm it is ready to push, merge or open a PR, for example "check before push", "pre-push check", "validate this", "validate my changes", "is it ready to push?", "make sure it's ready for review". When triggered by such a phrase rather than the explicit command, ask first whether to run Ready Check.
 ---
 
 # Ready Check
@@ -190,14 +190,16 @@ or clarification. General validation consent does not approve an unseen QA plan.
 approved scenario IDs and the human decision; a material plan change needs renewed approval before its cases run.
 The skill reads applicable QA guidance per scenario and checks the relevant runtime. When tests are a
 deliverable, include the affected cases in the plan and run them in the
-[project test runner](../qa/references/project-tests.md). Interactive browser scenarios use visible
-(bundled Playwright MCP) or background (Playwright CLI) mode from the `browser` setting or the user's answer.
-Mobile cases use the project's device tests or Maestro. API, CLI and CI scenarios use the project's tools,
-test environment and current provider evidence.
+[project test runner](../qa/references/project-tests.md). For Playwright browser cases, use visible MCP or
+background CLI mode from the `browser` setting or the user's answer. The QA plan can also specify another
+available UI tool or a user-guided procedure for browser, mobile or desktop cases. API, CLI and CI scenarios use the
+project's tools, test environment and current provider evidence. Include recording scope and retention in QA
+plan approval. Follow the [QA evidence handoff](../qa/references/evidence.md#create-a-replay-and-hand-off-from-qa)
+for journal and video links in the local result.
 No second user invocation is needed.
 
 Keep scenarios, expected/actual outcomes, role and environment evidence, findings, and technical verification
-in the same report. Clarify consequential ambiguities as they appear. Applicable mobile, API, CLI and CI cases count
+in the same report. Clarify consequential ambiguities as they appear. Applicable mobile, desktop, API, CLI and CI cases count
 toward the QA gate. An unavailable tool, runtime or required evidence keeps the affected case `INCOMPLETE`.
 Use whole-stage `N/A` only when no QA scenario applies and current evidence covers every acceptance condition.
 Missing setup never becomes an implicit installation request.
@@ -240,7 +242,9 @@ Never fix without an answer. A fix changes only the approved findings, with the 
 scope: no unrelated refactoring, whole-file auto-fixers (`phpcbf`, `--fix` modes), baselines or suppressions,
 checker configuration changes, dependency installs or Git writes. Ask instead of fixing when a finding needs a
 design decision, changes a requirement, or is `INCOMPLETE` because of setup, access or an unanswered question;
-pre-existing issues and advisory notes are not offered. Record in the report's Decisions who fixed what, the
+pre-existing issues are not offered. List open nonblocking notes of this task (`suggestion`, `nitpick`,
+`question`, advisory checker findings on task lines) separately and include them only if the user asks; after a
+successful verdict they are offered as described in [final result](references/final-result.md#offer-fixes-for-open-notes). Record in the report's Decisions who fixed what, the
 files changed, and the user's choice. If a fix does not resolve the same finding after two attempts, stop and
 hand it to the user.
 

@@ -1,6 +1,9 @@
 import json
+import subprocess
+import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from helpers import RepoTest
 import detect
@@ -30,6 +33,37 @@ class SettingsTest(RepoTest):
         self.assertTrue(settings.valid("profile", "laravel"))
         self.assertFalse(settings.valid("profile", "nope"))
 
+    def test_artifact_language_allows_parentheses_only(self):
+        for value in ("Portuguese (Brazil)", "Chinese (Simplified)"):
+            self.assertTrue(settings.valid("artifactLanguage", value))
+
+        for value in ("English\n", "En;glish", 'En"glish', "En`glish`", "En$(id)", "a|b", "'English'"):
+            self.assertFalse(settings.valid("artifactLanguage", value))
+
+    def test_store_and_unset_take_the_settings_lock(self):
+        with patch.object(settings, "migration_lock", wraps=settings.migration_lock) as lock:
+            settings.store("browser", "visible")
+            settings.unset("browser")
+
+        self.assertEqual(lock.call_count, 2)
+
+    def test_concurrent_stores_keep_every_key(self):
+        code = ("import sys; sys.path.insert(0, %r); import settings; "
+                "settings.store(sys.argv[1], sys.argv[2])" % str(Path(settings.__file__).parent))
+        jobs = [("browser", "visible"), ("install", "auto"), ("artifactLanguage", "Polish")]
+
+        for _ in range(5):
+            settings.unset("browser")
+            settings.unset("install")
+            settings.unset("artifactLanguage")
+            processes = [subprocess.Popen([sys.executable, "-B", "-c", code, *job]) for job in jobs]
+
+            for process in processes:
+                self.assertEqual(process.wait(), 0)
+
+            self.assertEqual(json.loads(settings.user_path().read_text()),
+                             {"browser": "visible", "install": "auto", "artifactLanguage": "Polish"})
+
 
 class ProfileSelectionTest(RepoTest):
     def select(self, project=None, code=0):
@@ -49,6 +83,27 @@ class ProfileSelectionTest(RepoTest):
         self.assertEqual(views[("apps/site", "devops")]["runner"], "local")
         self.assertEqual(views[("apps/site", "drupal")]["evidence"], ["composer.json require drupal/core"])
         self.assertEqual(self.select(child)["profiles"], [views[("apps/site", "drupal")], views[("apps/site", "devops")]])
+
+    def test_php_module_inside_the_same_application_is_not_a_second_selection(self):
+        module = self.repo / "web/modules/custom/foo"
+        module.mkdir(parents=True)
+        (self.repo / "composer.json").write_text('{"require":{"drupal/core":"^10"}}')
+        (module / "composer.json").write_text('{"require":{"drupal/core":"^10"}}')
+        self.assertEqual([(item["profile"], item["application"]) for item in self.select()["profiles"]],
+                         [("drupal", ".")])
+        (module / ".ready-check.json").write_text('{"profile": "drupal"}')
+        self.assertIn(("drupal", "web/modules/custom/foo"),
+                      [(item["profile"], item["application"]) for item in self.select()["profiles"]])
+
+    def test_a_profile_overridden_at_the_ancestor_does_not_hide_a_nested_application(self):
+        site = self.repo / "apps/site"
+        module = site / "modules/foo"
+        module.mkdir(parents=True)
+        (site / "composer.json").write_text('{"require":{"drupal/core":"^10"}}')
+        (site / ".ready-check.json").write_text('{"profile": "generic"}')
+        (module / "composer.json").write_text('{"require":{"drupal/core":"^10"}}')
+        self.assertIn(("drupal", "apps/site/modules/foo"),
+                      [(item["profile"], item["application"]) for item in self.select()["profiles"]])
 
     def test_legacy_config_is_one_explicit_selection(self):
         child = self.repo / "apps"
