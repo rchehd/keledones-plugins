@@ -61,8 +61,11 @@ Sign in to GitHub with access to the repository and download the ZIP you want fr
 
 ## CI and releases
 
-Pull requests run the catalog checks and the Ready Check and Gnothi test matrices on Linux, macOS and Windows.
-Ready Check also runs its package, regression and installation checks in Ubuntu 24.04 on WSL 2.
+Pull requests that are ready for review run catalog checks and the Ready Check and Gnothi test matrices
+on Linux, Intel macOS, Apple Silicon macOS (ARM64), and Windows. Both plugins share a macOS regression
+job per architecture and Python version. Ready Check verifies installation and launches Chromium on
+both macOS architectures and runs its package, regression and installation checks in Ubuntu 24.04 on WSL 2.
+Mark a draft ready for review to run the full matrix on its current revision. Draft PRs skip runner jobs.
 To run the full suite on `main`, go to **Actions → CI → Run workflow** and select `main`.
 
 To release, push a new marketplace version tag such as `v0.1.0`. The **Plugin release** workflow runs the same
