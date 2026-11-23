@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 import os
+import stat
 import subprocess
 import sys
 from datetime import datetime
@@ -54,27 +55,43 @@ def blob_ids(top, names):
     return ids
 
 
+def untracked_mode(top, name, trust_executable):
+    mode = (top / os.fsdecode(name)).lstat().st_mode
+    if stat.S_ISLNK(mode):
+        return b"120000"
+    if stat.S_ISDIR(mode):
+        return b"160000"
+    return b"100755" if trust_executable and mode & stat.S_IXUSR else b"100644"
+
+
 def work_fingerprint(top):
-    # Git blob IDs of the working tree's files: staging or committing the same content keeps the fingerprint.
+    # Git modes and blob IDs stay stable when the same files are staged or committed.
     top = Path(top)
     entries = {}
 
     for row in git_bytes(top, "ls-files", "-s", "-z").split(b"\0"):
         if row:
             info, name = row.split(b"\t", 1)
-            entries[name] = entries.get(name, b"") + info.split()[1]
+            mode, blob, _ = info.split()
+            entries[name] = entries.get(name, b"") + mode + b" " + blob
 
-    changed = git_bytes(top, "diff", "--name-only", "--no-renames", "-z").split(b"\0")
-    untracked = git_bytes(top, "ls-files", "-z", "--others", "--exclude-standard").split(b"\0")
-    present = []
+    diff = iter(git_bytes(top, "diff", "--raw", "--no-renames", "--no-ext-diff", "-z").split(b"\0")[:-1])
+    modes = {name: info.split()[1] for info, name in zip(diff, diff)}
+    untracked = git_bytes(top, "ls-files", "-z", "--others", "--exclude-standard").split(b"\0")[:-1]
+    if untracked:
+        trust_executable = git_bytes(top, "config", "--type=bool", "--default=true", "--get", "core.filemode").strip() == b"true"
+        for name in untracked:
+            try:
+                modes[name] = untracked_mode(top, name, trust_executable)
+            except FileNotFoundError:
+                continue
 
-    for name in dict.fromkeys(filter(None, changed + untracked)):
-        if os.path.lexists(top / os.fsdecode(name)):
-            present.append(name)
-        else:
+    for name, mode in list(modes.items()):
+        if mode == b"000000" or not os.path.lexists(top / os.fsdecode(name)):
+            del modes[name]
             entries.pop(name, None)
 
-    entries.update(blob_ids(top, present))
+    entries.update((name, modes[name] + b" " + blob) for name, blob in blob_ids(top, modes).items())
 
     digest = hashlib.sha256()
 

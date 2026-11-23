@@ -11,7 +11,7 @@ task_id: [Slug of the task title plus the date of the first run, from the report
 Round: [1 for the first run; increment after each fix or retest]
 Verdict: [INCOMPLETE, BLOCKED, PARTIAL CHECK COMPLETE, or READY TO PUSH only for a full successful run]
 
-<!-- The three lines above stay in English; the rest of the report uses the Ready Check file language. -->
+<!-- Keep the three lines above and the Requirements revision and QA plan revision keys in English. -->
 
 Reason: [Open questions, confirmed findings, missing prerequisites, or current verified coverage]
 Report: [Absolute report path]
@@ -19,7 +19,7 @@ Report: [Absolute report path]
 ## Task
 
 [Requested outcome and source; state explicitly when the task is unknown]
-Requirements revision: [Increment when criteria or exclusions change]
+Requirements revision: [Positive integer, starting at 1. Increment when criteria or exclusions change]
 
 ## Scope
 
@@ -118,7 +118,7 @@ reasons relevant checks did not apply. Keep code inspection separate from runtim
 Stage status: [NOT_SELECTED, NOT_RUN, PASS, FAIL, INCOMPLETE, or justified whole-stage N/A]
 Can proceed to final result: [false until current QA coverage is complete and no blockers remain]
 Checked static snapshots and requirements revision: [Identity by profile/application or not yet checked]
-QA plan revision: [Increment when scenarios, criteria, roles, data scope or planned recording changes]
+QA plan revision: [Positive integer, starting at 1. Increment when scenarios, criteria, roles, data scope or planned recording change]
 Plan approval: [PENDING / APPROVED / REJECTED; human response and approved revision/RC revision/scenario IDs; not needed for justified whole-stage N/A or NOT_SELECTED]
 Task type and source: [Feature acceptance or bug trigger/corrected expectation/regressions, from session/task/human]
 Time: [Execution start/end or not run]

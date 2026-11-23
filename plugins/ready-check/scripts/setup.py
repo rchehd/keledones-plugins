@@ -14,7 +14,22 @@ from process_support import execute, find_command, node_entry
 from dependency_support import PLUGIN, asset_files, bundle_path, data_root, installed, outside_repositories, release_lock, take_lock, write_marker
 from managed_storage import prepare_storage
 from profile_selection import discover
-from settings import application_root, project_config
+from project import toplevel
+from settings import application_root, project_config, store
+
+
+PHPSTORM_HELP = "https://www.jetbrains.com/help/phpstorm/mcp-server.html"
+
+
+def enable_phpstorm(project, dry_run, request_id=None):
+    top = toplevel(project)
+    if not top or top.is_relative_to(PLUGIN):
+        raise ValueError("PhpStorm integration needs a project Git work tree")
+    if not dry_run:
+        store("phpstormMcp", True, top, phpstorm_request_id=request_id)
+    status = "PLANNED" if dry_run else "PASS"
+    return dict(schema_version=1, action="setup", status=status, components=[
+        dict(component="phpstorm", status=status, enabled=True, connection="UNVERIFIED", setup_url=PHPSTORM_HELP)])
 
 
 def command(argv, cwd, env, timeout):
@@ -201,7 +216,8 @@ def main():
     parser = argparse.ArgumentParser(description="Install Ready Check browser tools and framework-profile checkers outside the project.")
     parser.add_argument("--project", type=Path, required=True)
     parser.add_argument("--profile")
-    parser.add_argument("--component", choices=("all", "browser", "profile"), default="all")
+    parser.add_argument("--component", choices=("all", "browser", "profile", "phpstorm"), default="all")
+    parser.add_argument("--phpstorm-request", help="Complete the pending PhpStorm connection with this request ID")
     parser.add_argument("--browser", choices=("chromium", "firefox", "webkit"), default="chromium")
     parser.add_argument("--data-dir", type=Path, default=data_root())
     parser.add_argument("--runner-data-dir")
@@ -211,9 +227,13 @@ def main():
     components = ("browser", "profile") if args.component == "all" else (args.component,)
 
     try:
+        if args.phpstorm_request is not None and args.component != "phpstorm":
+            raise ValueError("--phpstorm-request requires --component phpstorm")
         options = dict(browser=args.browser, root=args.data_dir, runner_data_dir=args.runner_data_dir,
                        dry_run=args.dry_run, timeout=args.timeout)
-        if args.profile or "profile" not in components:
+        if args.component == "phpstorm":
+            result = enable_phpstorm(args.project, args.dry_run, args.phpstorm_request)
+        elif args.profile or "profile" not in components:
             result = install(args.project, args.profile, components, **options)
         else:
             top, selected, conflicts = discover(args.project)

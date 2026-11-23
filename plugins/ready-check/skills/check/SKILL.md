@@ -100,7 +100,8 @@ Show a compact requirements table and a TODO covering requirements, scope/profil
 requirements/stack/security review, QA-plan approval, QA, and the final result. Keep unselected stages
 NOT_SELECTED. Keep unresolved requirements `DRAFT`; mark sufficiently
 specified ones `DEFINED`. These statuses describe clarity, not whether the implementation satisfies a requirement.
-Record a requirements revision in the report and increment it when an answer changes criteria or exclusions.
+Record `Requirements revision: 1` for a new report and increment the number when an answer changes
+criteria or exclusions. Keep the key in English so the findings view can check it before accepting decisions.
 Revisit affected checks even when the code snapshot has not changed; old answers remain reusable context.
 
 Keep the TODO in the harness's native task-list tool whenever one is available (Claude Code's todo/task
@@ -111,7 +112,9 @@ The report's TODO section is the persisted copy for resuming; keep both in sync.
 ## 5. Run static checks and enforce the gate
 
 Run this stage only when selected and the task requirements, acceptance conditions, affected profiles and
-application roots, and diff scope are clear. Save the report using step 9 first. For each applicable pair,
+application roots, and diff scope are clear. Save the report using step 9 first. Capture the
+[findings source snapshot](../qa/references/interactive-ui.md#review-and-static-findings) before running
+statics so the findings view can confirm that its decisions apply to this code. For each applicable pair,
 read `instructions.static` and run `scripts/ready-check.py doctor --profile <id> --project <application-root>`
 with the agreed `--base` or `--commits`. Use the available Python 3 interpreter (`python3` on Unix, `py -3` or
 `python` on native Windows). For shell syntax, use the profile's result. For extra project checks, use the
@@ -190,8 +193,9 @@ When QA is selected and all selected preceding gates pass, follow the packaged [
 Pass the report, current requirements revision, complete RC list, any selected review matrix, affected
 profile and application pairs, and their static JSON or partial scope evidence. Build requirements and scenarios from the session's
 task history and human answers, distinguishing feature acceptance from bug reproduction and regression
-coverage. Show the QA plan in a standalone Markdown message before presenting the short approval prompt,
-then wait for explicit approval or clarification. General validation consent does not approve an unseen QA plan. Persist plan revision,
+coverage. Follow the QA skill's interactive approval or show the plan in standalone Markdown before the
+short chat approval prompt. Wait for explicit approval or clarification. General validation consent does not
+approve an unseen QA plan. Persist plan revision,
 approved scenario IDs and the human decision; a material plan change needs renewed approval before its cases run.
 The skill reads applicable QA guidance per scenario and checks the relevant runtime. When tests are a
 deliverable, include the affected cases in the plan and run them in the
@@ -233,6 +237,11 @@ running later stages. Keep their TODO items open; a paused run is not complete. 
 make the fix offer below.
 
 ## Fix offer
+
+When the user chooses the [interactive findings view](../qa/references/interactive-ui.md#review-and-static-findings),
+include current static or review findings and read the saved decisions. Treat Fix as the user's selection
+of those finding IDs for the current session. Re-read `ui decision` immediately before editing to confirm
+the reviewed source and the selection are still current, then apply the same scope and recheck rules below.
 
 When a stage ends with confirmed blocking findings (static `FAIL`, review `FAIL`, or QA `FAIL`), save the
 report, list the finding IDs with a one-line cause each, and ask once in the user's language how to fix them:

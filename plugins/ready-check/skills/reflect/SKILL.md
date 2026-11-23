@@ -41,6 +41,8 @@ if available. Wait for the choice before reading data. An explicit request for `
 
    Group feedback reasons by meaning into the typical errors; never change the script's counts. Say which values are
    `unknown` (older tasks without round summaries) instead of guessing.
+   When present, report interactive false-positive and risk-acceptance counts from `view_dispositions`.
+   Use each task's `view_feedback` source and reason to identify noisy checks separately from task returns.
 4. Give the HTML report path (`html` in the JSON). Charts need the installed browser tools; otherwise it has tables.
 
 ## 2. Ask

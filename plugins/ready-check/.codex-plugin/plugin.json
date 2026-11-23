@@ -23,6 +23,10 @@
   },
   "hooks": "./hooks/codex-hooks.json",
   "mcpServers": {
+    "ready-ui": {
+      "command": "node",
+      "args": ["${PLUGIN_ROOT}/scripts/mcp.mjs", "--ui"]
+    },
     "ready-playwright": {
       "command": "node",
       "args": [

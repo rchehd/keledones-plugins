@@ -25,6 +25,17 @@ claude plugin validate --strict .
 
 Then try the change on one task with your client and describe the result without client details.
 
+For changes under `ui/`, install the pinned build dependencies and rebuild the packaged HTML:
+
+```sh
+cd ui
+npm ci --ignore-scripts
+npm run build
+```
+
+Include `ui/dist/index.html` and the generated third-party notices in the change. The MCP server and local
+browser view serve this single file. Test a QA decision in each view when changing their shared controls.
+
 ## Pull requests
 
 - One change per pull request.

@@ -138,6 +138,17 @@ it), or you fix it. After a fix, or when you say "retest", the next round reruns
 affect: static checks, review of changed code and its callers, failed and related QA cases and each RC's main
 flow; shared-code changes or "full recheck" run everything.
 
+**Interactive views.** Ask to open the QA plan, results gallery, review findings, or Ready Check settings.
+Ready Check presents an MCP App in compatible clients and provides the same view on a local browser page
+otherwise. Decisions are saved with the current report revision. The chat flow is also available.
+Both views use the packaged Web Awesome components with the Awesome theme and Ready Check colors.
+See the [interactive views guide](skills/qa/references/interactive-ui.md).
+
+**PhpStorm.** After a full setup, choose whether to connect its optional MCP inspections. You can also
+say "Connect PhpStorm MCP" later. With the integration enabled and the right project open in the IDE,
+review can use inspection warnings and errors as evidence candidates. See the
+[connection guide](skills/setup/references/phpstorm.md).
+
 **Browser.** Browser scenarios run in a **visible** browser (bundled Playwright MCP; you watch and can log in yourself) or in
 the **background** (Playwright CLI). The agent asks for a mode unless you set a default:
 `config set browser visible|background`. In Drupal the agent logs in through `drush uli`, in Symfony through `login_link` when configured, elsewhere

@@ -3,7 +3,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const entry = join(dirname(fileURLToPath(import.meta.url)), "ready-check.py");
-const args = [entry, "mcp", ...process.argv.slice(2)];
+const parameters = process.argv.slice(2);
+const action = parameters[0] === "--ui" ? "ui-mcp" : "mcp";
+const args = [entry, action, ...(action === "ui-mcp" ? parameters.slice(1) : parameters)];
 
 // 9009 is the Windows "command not found" exit, also returned by the Store python3 stub.
 function run(candidates) {
@@ -16,7 +18,7 @@ function run(candidates) {
       run(rest);
       return;
     }
-    console.error(`Cannot start Ready Check Playwright MCP: ${error.message}`);
+    console.error(`Cannot start Ready Check MCP: ${error.message}`);
     process.exit(2);
   });
   child.on("exit", (code, signal) => {

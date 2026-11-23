@@ -23,6 +23,9 @@ If the task, requirements, base, applicable profiles and roots, or required scop
 to resolve it. Do not infer requirements solely from the diff or begin implementation review without them.
 Use existing answers rather than asking for the same facts again.
 
+Capture the [findings source snapshot](../qa/references/interactive-ui.md#review-and-static-findings)
+before inspecting code, and keep it with the findings for the interactive view.
+
 For each applicable pair, read its static JSON. It must have `action: static`, `status: PASS` or justified `N/A`, `can_proceed: true`,
 and the same application, base, profile and profile version as the task report. A successful doctor result
 is not a substitute. Check that every required applicable profile check has a successful result or a reasoned
@@ -187,6 +190,9 @@ update the same report and revisit rows affected by the answer.
 
 ## Substantiate findings
 
+If PhpStorm MCP is enabled, follow the [optional IDE inspections](references/phpstorm.md) for the current
+diff. The same evidence and blocking rules apply to findings from every source.
+
 Report a blocker only with a specific requirement mismatch, demonstrated security defect or incorrect
 version-specific API use, or demonstrable regression in an affected path.
 Describe the trigger, expected and actual behavior inferred from code, exact file and current line, and
@@ -218,6 +224,8 @@ Update the Ready Check report with exactly one row for every current RC:
 Add the practices/security table, findings, open questions, nonblocking observations, limitations, the static
 snapshots reviewed (or partial scope identities), and the
 current requirements revision. Changed criteria invalidate affected review rows even if the diff is unchanged.
+Offer the [interactive findings view](../qa/references/interactive-ui.md#review-and-static-findings)
+when there are current findings. Let `check` process selected fixes and re-evaluate decisions against the rubric.
 Record which relevant framework checks were considered and concise reasons for any that did not apply.
 Compare the matrix IDs with the source requirement list; omitted or duplicate RC rows must be resolved.
 

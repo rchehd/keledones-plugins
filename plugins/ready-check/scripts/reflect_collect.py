@@ -63,6 +63,25 @@ def test_problems(rounds):
     return sorted(problem for problem in problems if problem)
 
 
+def view_feedback(directory):
+    from ui_state import gallery_actions, object_at
+
+    for filename in sorted(directory.glob("ui-*-decision-*.json")):
+        try:
+            decision = object_at(filename)
+        except (ValueError, OSError):
+            continue
+        if decision.get("view") == "review":
+            for row in decision.get("rows", []):
+                if row.get("action") in {"false-positive", "accept-risk"}:
+                    yield dict(row, round=decision.get("round"))
+        if decision.get("view") == "qa-results":
+            for action in gallery_actions(decision):
+                if action["action"] == "false-positive":
+                    yield dict(id=action["scenario"], action="false-positive", source="QA",
+                               reason=action["reason"], round=decision.get("round"))
+
+
 def task_record(item, feedback):
     directory = item["directory"]
     keys = key_lines(directory / "report.md")
@@ -83,6 +102,7 @@ def task_record(item, feedback):
                 returned=bool(returned), returned_missed=any(record.get("missed") is True or record.get("missed") == "yes"
                                                               for record in returned),
                 return_reasons=[record.get("reason") for record in returned], has_summary=bool(rounds),
+                view_feedback=list(view_feedback(directory)),
                 report=str(directory / "report.md"))
 
 
@@ -116,8 +136,9 @@ def collect(top, limit):
     )
     reasons = [dict(task=record.get("task"), reason=record.get("reason"), area=record.get("area"),
                     missed=record.get("missed")) for record in returns]
+    dispositions = Counter(row["action"] for task in tasks for row in task["view_feedback"])
     return dict(tasks=tasks, totals=totals, areas=areas.most_common(), returns_per_week=sorted(weeks.items()),
-                feedback_reasons=reasons)
+                feedback_reasons=reasons, view_dispositions=dict(dispositions))
 
 
 def chart_source():

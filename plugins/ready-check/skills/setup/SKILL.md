@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Install, reinstall or diagnose Ready Check tools (Playwright, the browser and framework-profile checkers) and change the install decision or project type, when the automatic first run did not cover it.
+description: Install or diagnose Ready Check tools, open Ready Check settings, or connect optional PhpStorm MCP inspections. Trigger on “Connect PhpStorm MCP” and “Підключи PhpStorm MCP”.
 ---
 
 # Ready Check setup
@@ -18,6 +18,9 @@ if none is open, ask which local project to prepare. The plugin directory is nev
 
 Detect the host Python 3 interpreter: `python3` on Linux/macOS/WSL, `py -3` or `python` on native Windows.
 Use the portable entry point `<plugin>/scripts/ready-check.py`; Bash and WSL are not required.
+
+For a request specifically to connect PhpStorm MCP, go directly to the [connection flow](references/phpstorm.md).
+For a request to show Ready Check settings, open the [settings widget](../qa/references/interactive-ui.md#settings).
 
 Run `ready-check.py profiles --project <repo>` to get the detected or configured profiles, application roots
 relative to the repository, runners and detection evidence. Keep independent matches, including several
@@ -63,7 +66,8 @@ the session rule or first-run question never appears there, tell the user to tru
 ## Finish
 
 Report the profiles with their application roots and runners, the components, versions and remaining prerequisites. Setup results are
-not a task-readiness verdict. If the user also asked to check a task, continue with the packaged
+not a task-readiness verdict. After a successful full installation, follow the Yes/No offer in the
+[PhpStorm connection flow](references/phpstorm.md). If the user also asked to check a task, continue with the packaged
 [check skill](../check/SKILL.md) in this chat; otherwise show the `check` command as the next step.
 
 Do not commit, push, publish, install another plugin, or modify global skills.

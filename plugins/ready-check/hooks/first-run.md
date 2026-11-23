@@ -10,4 +10,6 @@ Commands (run them yourself; show them to the user only if you cannot run comman
 different profiles in the same directory. If the user corrects a profile, root, or runner, edit that selection.
 Resolve conflicting candidates before running either command.
 Installation output appears in the chat; finish with its final "Ready Check is ready" or failure line.
+After successful installation of all tools, follow the optional Yes/No PhpStorm MCP question in the installed
+setup skill's `references/phpstorm.md`. The install choice does not approve the optional connection.
 Then answer the user's original message.
