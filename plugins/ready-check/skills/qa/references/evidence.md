@@ -3,7 +3,7 @@
 Add the evidence choice to the existing QA plan approval. Identify the browser or mobile scenarios to record,
 the capture method, and what to keep. Ask for recording approval before execution. For approved cases, start
 capture on the first attempt so a failure can be shown as it happened. Keep failure footage by default. Keep
-successful footage for an explicitly requested demo or when the plan requires video as an acceptance condition.
+successful footage when the approved plan calls for it as evidence, for a requested demo, or as a required result.
 Journal the executed steps for every scenario.
 
 Start capture after authentication and stop before switching accounts or showing unrelated content. Use test
@@ -109,14 +109,29 @@ For user-guided cases, identify which actions and results the agent observed and
 
 ## Create a replay and hand off from QA
 
-Apply retention and chat handoff by attempt once its outcome is known.
+Decide what to keep and what to show separately for each attempt once its outcome is known. Preserve the
+journal, expected and observed result, and relevant evidence in the report. In chat, show the evidence
+that establishes the result for the case.
 
-| Outcome | Local chat handoff |
+| What the case checks | Evidence to show beside the scenario ID |
 | --- | --- |
-| `PASS` on the first attempt | Give the result and action journal. Discard temporary footage produced for this attempt unless the plan selected a demo or required video. |
-| `FAIL`, including the first attempt | Report the failure and journal right away. Link the approved video or replay of that attempt once verified. A retry is unnecessary to produce this evidence. |
-| `PASS` after a retry | Report the final `PASS` and the prior failure. Link the failed attempt's footage when available. Retain the successful retry's video only for a planned demo or required video. |
-| Planned demo or required video | Link the approved and verified clip even on `PASS`. For required video, cite the actual clip for the result in the QA gate input. |
+| Stable layout, visible message or saved form state | Show a screenshot of the decisive state. Use two labeled screenshots when the comparison matters, such as before and after or two orientations. |
+| Timing, focus movement, animation, drag or intermittent behavior | Show the approved and verified video when playback is supported. For a long recording, link the replay and give the relevant steps or timestamps. |
+| A sequence and a final visual state | Show both if each establishes something different. Label the moment shown in the clip and the state visible in the screenshot. |
+| API, persistence, accessibility scan or CI result | Show the decisive observed value or short diagnostic excerpt. Link the trace, journal or raw result. Use a screenshot or clip when a separate visual claim needs it. |
+
+Use a Markdown image for a verified, client-accessible screenshot with a label that describes the shown state.
+For a short video use the client's inline media preview when supported. Put “Replay with steps” beside it
+in the user's language when available. If inline playback is unavailable, give a direct video link when the
+file is accessible in that client. For long recordings, give a replay link and the relevant timestamps.
+Keep other evidence in the report. Never present a planned action, placeholder or inaccessible file as
+observed evidence. If no video was approved or the clip is unavailable, state the limitation when it affects
+what can be shown and link the evidence actually collected.
+
+Report failures as soon as observed. A retry is unnecessary to produce a picture or clip of an already
+observed failure. On a passing retry, report both outcomes and keep the failed attempt's evidence available.
+Show a planned demo or required video even on `PASS`. Use the actual passing attempt's clip when video is
+required. Discard temporary passing footage if the approved plan retained failures only.
 
 Delete only temporary files created by Ready Check for the current passing attempt. Preserve other artifacts,
 user-supplied recordings, and any runner video that also contains a failed or unknown attempt. When a runner
@@ -149,12 +164,18 @@ python3 <plugin>/scripts/ready-check.py qa-replay --project <app> --task <task-i
   --case QA-001 --video QA-001-attempt-1.webm.capture/QA-001-attempt-1.webm --at <step-id>=7.25
 ```
 
-Use the user's language and put the links beside the scenario ID. Examples include
-`QA-001 · PASS · Action journal`, `QA-002 · FAIL · Watch failed attempt · Action journal`, and
-`QA-003 · PASS after retry · Watch failed attempt · Action journal`. Use actual absolute paths for local
-links in desktop chat. Use a local media preview when available. A remote recording needs to be retrieved
-to a client-accessible location before linking it. Keep report references relative to the task and media
-local unless the user separately authorizes sharing it.
+Use the user's language. Put the evidence under the matching scenario ID and verdict, followed by links
+to the journal or replay. Use the path format supported by the current client:
+
+- **Codex Desktop:** Write `![Observed card layout]` immediately followed by `(/absolute/path/QA-001.png)`.
+  Use the same syntax with a WebM or MP4 path when the client supports inline playback.
+- **Cursor Agents Window:** Use a workspace-relative path in the Markdown image for a screenshot in the
+  workspace. Link the video file or replay for playback outside the chat.
+- **Claude Code Desktop:** In a local session, link the video or HTML replay so it opens in the Browser
+  pane. Link the screenshot file when the client cannot preview it inline.
+
+For terminal and remote sessions, use a preview or link the active client can access. Keep report
+references relative to the task and media local.
 
 [Playwright CLI video](https://github.com/microsoft/playwright-cli/blob/v0.1.23/skills/playwright-cli/references/video-recording.md) ·
 [Playwright MCP](https://github.com/microsoft/playwright-mcp/blob/v0.0.84/README.md) ·

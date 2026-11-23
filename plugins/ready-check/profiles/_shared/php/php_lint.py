@@ -143,12 +143,16 @@ def phpstan(lint):
     if not paths:
         raise ValueError("No analysable PHP files")
 
+    generated = None
     if not config:
         root = lint.selected["environment"]["LINT_PHPSTAN_TOOLS"]
         optional = [e for package, e in lint.spec.phpstan.get("optional_includes", ()) if lint.runner.exists(lint.runner.path("vendor", package), "dir")]
         includes = [root + "/vendor/" + p for p in (*lint.spec.phpstan["includes"], *optional)]
-        config = lint.temporary("phpstan.neon", "includes:\n" + "".join("  - " + json.dumps(p) + "\n" for p in includes)
-                                + f"parameters:\n  level: {lint.spec.phpstan['level']}\n  reportUnmatchedIgnoredErrors: false\n")
+        generated = "includes:\n" + "".join("  - " + json.dumps(p) + "\n" for p in includes)
+        generated += f"parameters:\n  level: {lint.spec.phpstan['level']}\n  reportUnmatchedIgnoredErrors: false\n"
+        if lint.selected.get("fresh_analysis"):
+            generated += f"  tmpDir: {json.dumps(lint.temporary_path('phpstan-cache'))}\n"
+        config = lint.temporary("phpstan.neon", generated)
     args = [tool["path"], "analyse", "-c", config, "--error-format=json", "--no-progress", "--memory-limit=-1"]
 
     if tool["source"] != "project":
@@ -156,7 +160,12 @@ def phpstan(lint):
 
     if os.environ.get("LINT_LEVEL"):
         args += ["--level=" + os.environ["LINT_LEVEL"]]
-    lint.parse("phpstan", *lint.call([*args, *paths]))
+    result = lint.call([*args, *paths])
+    handle_report = lint.spec.phpstan.get("handle_report")
+    if handle_report:
+        handle_report(lint, result, args, paths, generated if tool["source"] == "profile" else None)
+    else:
+        lint.parse("phpstan", *result)
 
 def composer(lint):
     for directory in sorted({Path(f).parent.as_posix() for f in lint.files if Path(f).name in {"composer.json", "composer.lock"}}):

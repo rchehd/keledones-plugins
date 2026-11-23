@@ -25,6 +25,7 @@ def main():
     scope.add_argument("--commits", nargs="+")
     parser.add_argument("--path", action="append", help="Limit results to a path relative to the application")
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--static-result", type=Path, help="With doctor, verify a saved static result against the current inputs")
     parser.add_argument("--timeout", type=int, default=180)
     args = parser.parse_args()
     plugin = Path(__file__).resolve().parent.parent
@@ -38,8 +39,13 @@ def main():
         project = args.project.resolve(strict=True)
         if not project.is_dir() or args.timeout <= 0:
             raise ValueError("A project directory and a positive timeout are required")
+        saved_static = args.static_result.resolve() if args.static_result else None
+        if saved_static and (args.action != "doctor" or not saved_static.is_file()):
+            raise ValueError("--static-result requires doctor and a saved static report file")
         if args.output:
             candidate = args.output.resolve()
+            if candidate == saved_static:
+                raise ValueError("Save the doctor report separately from the static result being verified")
             top = toplevel(project)
             forbidden = [plugin, project]
             if top:
@@ -66,6 +72,8 @@ def main():
         argv = [sys.executable, str(entry), args.action, "--project", str(project), "--timeout", str(args.timeout)]
         if output:
             argv += ["--evidence-dir", str(output.parent / "evidence")]
+        if saved_static:
+            argv += ["--static-result", str(saved_static)]
         argv += ["--base", args.base] if args.base else ["--commits", *args.commits]
         argv.extend(f"--path={path}" for path in args.path or [])
         process = subprocess.run(argv,

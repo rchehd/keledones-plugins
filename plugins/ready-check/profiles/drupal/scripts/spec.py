@@ -5,8 +5,12 @@ from pathlib import Path
 
 DIRECTORY = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(DIRECTORY.parent / "_shared/php"))
+sys.path.insert(0, str(DIRECTORY / "scripts"))
 from php_provider import PHP, Extra
 from php_runtime import php
+from phpstan_bootstrap import handle_report
+from detect import application_roots
+from project import toplevel
 
 PHP_EXTENSIONS = {".php", ".module", ".inc", ".install", ".theme", ".profile", ".engine", ".test"}
 CORE_FILE = "core/lib/Drupal.php"
@@ -69,6 +73,7 @@ class DrupalSpec:
                  extensions="php,module,inc,install,test,profile,theme,engine",
                  installed_paths=("drupal/coder/coder_sniffer", "slevomat/coding-standard", "sirbrillig/phpcs-variable-analysis"))
     phpstan = dict(label="phpstan-drupal level 3", level=3, config_dirs=("", "web/", "docroot/", "html/"),
+                   handle_report=handle_report,
                    extension="mglaman/phpstan-drupal/extension.neon", extension_name="phpstan-drupal",
                    includes=("mglaman/phpstan-drupal/extension.neon", "mglaman/phpstan-drupal/rules.neon",
                              "phpstan/phpstan-deprecation-rules/rules.neon"),
@@ -85,6 +90,36 @@ class DrupalSpec:
     def core_prefixes(self):
         profile = json.loads(DIRECTORY.joinpath("profile.json").read_text(encoding="utf-8"))
         return tuple(p.removesuffix("lib/Drupal.php") for p in profile["detection"]["core_paths"])
+
+    def linked_application(self, source):
+        repository = toplevel(source)
+        core_paths = tuple(Path(prefix) / "lib/Drupal.php" for prefix in self.core_prefixes)
+        if not repository or source == repository or any((source / path).is_file() for path in core_paths):
+            return None
+
+        manifest = json.loads((DIRECTORY / "profile.json").read_text(encoding="utf-8"))
+        matches = []
+        for project in application_roots(repository, (manifest,)):
+            if project == source:
+                continue
+            for core in core_paths:
+                if not (project / core).is_file():
+                    continue
+                docroot = project.joinpath(*core.parts[:-3])
+                for extensions in ("profiles", "modules", "themes"):
+                    folder = docroot / extensions
+                    if not folder.is_dir() or folder.resolve() != folder:
+                        continue
+                    children = sorted(folder.iterdir())
+                    links = [*children, *(entry for child in children if child.is_dir() and child.resolve() == child
+                                           for entry in sorted(child.iterdir()))]
+                    matches.extend((project, link.relative_to(project).as_posix(), core) for link in links
+                                   if link.is_symlink() and link.is_dir() and link.resolve() == source)
+
+        if len(matches) > 1:
+            paths = ", ".join(str(project / link) for project, link, _ in matches)
+            raise ValueError(f"Multiple installed Drupal links for {source}: {paths}")
+        return matches[0] if matches else None
 
     def major(self, project):
         for relative in ("web", "docroot", "html", "."):

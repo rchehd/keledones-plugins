@@ -68,6 +68,7 @@ def main():
     parser.add_argument("--round", type=int, required=True)
     parser.add_argument("--verdict", required=True, choices=VERDICTS)
     parser.add_argument("--static", default="NOT_RUN")
+    parser.add_argument("--static-attempt", choices=("INCOMPLETE",), help="Prior static result before narrowing the current scope")
     parser.add_argument("--review", default="NOT_RUN")
     parser.add_argument("--qa", default="NOT_RUN")
     parser.add_argument("--finding", action="append", help="ID:label:stage:area:rc:status")
@@ -86,6 +87,9 @@ def main():
                 raise ValueError(f"--{name} must be one of {sorted(STATUSES)}")
 
         stages = dict(static=args.static, review=args.review, qa=args.qa)
+        if args.static_attempt and (args.static != "NOT_SELECTED" or args.review == args.qa == "NOT_SELECTED"):
+            raise ValueError("--static-attempt requires statics outside the current scope and review or QA selected")
+
         findings = parse_items(args.finding, ("id", "label", "stage", "area", "rc", "status"))
 
         if any(item["status"] not in {"open", "fixed"} for item in findings):
@@ -108,6 +112,8 @@ def main():
                      head=git(top, "rev-parse", "HEAD"), fingerprint=work_fingerprint(top), verdict=args.verdict,
                      stages=stages, findings=findings,
                      qa=parse_items(args.qa_case, ("id", "status", "attempt")))
+        if args.static_attempt:
+            entry["static_attempt"] = args.static_attempt
         result.update(status="PASS", file=str(append(target["directory"], entry, top)), task_id=target["task_id"])
     except (OSError, ValueError) as error:
         result["reason"] = str(error)

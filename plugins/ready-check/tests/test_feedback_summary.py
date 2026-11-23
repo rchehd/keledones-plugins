@@ -31,6 +31,16 @@ class SummaryFeedbackTest(RepoTest):
         process = self.run_entry("summary", "--project", str(self.repo), "--task", "x", "--round", "1", "--verdict", "DONE")
         self.assertEqual(process.returncode, 2)
 
+    def test_summary_keeps_incomplete_static_attempt_in_partial_scope(self):
+        task = self.new_task()["task_id"]
+        stages = ("--static", "NOT_SELECTED", "--static-attempt", "INCOMPLETE", "--review", "PASS", "--qa", "PASS")
+        self.summary(task, 1, "READY TO PUSH", *stages, code=2)
+        self.summary(task, 1, "PARTIAL CHECK COMPLETE", *stages)
+        entry = json.loads(Path(self.new_task(task)["summary"]).read_text())["rounds"][0]
+        self.assertEqual(entry["static_attempt"], "INCOMPLETE")
+        self.assertEqual(entry["stages"], dict(static="NOT_SELECTED", review="PASS", qa="PASS"))
+        self.summary(task, 1, "PARTIAL CHECK COMPLETE", *stages, "--static", "PASS", code=2)
+
     def test_verdict_must_match_stages_and_open_blockers(self):
         task = self.new_task()["task_id"]
 

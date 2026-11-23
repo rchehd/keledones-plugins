@@ -7,6 +7,7 @@ sys.dont_write_bytecode = True
 import detect
 import settings
 from project import toplevel
+from profile_runtime import profile_runner
 
 FIELDS = ("profile", "runner", "application")
 
@@ -28,9 +29,15 @@ def parse_argument(value):
 
 def describe(top, item, source, manifest, evidence):
     directory = settings.application_root(top, item["application"])
-    return dict(item, source=source, evidence=evidence, name=detect.profile_name(item["profile"]),
-                version=detect.profile_version(directory, item["profile"]),
-                framework=detect.framework(directory, manifest))
+    description = dict(item, source=source, evidence=evidence, name=detect.profile_name(item["profile"]),
+                       version=detect.profile_version(directory, item["profile"]),
+                       framework=detect.framework(directory, manifest))
+    if item["profile"] == "drupal":
+        runner, _ = profile_runner(directory, item["profile"])
+        if runner.linked_path:
+            description.update(runner=runner.name, version=detect.profile_version(runner.project, item["profile"]),
+                               linked_application=runner.project.relative_to(top).as_posix(), linked_path=runner.linked_path)
+    return description
 
 
 def discover(project):

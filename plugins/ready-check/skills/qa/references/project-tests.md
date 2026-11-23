@@ -34,7 +34,7 @@ already provisioned tools and fixtures. Plan the exact selection before executin
 - For approved failure footage that meets the authentication rule above, use a runner setting that records
   the first attempt and retains failed attempts even if a retry passes. Playwright Test supports
   `use.video: 'retain-on-failure'` for retention. It can record authentication that happens during the test.
-  Use a recording mode that keeps successful clips for approved demos and required video. If the available
+  Keep successful clips when the plan specifies video as evidence, a demo or required proof. If the
   runner cannot capture the first attempt, disclose that limitation in the plan or use an approved fallback.
 - For suites that exercise an API, a device or a CLI, use the corresponding scenario kind. Record a
   local runner invocation for unit, kernel or other service integration tests as a CLI scenario.

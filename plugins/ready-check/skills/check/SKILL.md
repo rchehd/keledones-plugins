@@ -152,7 +152,12 @@ project commands in the static gate and record their individual outcomes before 
 Aggregate the static stage as `FAIL` if any required check failed, otherwise `INCOMPLETE` if any required
 result is missing, stale, or incomplete. Use `PASS` when all applicable pairs can proceed and at least one
 required check passed, or `N/A` when all required checks are inapplicable with reasons. Keep later selected
-review and QA `NOT_RUN` until every applicable pair has `can_proceed: true` and any required project commands pass.
+review and QA `NOT_RUN` until every applicable pair has `can_proceed: true` and any required project commands
+pass, or the user explicitly [narrows the selection after incomplete statics](references/check-selection.md#continue-after-incomplete-statics).
+When a check reports `bootstrap_conflict`, surface the function, both declaration locations and log. If it
+also reports `bootstrap_recovery`, record which file was scanned without being loaded. When reusing a saved
+static result, including on resume, pass `--static-result <static-json>` to the fresh doctor for that pair.
+Rerun statics if doctor reports a changed or unavailable input.
 
 After a fix (by the user or an approved agent fix), repeat the doctor and static checks for the current
 diff, refresh the evidence, and retain earlier findings as resolved history where useful. Do not reuse a
@@ -185,8 +190,8 @@ When QA is selected and all selected preceding gates pass, follow the packaged [
 Pass the report, current requirements revision, complete RC list, any selected review matrix, affected
 profile and application pairs, and their static JSON or partial scope evidence. Build requirements and scenarios from the session's
 task history and human answers, distinguishing feature acceptance from bug reproduction and regression
-coverage. Show RCs, steps, expected outcomes, roles and test-data scope, then wait for explicit approval
-or clarification. General validation consent does not approve an unseen QA plan. Persist plan revision,
+coverage. Show the QA plan in a standalone Markdown message before presenting the short approval prompt,
+then wait for explicit approval or clarification. General validation consent does not approve an unseen QA plan. Persist plan revision,
 approved scenario IDs and the human decision; a material plan change needs renewed approval before its cases run.
 The skill reads applicable QA guidance per scenario and checks the relevant runtime. When tests are a
 deliverable, include the affected cases in the plan and run them in the
@@ -278,7 +283,8 @@ report with three English key lines regardless of the report language: `task_id:
 At the end of every round, and at the final verdict, record the round:
 `scripts/ready-check.py summary --project <repo> --task <task_id> --round <n> --verdict "<READY TO PUSH | PARTIAL CHECK COMPLETE | BLOCKED | INCOMPLETE>" --static <status>
 --review <status> --qa <status> [--finding "F-001:issue (blocking):review:I. Render and cache:RC-001:open" ...]
-[--qa-case "QA-001:FAIL:1" ...]`. Statuses: PASS, FAIL, INCOMPLETE, N/A, NOT_SELECTED, NOT_RUN. Finding status is
+[--qa-case "QA-001:FAIL:1" ...] [--static-attempt INCOMPLETE]`. Use `--static-attempt` when incomplete
+statics preceded an explicitly narrowed selection. Statuses: PASS, FAIL, INCOMPLETE, N/A, NOT_SELECTED, NOT_RUN. Finding status is
 `open` or `fixed`; the area is the checklist section or `code quality`, `tests`, `rule`, `bug fix`. Repeat a QA case
 with a higher attempt number when it is rerun. These summaries feed `reflect`; keep them factual.
 
