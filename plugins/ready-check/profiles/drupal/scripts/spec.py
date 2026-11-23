@@ -5,8 +5,10 @@ from pathlib import Path
 
 DIRECTORY = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(DIRECTORY.parent / "_shared/php"))
+sys.path.insert(0, str(DIRECTORY / "scripts"))
 from php_provider import PHP, Extra
 from php_runtime import php
+from phpstan_bootstrap import handle_report
 
 PHP_EXTENSIONS = {".php", ".module", ".inc", ".install", ".theme", ".profile", ".engine", ".test"}
 CORE_FILE = "core/lib/Drupal.php"
@@ -69,6 +71,7 @@ class DrupalSpec:
                  extensions="php,module,inc,install,test,profile,theme,engine",
                  installed_paths=("drupal/coder/coder_sniffer", "slevomat/coding-standard", "sirbrillig/phpcs-variable-analysis"))
     phpstan = dict(label="phpstan-drupal level 3", level=3, config_dirs=("", "web/", "docroot/", "html/"),
+                   handle_report=handle_report,
                    extension="mglaman/phpstan-drupal/extension.neon", extension_name="phpstan-drupal",
                    includes=("mglaman/phpstan-drupal/extension.neon", "mglaman/phpstan-drupal/rules.neon",
                              "phpstan/phpstan-deprecation-rules/rules.neon"),

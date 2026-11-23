@@ -135,6 +135,7 @@ class Lint:
         self.evidence, self.timeout, self.selected = evidence, timeout, selected
         self.files, self.lines, self.merge = files, lines, merge
         self.findings, self.incomplete, self.na = [], [], None
+        self.details = {}
         self.log = evidence / (check + ".log")
         self.log.write_bytes(b"")
         self._custom = None
@@ -212,7 +213,10 @@ class Lint:
     def temporary(self, name, content):
         path = self.temp / name
         path.write_text(content, encoding="utf-8")
-        return str(path) if self.runner.name == "local" else self.runner.path(TEMP, self.temp.name, name)
+        return self.temporary_path(name)
+
+    def temporary_path(self, name):
+        return str(self.temp / name) if self.runner.name == "local" else self.runner.path(TEMP, self.temp.name, name)
 
     def binary(self, name):
         return next(t["path"] for t in self.selected["tools"] if t["name"] == name)
@@ -253,7 +257,8 @@ class Lint:
             else:
                 self.provided()[self.check](self)
         status = "N/A" if self.na else "INCOMPLETE" if self.incomplete else "FAIL" if any(f["severity"] == "error" for f in self.findings) else "PASS"
-        return dict(status=status, findings=self.findings, reason=self.na or "; ".join(self.incomplete) or None, evidence=[str(self.log)])
+        return dict(status=status, findings=self.findings, reason=self.na or "; ".join(self.incomplete) or None,
+                    evidence=[str(self.log)], **self.details)
 
     def debug(self):
         matcher = getattr(self.spec, "debug_match", None)

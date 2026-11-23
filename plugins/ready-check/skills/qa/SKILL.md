@@ -34,9 +34,11 @@ what is already known; silence is never approval.
 Follow [check selection](../check/references/check-selection.md). In full mode require current static results for all applicable pairs
 (`action: static`, `can_proceed: true`, `PASS` or justified `N/A`) and a review `PASS` with the same scope
 identity and requirements revision. For partial QA, require only the selected earlier stages and compare the
-partial source identity before and after; unselected stages stay NOT_SELECTED. When statics are selected, run
-the packaged doctor again with each pair's saved scope, including any `--path` arguments, and compare its snapshot, HEAD, merge base, application, profile version and runner;
-a mismatch returns to statics and review. Doctor can outlive the default command timeout: wait for it.
+partial source identity before and after. Unselected stages stay `NOT_SELECTED`. When statics are selected,
+run the packaged doctor with each pair's saved scope, including any `--path` arguments, and
+`--static-result <static-json>`. Require `READY` and `verified_static_result` for that file. Compare its
+snapshot, HEAD, merge base, application, profile version and runner. If any check fails, return to
+statics and review. Doctor can outlive the default command timeout.
 
 Read `instructions.qa` for each profile covering an affected scenario. Missing or out-of-profile required
 guidance makes QA `INCOMPLETE`. Use the profile guidance for the specific roots and runtime paths exercised.
@@ -92,19 +94,26 @@ charter with its action budget. When the target can be exercised with another br
 available in this client, or a user-guided session, name that method or an allowed fallback in the plan.
 For desktop cases identify the application build, OS, window and available interaction method.
 
-Offer video with plan approval for eligible browser or mobile scenarios. Specify each selected ID, capture
-method, and whether to keep video for failures, a requested demo, or required evidence. Explain that approved
-capture starts on the first attempt, even when only failure footage will be kept. Approval of a scenario alone
-gives permission to run the case. Record only with explicit recording approval. Check automatic capture and
-uploads in project runner settings before launching any tests. Use [QA evidence](references/evidence.md)
-for retention and the local chat handoff.
+Name the evidence that will confirm each expected result. Propose video for eligible scenarios where timing
+or interaction matters, for a failure that is hard to reproduce, or for a requested demo. Specify the IDs,
+capture method, and whether to keep video on failure only, as planned evidence on any outcome, or as required
+proof. Approved capture starts on the first attempt. Record only with explicit approval for those IDs.
+Check automatic capture and uploads in the runner settings before launching tests. Use
+[QA evidence](references/evidence.md) for retention and the local chat handoff.
 
-Save `qa_plan_revision`, `requirements_revision`, scenario IDs and `approval: PENDING` in the report, then show
-the plan compactly and wait. Consent to run Ready Check, a green static result or elapsed time does not approve an
-unseen plan. Corrections update affected RCs, increment the plan revision and need a new approval; approval must
-include every required scenario. A code-only fix reuses the approval of an unchanged plan. Read-only environment
-discovery may precede approval. For whole-stage `N/A`, document why no scenario applies and cite the
-current evidence covering every acceptance condition.
+Save `qa_plan_revision`, `requirements_revision`, scenario IDs and `approval: PENDING` in the report. Send a
+standalone Markdown message headed “QA plan — round N, revision R” in the user's language. Give each `QA-ID`
+its own list item with the action, expected result, and planned evidence. Include the role, test data and
+recording scope where applicable. For a later round, mark each case to rerun or cite the prior round whose
+evidence carries over.
+
+After the message, open a short form asking “Approve the QA plan for round N, revision R?” Offer “Approve”
+and “Suggest changes.” If a form is unavailable, ask the same question in chat. When video is proposed, get
+an explicit yes or no for the listed recordings in the same approval step. Approving the plan alone approves
+execution. Wait for approval of every required scenario. If the plan changes, update affected RCs, increment
+the revision, show the revised plan in Markdown and obtain approval before running it. A code-only fix can
+reuse approval of an unchanged plan. Read-only environment discovery may precede approval. For whole-stage
+`N/A`, document why no scenario applies and cite current evidence covering every acceptance condition.
 
 ## 5. Browser preparation
 
@@ -175,20 +184,21 @@ Give each confirmed problem the next `F-...` ID with: RCs or regression label, o
 disclosure or main flow blocked; medium: wrong behavior; minor: limited cosmetic impact), blocking status,
 role, minimal steps, expected and actual result, and evidence. A confirmed RC violation blocks even when it looks
 minor. Attribute a regression only with evidence about prior behavior; otherwise mark it `pre-existing` or
-`unknown`. Show the finding to the user right away (pause 5). When the finding ends a case as `FAIL`,
-finalize its approved recording and include the verified clip once available.
+`unknown`. Show the finding to the user right away (pause 5). When the finding ends a case as `FAIL`, finalize
+any approved recording and show the evidence that demonstrates the failure.
 
 ## 9. Coverage and gate
 
 Record each scenario as `PASS`, `FAIL`, `INCOMPLETE`, `NOT_RUN` or reasoned `N/A`, with round, expected and actual
 result, time, role and evidence. Summarize every RC's coverage. List limitations (for example "Chromium only"),
 untested areas, test data created and cleanup still needed.
-Use the [recording handoff rules](references/evidence.md#create-a-replay-and-hand-off-from-qa) for each case.
-Link retained clips and relevant journals in the local chat handoff. Record the reason when expected footage
-is unavailable. Include the failed attempt's clip when an approved retry later passes.
+Use the [evidence handoff rules](references/evidence.md#create-a-replay-and-hand-off-from-qa) for each case.
+Show the evidence that demonstrates the result beside its `QA-ID` in chat. Record why expected evidence
+is unavailable. If an approved retry passes, reference the failed attempt and its retained evidence separately.
 
-Compare fresh scope evidence with the saved identity of each applicable pair afterwards. Changed code, scope, runner, profile,
-requirements or runtime preparation make affected results stale: mark the run `INCOMPLETE` and return to the
+After QA, verify fresh scope evidence for each applicable pair using the same rules as before QA.
+Changed code, scope, runner, profile,
+requirements or runtime preparation make affected results stale. Mark the run `INCOMPLETE` and return to the
 earliest affected stage.
 
 For an approved plan, use the [QA gate command](references/gate.md) to check the recorded scenario outcomes

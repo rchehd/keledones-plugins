@@ -24,6 +24,7 @@ Requirements revision: [Increment when criteria or exclusions change]
 ## Scope
 
 - Check selection: [full, or selected static/review/qa combination and source of the user's choice]
+- Scope change: [If narrowed, initial selection, user's decision and current selection]
 - Unselected stages: [NOT_SELECTED with names; never implied PASS]
 - Repository root: [Path or unresolved]
 - HEAD: [Commit or unavailable]
@@ -40,6 +41,7 @@ Requirements revision: [Increment when criteria or exclusions change]
 ## Static checks
 
 Stage status: [NOT_SELECTED, NOT_RUN, PASS, FAIL, INCOMPLETE, or N/A]
+Prior static attempt: [If narrowed after incomplete statics, actual status, reason, JSON and log]
 
 | Profile / application | Status | Snapshot or partial source identity | Doctor / static JSON | Checks, findings and prerequisites |
 | --- | --- | --- | --- | --- |
@@ -116,7 +118,7 @@ reasons relevant checks did not apply. Keep code inspection separate from runtim
 Stage status: [NOT_SELECTED, NOT_RUN, PASS, FAIL, INCOMPLETE, or justified whole-stage N/A]
 Can proceed to final result: [false until current QA coverage is complete and no blockers remain]
 Checked static snapshots and requirements revision: [Identity by profile/application or not yet checked]
-QA plan revision: [Increment when scenarios, criteria, roles or data scope change]
+QA plan revision: [Increment when scenarios, criteria, roles, data scope or planned recording changes]
 Plan approval: [PENDING / APPROVED / REJECTED; human response and approved revision/RC revision/scenario IDs; not needed for justified whole-stage N/A or NOT_SELECTED]
 Task type and source: [Feature acceptance or bug trigger/corrected expectation/regressions, from session/task/human]
 Time: [Execution start/end or not run]
@@ -124,7 +126,7 @@ Environment: [Target URL, runner, fixture or CI run; application and scope mappi
 Browser execution: [If applicable, project runner and selected specs or interactive mode, browser/version, viewport and approved fallback]
 Mobile target: [If applicable, app ID, build and flavor, platform, device and OS, tool and version]
 Desktop target: [If applicable, build, platform, window and interaction method]
-Recording approval: [Scenario IDs, method, failure footage / demo / required video, and user's approval, or no video]
+Recording approval: [Scenario IDs, method, failure-only footage / planned evidence / demo / required video, and user's approval, or no video]
 Design reference: [If applicable, agreed Figma node or export, version, mapped viewport, variant and state]
 Risk map: [Changed areas with likelihood × impact (H/M/L) and the change types they come from]
 Role sessions: [Actual test roles/accounts and isolation; no credentials or authentication links]

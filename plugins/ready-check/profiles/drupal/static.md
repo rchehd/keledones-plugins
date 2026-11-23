@@ -30,8 +30,8 @@ ambiguous environment settings rather than starting containers or changing their
 Use project `vendor/bin` and local Node binaries beside each linter config. `LINT_PHPSTAN_TOOLS` can explicitly
 point to a shared Composer-tool directory as seen by the selected runner. `LINT_JSCPD` can select a host
 jscpd binary. Missing tools can use the separately installed managed profile bundle; see
-[dependency setup](../../dependencies/SETUP.md). Existing project executables and configs take priority;
-a broken executable, incompatible config, or tool crash never triggers fallback. JS/style configs are looked up only from the file's directory upward (no repository-wide search); a scaffolded
+[dependency setup](../../dependencies/SETUP.md). Existing project executables and configs take priority
+and are used for their entire run, including when they fail. JS/style configs are looked up only from the file's directory upward (no repository-wide search); a scaffolded
 config that contains only `extends` pointing exclusively to the detected Drupal core configs is ignored.
 Any additional project rules/settings or non-core extends preserve the project config. Missing configs use the bundle's visible
 baseline defaults after setup. PHPStan config is looked up in the project root, then `web/`, `docroot/`, `html/`, never in core. There are no personal tool-directory defaults.
@@ -45,7 +45,7 @@ JavaScript/styles, and Composer validation are required when their inputs apply.
 dependency audit are advisory. Dead-code checking is disabled by default. The definitions live in
 `profile.json`; absent advisory dependencies are visible without blocking required checks.
 
-The doctor probes tool availability and versions without analysing code or installing anything. Missing tools,
+Without a saved static result, doctor probes tool availability and versions. Missing tools,
 unavailable required defaults, unavailable runners, malformed output, and unexpected tool exits are setup or
 execution problems. They never count as successful checks. Audit is an advisory Composer command and may
 require network access under the current harness's permissions.
@@ -79,6 +79,18 @@ requires a fresh static run. Doctor and static runs use the same tool selection 
 All static tools, including PHPStan, report only findings on lines that belong to the task. PHPStan analyses only the
 changed PHP files, so breakage in unchanged callers is not reported; review traces it. Existing configured
 baselines are respected; the checker does not generate a baseline or suppress existing errors automatically.
+
+With managed PHPStan and the default Drupal configuration, Ready Check can retry a bootstrap fatal in two
+unchanged themes whose main files contain only function declarations and imports, with optional
+`declare(strict_types=...)`. Every shared function definition and its PHPDoc must match. The retry uses the
+same rules and task files and scans one theme's main file for symbols without executing it during bootstrap.
+It verifies that any loaded function from the skipped theme's declarations comes from the retained theme.
+Both attempts are logged. The static JSON records both locations in `bootstrap_conflict` and both file hashes
+after recovery in `bootstrap_recovery`. Use `doctor --static-result <static-json>` before reusing the result
+to verify the hashes and repeat PHPStan analysis of the same task scope in the selected runner. The check
+uses a fresh cache directory and saves the result under `bootstrap_verification`. A changed theme file,
+failed analysis or changed recovery requires a new static result.
+When recovery is ineligible or yields no usable report, PHPStan reports `INCOMPLETE` with the locations and log.
 
 The dispatcher runs the portable `scripts/lint.py` engine. Auto-fix is never enabled. Linters
 may create their normal caches. Generated configs use external temporary storage for local checks;

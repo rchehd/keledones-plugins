@@ -14,7 +14,7 @@ sys.path.insert(0, str(PLUGIN / "scripts"))
 from dependency_support import asset_id, bundle_path
 ENTRY = PLUGIN / "scripts/check-profile.py"
 TOOL = '''#!/usr/bin/env python3
-import json, os, sys, time
+import json, os, subprocess, sys, time
 from pathlib import Path
 name = Path(sys.argv[0]).name
 if "--version" in sys.argv:
@@ -31,6 +31,29 @@ if name == "phpstan" and os.environ.get("READY_CHECK_TEST_ARGS"):
 if mode == "drift":
     with open("web/modules/custom/demo/demo.php", "a") as stream:
         stream.write("\\n")
+if mode.startswith("collision"):
+    first = Path(os.environ["READY_CHECK_TEST_THEME_FIRST"]).resolve()
+    second = Path(os.environ["READY_CHECK_TEST_THEME_SECOND"]).resolve()
+    config = Path(sys.argv[sys.argv.index("-c") + 1])
+    if config.name != "phpstan-scoped.neon" or mode == "collision-again":
+        print(f"PHP Fatal error: Cannot redeclare demo_theme_helper() (previously declared in {first}:3) in {second} on line 3", file=sys.stderr)
+        sys.exit(255)
+    assert str(first).replace("\\\\", "\\\\\\\\") in config.read_text()
+    capture_config = os.environ.get("READY_CHECK_TEST_PHPSTAN_CONFIG")
+    if capture_config:
+        Path(capture_config).write_text(config.read_text())
+    bootstrap = config.with_name("phpstan-scoped-bootstrap.php")
+    probe = ('$container = null; require $argv[1]; require $argv[2]; '
+             'if ($name = getenv("READY_CHECK_TEST_PHPSTAN_TYPE_PROBE")) { '
+             'echo (new ReflectionFunction($name))->getReturnType(); }')
+    process = subprocess.run(["php", "-r", probe,
+                              "--", "vendor/fixture-phpstan-bootstrap.php", str(bootstrap)],
+                             capture_output=True)
+    if process.returncode:
+        sys.stderr.buffer.write(process.stderr)
+        sys.stdout.buffer.write(process.stdout)
+        sys.exit(process.returncode)
+    mode = "error" if mode == "collision-with-finding" or process.stdout == b"string" else "pass"
 messages = {}
 if mode in ("error", "warning", "old"):
     file = os.environ.get("READY_CHECK_TEST_FILE") or ("web/modules/custom/demo/caller.php" if name == "phpstan" else "web/modules/custom/demo/demo.php")
@@ -39,6 +62,42 @@ if mode in ("error", "warning", "old"):
 print(json.dumps(dict(files=messages, errors=[])))
 sys.exit(3 if mode == "crash" else 2 if mode == "warning" else 1 if messages else 0)
 '''
+
+PHPSTAN_BOOTSTRAP = r"""<?php
+
+namespace mglaman\PHPStanDrupal\Drupal;
+
+class Extension {
+    public function __construct(private string $path) {}
+
+    public function getType(): string {
+        return 'theme';
+    }
+
+    public function getExtensionFilename(): string {
+        return basename($this->path);
+    }
+
+    public function getAbsolutePath(): string {
+        return dirname($this->path);
+    }
+}
+
+class DrupalAutoloader {
+    public function register($container): void {
+        foreach (['FIRST', 'SECOND', 'THIRD'] as $position) {
+            $path = getenv('READY_CHECK_TEST_THEME_' . $position);
+            if ($path !== false) {
+                $this->loadExtension(new Extension(realpath($path)));
+            }
+        }
+    }
+
+    protected function loadExtension(Extension $extension): void {
+        require $extension->getAbsolutePath() . DIRECTORY_SEPARATOR . $extension->getExtensionFilename();
+    }
+}
+"""
 
 
 @unittest.skipUnless(shutil.which("php") and shutil.which("git"), "PHP and Git are required")
@@ -237,6 +296,190 @@ class StaticChecksTest(unittest.TestCase):
         self.assertEqual(self.checker(result, "phpstan")["status"], "FAIL", result)
         self.env["READY_CHECK_TEST_LINE"] = "1"
         self.assertEqual(self.checker(self.check(), "phpstan")["status"], "PASS")
+
+    def phpstan_collision(self):
+        first = "web/profiles/custom/demo/themes/demo/demo.theme"
+        second = "web/themes/custom/site/site.theme"
+        definition = "<?php\n\nfunction demo_theme_helper(): int {\n  return 1;\n}\n"
+        for filename in (first, second):
+            self.write(filename, definition)
+        self.git("add", "--", first, second)
+        self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "Themes")
+        (self.project / "phpstan.neon").unlink()
+        (self.project / "vendor/bin/phpstan").unlink()
+        folder = self.managed_tools()
+        extension = folder / "vendor/mglaman/phpstan-drupal/extension.neon"
+        extension.parent.mkdir(parents=True)
+        extension.write_text("parameters: {}\n")
+        self.write("vendor/fixture-phpstan-bootstrap.php", PHPSTAN_BOOTSTRAP)
+        self.env.update(READY_CHECK_TEST_PHPSTAN="collision", READY_CHECK_TEST_THEME_FIRST=first,
+                        READY_CHECK_TEST_THEME_SECOND=second)
+        return first, second
+
+    def test_phpstan_recovers_matching_theme_bootstrap_and_keeps_findings(self):
+        first, second = self.phpstan_collision()
+        result = self.checker(self.check(), "phpstan")
+        self.assertEqual(result["status"], "PASS", result)
+        self.assertEqual(result["bootstrap_conflict"]["declarations"], [dict(path=path, line=3) for path in (first, second)])
+        self.assertEqual(result["bootstrap_recovery"]["scanned_without_loading"], first)
+        self.assertEqual(set(result["bootstrap_recovery"]["sha256"]), {first, second})
+        self.env.update(READY_CHECK_TEST_PHPSTAN="collision-with-finding", READY_CHECK_TEST_FILE="web/modules/custom/demo/demo.php")
+        result = self.checker(self.check(), "phpstan")
+        self.assertEqual(result["status"], "FAIL", result)
+        self.assertEqual(result["findings"][0]["line"], 3)
+
+    def test_phpstan_recovery_stays_incomplete_when_retry_fails_or_theme_is_in_diff(self):
+        first, second = self.phpstan_collision()
+        self.env["READY_CHECK_TEST_PHPSTAN"] = "collision-again"
+        failed = self.checker(self.check(), "phpstan")
+        self.assertEqual(failed["status"], "INCOMPLETE", failed)
+        self.assertIn("Cannot redeclare demo_theme_helper()", failed["reason"])
+        self.assertIn(first + ":3", failed["reason"])
+        self.assertIn(second + ":3", failed["reason"])
+        self.assertIn("phpstan-scoped.neon", Path(failed["evidence"][0]).read_text())
+        self.env["READY_CHECK_TEST_PHPSTAN"] = "collision"
+        with (self.project / second).open("a") as stream:
+            stream.write("\n")
+        changed = self.checker(self.check(), "phpstan")
+        self.assertEqual(changed["status"], "INCOMPLETE", changed)
+        self.assertNotIn("phpstan-scoped.neon", Path(changed["evidence"][0]).read_text())
+
+    def test_phpstan_does_not_retry_different_theme_implementations(self):
+        _, second = self.phpstan_collision()
+        self.write(second, "<?php\n\nfunction demo_theme_helper(): int {\n  return 2;\n}\n")
+        self.git("add", "--", second)
+        self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "Different function")
+        result = self.checker(self.check(), "phpstan")
+        self.assertEqual(result["status"], "INCOMPLETE", result)
+        self.assertNotIn("phpstan-scoped.neon", Path(result["evidence"][0]).read_text())
+
+    def test_phpstan_compares_every_shared_declaration_before_retrying(self):
+        first, second = self.phpstan_collision()
+        files = {
+            first: "function another_helper(): string { return 'text'; }\n",
+            second: "function Another_Helper(): int { return 1; }\n",
+        }
+        for name, declaration in files.items():
+            with (self.project / name).open("a") as stream:
+                stream.write(declaration)
+        self.git("add", "--", *files)
+        self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "Second collision")
+        check = self.checker(self.check(), "phpstan")
+        self.assertEqual(check["status"], "INCOMPLETE", check)
+        self.assertNotIn("phpstan-scoped.neon", Path(check["evidence"][0]).read_text())
+
+    def test_phpstan_compares_phpdoc_separated_from_function_by_comment(self):
+        first, second = self.phpstan_collision()
+        for name, return_type in ((first, "string"), (second, "int")):
+            with (self.project / name).open("a") as stream:
+                stream.write(f"/** @return {return_type} */\n// Description.\n"
+                             "function another_helper($value) { return $value; }\n")
+        self.git("add", "--", first, second)
+        self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "Different PHPDoc")
+        check = self.checker(self.check(), "phpstan")
+        self.assertEqual(check["status"], "INCOMPLETE", check)
+        self.assertNotIn("phpstan-scoped.neon", Path(check["evidence"][0]).read_text())
+
+    def test_phpstan_recovery_rejects_a_function_loaded_from_a_third_theme(self):
+        first, _ = self.phpstan_collision()
+        with (self.project / first).open("a") as stream:
+            stream.write("function another_helper(): string { return 'text'; }\n")
+        third = "web/themes/custom/other/other.theme"
+        self.write(third, "<?php\nfunction unrelated_helper(): int { return 1; }\n")
+        self.git("add", "--", first, third)
+        self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "Third theme")
+        self.env["READY_CHECK_TEST_THEME_THIRD"] = third
+        self.assertEqual(self.checker(self.check(), "phpstan")["status"], "PASS")
+        self.write(third, "<?php\nfunction another_helper(): int { return 1; }\n")
+        check = self.checker(self.check(), "phpstan")
+        self.assertEqual(check["status"], "INCOMPLETE", check)
+        self.assertNotIn("bootstrap_recovery", check)
+        log = Path(check["evidence"][0]).read_text()
+        self.assertIn("another_helper()", log)
+        self.assertIn("other.theme", log)
+
+    def test_phpstan_does_not_skip_theme_bootstrap_statements(self):
+        first, _ = self.phpstan_collision()
+        with (self.project / first).open("a") as stream:
+            stream.write("define('THEME_DEFAULT', 1);\n")
+        self.git("add", "--", first)
+        self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "Theme bootstrap")
+        check = self.checker(self.check(), "phpstan")
+        self.assertEqual(check["status"], "INCOMPLETE", check)
+
+    def test_doctor_rechecks_ignored_theme_used_for_phpstan_recovery(self):
+        first, _ = self.phpstan_collision()
+        self.git("rm", "--cached", "--", first)
+        with (self.project / ".gitignore").open("a") as stream:
+            stream.write(first + "\n")
+        self.git("add", "--", ".gitignore")
+        self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "Ignore installed theme")
+        saved = self.root / "static.json"
+        static = self.check(extra=("--output", str(saved)))
+        self.assertTrue(self.checker(static, "phpstan")["bootstrap_recovery"])
+        checked = self.check("doctor", extra=("--static-result", str(saved)))
+        self.assertEqual(checked["status"], "READY", checked)
+        self.write(first, "<?php\n\nfunction demo_theme_helper(): int { return 2; }\n")
+        stale = self.check("doctor", extra=("--static-result", str(saved)))
+        self.assertEqual(stale["scope"]["snapshot"], static["scope"]["snapshot"])
+        self.assertEqual(stale["status"], "INCOMPLETE", stale)
+        self.assertIn(first, stale["reason"])
+
+    def test_doctor_revalidates_bootstrap_after_an_ignored_third_theme_changes(self):
+        first, _ = self.phpstan_collision()
+        with (self.project / first).open("a") as stream:
+            stream.write("function additional_helper(): string { return 'text'; }\n")
+        third = "web/themes/custom/other/other.theme"
+        self.write(third, "<?php\nfunction unrelated_helper(): int { return 1; }\n")
+        with (self.project / ".gitignore").open("a") as stream:
+            stream.write(third + "\n")
+        self.git("add", "--", first, ".gitignore")
+        self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "Installed third theme")
+        self.env["READY_CHECK_TEST_THEME_THIRD"] = third
+        saved = self.root / "static.json"
+        static = self.check(extra=("--output", str(saved)))
+        self.assertEqual(self.checker(static, "phpstan")["status"], "PASS")
+        self.assertNotIn("bootstrap_verification", self.check("doctor"))
+        verified = self.check("doctor", extra=("--static-result", str(saved)))
+        self.assertEqual(verified["status"], "READY", verified)
+        self.assertEqual(verified["verified_static_result"], str(saved))
+        self.write(third, "<?php\nfunction additional_helper(): int { return 1; }\n")
+        stale = self.check("doctor", extra=("--static-result", str(saved)))
+        self.assertEqual(stale["scope"]["snapshot"], static["scope"]["snapshot"])
+        self.assertEqual(stale["status"], "INCOMPLETE", stale)
+        self.assertNotIn("verified_static_result", stale)
+        evidence = stale["bootstrap_verification"]["phpstan"]["evidence"][0]
+        self.assertIn("analyse", Path(evidence).read_text())
+        self.assertIn("additional_helper()", Path(evidence).read_text())
+
+    def test_doctor_reanalyses_changed_lines_after_an_ignored_theme_changes_a_type(self):
+        self.phpstan_collision()
+        third = "web/themes/custom/other/other.theme"
+        self.write(third, "<?php\nfunction installed_theme_helper(): int { return 1; }\n")
+        with (self.project / ".gitignore").open("a") as stream:
+            stream.write(third + "\n")
+        self.git("add", "--", ".gitignore")
+        self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "Installed theme")
+        configuration = self.root / "phpstan-config.neon"
+        self.env.update(READY_CHECK_TEST_THEME_THIRD=third, READY_CHECK_TEST_PHPSTAN_TYPE_PROBE="installed_theme_helper",
+                        READY_CHECK_TEST_FILE="web/modules/custom/demo/demo.php", READY_CHECK_TEST_PHPSTAN_CONFIG=str(configuration))
+        saved = self.root / "static.json"
+        static = self.check(extra=("--output", str(saved)))
+        self.assertEqual(self.checker(static, "phpstan")["status"], "PASS")
+        self.assertNotIn("tmpDir:", configuration.read_text())
+        self.write(third, "<?php\nfunction installed_theme_helper(): string { return 'text'; }\n")
+        stale = self.check("doctor", extra=("--static-result", str(saved)))
+        self.assertEqual(stale["scope"]["snapshot"], static["scope"]["snapshot"])
+        self.assertEqual(stale["status"], "INCOMPLETE", stale)
+        self.assertNotIn("verified_static_result", stale)
+        checked = stale["bootstrap_verification"]["phpstan"]
+        self.assertEqual(checked["status"], "FAIL")
+        self.assertEqual(checked["findings"][0]["line"], 3)
+        self.assertRegex(configuration.read_text(), r'tmpDir: ".*phpstan-cache"')
+        self.env["READY_CHECK_TEST_LINE"] = "1"
+        verified = self.check("doctor", extra=("--static-result", str(saved)))
+        self.assertEqual(verified["status"], "READY", verified)
+        self.assertEqual(verified["bootstrap_verification"]["phpstan"]["findings"], [])
 
     def test_invalid_report_and_tool_crash_never_pass(self):
         for mode in ("invalid", "crash"):

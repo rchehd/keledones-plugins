@@ -13,10 +13,12 @@ standalone QA/review. The full-readiness checks below apply only to full validat
 from a partial check records the verdict, checked scope, and unperformed checks.
 
 Compare the current task requirements revision and scope with the review and QA records. For every applicable
-profile and application pair, compare snapshot, HEAD, merge base, application, profile/version, and runner
-from a fresh packaged doctor with the saved static result. The immediately preceding QA-end doctor results can be reused if nothing changed
-after it; otherwise run it again. Current prerequisites must be available. Doctor success does not replace
-a static result, review conclusion, or runtime check.
+profile and application pair, run fresh packaged doctor with `--static-result <static-json>` and require
+`READY` with `verified_static_result` pointing to that file. Compare its snapshot, HEAD, merge base,
+application, profile/version, and runner with the saved result. The immediately preceding QA-end doctor
+can be reused when it verified that same static result and nothing changed afterwards.
+When PHPStan recovered from a bootstrap conflict, run doctor again to reanalyse the current diff at the final gate.
+Current prerequisites must be available.
 
 Check the following before marking the task ready:
 
@@ -52,10 +54,10 @@ Describe advisory findings and explicit scope limitations even on a ready result
 unverified acceptance condition or required check. Readiness applies to the recorded code and runtime state;
 it does not include publication or an assurance about untested environments.
 
-In the local chat result, link the action journals and the clips selected by the
-[QA recording handoff rules](../../qa/references/evidence.md#create-a-replay-and-hand-off-from-qa).
-Keep the failed attempt's video link when a retry passes. Report when expected footage was unavailable.
-Keep these links in the local handoff and out of shareable delivery text.
+In the local chat result, show the screenshot, video or observed technical result that demonstrates each
+outcome according to the [QA evidence handoff rules](../../qa/references/evidence.md#create-a-replay-and-hand-off-from-qa).
+Link the supporting evidence and identify the failed attempt separately when a retry passes. Keep local
+media links in the chat handoff and report.
 
 ## Continue a successful partial run
 

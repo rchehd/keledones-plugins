@@ -28,10 +28,11 @@ and the same application, base, profile and profile version as the task report. 
 is not a substitute. Check that every required applicable profile check has a successful result or a reasoned
 `N/A`; missing required results or unfinished checks keep this stage `NOT_RUN`.
 
-Run the packaged doctor for each pair with the same scope (including any `--path` arguments), runner settings, and current environment,
-and save its result separately beside the report. Compare its scope snapshot, HEAD, merge base, application,
-profile version, and runner with the static result. Missing prerequisites or any mismatch invalidate the
-static gate: return to the static stage before reviewing. Do not switch branches, fetch, or modify the project.
+Run the packaged doctor for each pair with the same scope (including any `--path` arguments), runner settings,
+and environment. Pass `--static-result <static-json>` and save the doctor result beside the report. Require
+`READY` and `verified_static_result` pointing to that file. Compare its snapshot, HEAD, merge base, application,
+profile version, and runner with the static result. Return to statics if any of these checks fail. Do not
+switch branches, fetch, or modify the project.
 
 Read each applicable profile's `instructions.review` resource. If it is absent, inaccessible, or outside the
 installed profile, record `INCOMPLETE`; do not silently omit framework-specific review. Locate the plugin
@@ -220,8 +221,8 @@ current requirements revision. Changed criteria invalidate affected review rows 
 Record which relevant framework checks were considered and concise reasons for any that did not apply.
 Compare the matrix IDs with the source requirement list; omitted or duplicate RC rows must be resolved.
 
-After inspection, compare fresh scope evidence for each applicable pair. Use the doctor/static identity when
-statics are selected or the partial source identity otherwise. Changed code, scope, profile, runner, or unavailable required prerequisites invalidate the affected review evidence and keep QA
+After inspection, verify fresh scope evidence for each applicable pair using the same rules as before review.
+Changed code, scope, profile, runner, or unavailable required prerequisites invalidate the affected review evidence and keep QA
 `NOT_RUN`. Preserve previous findings as history, but repeat selected statics and review for the current state.
 A stale gate makes the current review `INCOMPLETE`; old findings are not proof about the changed implementation.
 

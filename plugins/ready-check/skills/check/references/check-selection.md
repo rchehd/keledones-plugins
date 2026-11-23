@@ -36,6 +36,20 @@ invalidate dependent results. When statics are selected, use their normal doctor
 Unavailable unselected static tools alone do not block standalone QA or code review. Missing tools actually
 needed by a selected verification still do. QA also checks current running code/assets/config/data.
 
+## Continue after incomplete statics
+
+When required statics are `INCOMPLETE` and the cause remains after any applicable recovery, show the reason
+and evidence. Offer to rerun statics after fixing the prerequisite, continue with the remaining selected
+stages as a partial check, or stop. Continuing requires the user's explicit choice and applies to incomplete
+statics. A confirmed blocking finding still counts toward `BLOCKED`.
+
+Keep the initial selection and static attempt (`INCOMPLETE`, JSON and log) in the same report. Record the
+user's decision and the new selection. Set statics to `NOT_SELECTED` for that selection, prepare the partial
+scope evidence above and use only those gates for review and QA. Save the new stage statuses to `summary`
+with `--static NOT_SELECTED --static-attempt INCOMPLETE` as soon as the selection changes and as stages
+finish. Close the decision question, update the TODOs and point the next step to the first outstanding gate.
+On resume reuse the recorded decision for the same scope and revalidate source and runtime identity.
+
 ## Result boundaries
 
 Use `BLOCKED` for a confirmed blocker and `INCOMPLETE` for missing required evidence in the selected scope.
