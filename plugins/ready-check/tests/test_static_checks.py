@@ -177,6 +177,63 @@ class StaticChecksTest(unittest.TestCase):
         self.assertEqual((self.project / "composer.json").read_bytes(), before)
         self.assertFalse((self.project / "vendor/bin").exists())
 
+    def link_drupal_profile(self, platform="platform"):
+        self.write(f"{platform}/composer.json", '{"require":{"drupal/core":"^10"}}\n')
+        self.write(f"{platform}/phpstan.neon", "parameters:\n  level: 0\n")
+        self.write(f"{platform}/web/core/lib/Drupal.php", "<?php class Drupal { const VERSION = '10.6.0'; }\n")
+        self.write(f"{platform}/vendor/autoload.php", "<?php\n")
+        alias = self.project / platform / "web/profiles/custom/demo"
+        alias.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            alias.symlink_to(os.path.relpath(self.project / "profile", alias.parent), target_is_directory=True)
+        except OSError as error:
+            self.skipTest(f"Directory symlinks are unavailable: {error}")
+        return alias
+
+    def test_linked_profile_uses_site_tools_and_reports_the_source_diff(self):
+        self.managed_tools()
+        self.write("profile/feature.php", "<?php\n\nfunction feature() {}\n")
+        alias = self.link_drupal_profile()
+        self.git("add", "profile", "platform/composer.json", "platform/phpstan.neon")
+        self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "Linked profile")
+        self.write("profile/feature.php", "<?php\n\nfunction feature() { return 1; }\n")
+        site = self.project / "platform"
+        source = self.project / "profile"
+        self.env["READY_CHECK_TEST_PHPSTAN"] = "error"
+        self.env["READY_CHECK_TEST_FILE"] = (alias / "feature.php").relative_to(site).as_posix()
+        result = self.check(project=source)
+        phpstan = self.checker(result, "phpstan")
+        self.assertEqual(phpstan["status"], "FAIL", result)
+        self.assertEqual(phpstan["findings"][0]["file"], "feature.php")
+        self.assertEqual(phpstan["findings"][0]["line"], 3)
+        self.assertEqual(self.checker(result, "phpcs")["status"], "PASS")
+        self.assertEqual(self.checker(result, "diff")["status"], "PASS")
+        self.assertEqual(result["scope"]["files"], ["feature.php"])
+        self.assertEqual(result["scope"]["linked_application"]["project"], str(site))
+        self.assertEqual(result["scope"]["linked_application"]["path"], alias.relative_to(site).as_posix())
+        argv = json.loads(Path(phpstan["evidence"][0]).read_text(encoding="utf-8").splitlines()[0])
+        self.assertEqual(Path(argv[argv.index("-a") + 1]), site / "vendor/autoload.php")
+        self.assertEqual(Path(argv[argv.index("-c") + 1]), site / "phpstan.neon")
+        self.assertIn((alias / "feature.php").relative_to(site).as_posix(), argv)
+
+        self.env["READY_CHECK_TEST_PHPSTAN"] = "old"
+        saved = self.root / "linked-static.json"
+        result = self.check(project=source, extra=("--output", str(saved)))
+        self.assertEqual(result["status"], "PASS", result)
+        verified = self.check("doctor", project=source, extra=("--static-result", str(saved)))
+        self.assertEqual(verified["status"], "READY", verified)
+        self.write("platform/composer.lock", '{"packages":[]}\n')
+        stale = self.check("doctor", project=source, extra=("--static-result", str(saved)))
+        self.assertEqual(stale["status"], "INCOMPLETE", stale)
+
+    def test_linked_profile_does_not_choose_between_two_installed_sites(self):
+        self.write("profile/feature.php", "<?php\n")
+        self.link_drupal_profile()
+        self.link_drupal_profile("other-platform")
+        result = self.check("doctor", project=self.project / "profile")
+        self.assertEqual(result["status"], "INCOMPLETE", result)
+        self.assertIn("Multiple installed Drupal links", result["reason"])
+
     def test_project_tools_take_priority_and_allow_mixed_sources(self):
         self.managed_tools()
         (self.project / "vendor/bin/phpcs").unlink()

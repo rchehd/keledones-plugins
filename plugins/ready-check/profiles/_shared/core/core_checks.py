@@ -131,9 +131,15 @@ CORE_CHECKS = {"debug", "diff", "js", "dup"}
 
 class Lint:
     def __init__(self, check, project, runner, evidence, timeout, selected, files, lines, merge, spec):
-        self.check, self.project, self.runner, self.spec = check, project, runner, spec
+        self.check, self.runner, self.spec = check, runner, spec
+        self.project, self.files = project, files
+        self.linked_path = None
+        if check not in {"debug", "diff"}:
+            self.project, self.files = runner.check_files(check, project, files)
+            self.linked_path = runner.linked_path
         self.evidence, self.timeout, self.selected = evidence, timeout, selected
-        self.files, self.lines, self.merge = files, lines, merge
+        self.lines = {f"{self.linked_path}/{file}": changed for file, changed in lines.items()} if self.linked_path else lines
+        self.merge = merge
         self.findings, self.incomplete, self.na = [], [], None
         self.details = {}
         self.log = evidence / (check + ".log")
@@ -167,12 +173,16 @@ class Lint:
     def relative(self, file):
         value = str(file).replace("\\", "/")
 
-        for root in (self.runner.root, str(self.project)):
+        roots = [(self.runner.root, ""), (str(self.project), "")]
+        if self.linked_path:
+            roots[:0] = [(str(self.runner.source_project), self.linked_path + "/"),
+                         (self.selected.get("linked_source", str(self.runner.source_project)), self.linked_path + "/")]
+        for root, relative in roots:
             prefix = root.replace("\\", "/").rstrip("/") + "/"
             matches = value.lower().startswith(prefix.lower()) if os.name == "nt" else value.startswith(prefix)
 
             if matches:
-                return value[len(prefix):]
+                return relative + value[len(prefix):]
         return value.removeprefix("./")
 
     def add(self, file, line, message, severity="error", source=None, filter_lines=False):
@@ -257,6 +267,9 @@ class Lint:
             else:
                 self.provided()[self.check](self)
         status = "N/A" if self.na else "INCOMPLETE" if self.incomplete else "FAIL" if any(f["severity"] == "error" for f in self.findings) else "PASS"
+        if self.linked_path:
+            for finding in self.findings:
+                finding["file"] = finding["file"].removeprefix(self.linked_path + "/")
         return dict(status=status, findings=self.findings, reason=self.na or "; ".join(self.incomplete) or None,
                     evidence=[str(self.log)], **self.details)
 
@@ -321,12 +334,14 @@ class Lint:
             self.parse(tool, *self.call([*args, *files], env=environment))
 
     def dup(self):
-        if not self.custom:
-            raise ValueError("Duplication analysis needs an agreed custom-code directory")
         env = self.selected["environment"]
         host = env.get("LINT_JSCPD_RUNNER") != "1"
+        paths = self.custom if not self.linked_path else [
+            str(self.runner.source_project) if host else self.selected["linked_source"]]
+        if not paths:
+            raise ValueError("Duplication analysis needs an agreed custom-code directory")
         output = str(self.temp / "jscpd") if host or self.runner.name == "local" else self.runner.path(TEMP, self.temp.name, "jscpd")
-        args = [env["LINT_JSCPD"], *self.custom, "-a", "-f", self.spec.dup["formats"], "--formats-exts",
+        args = [env["LINT_JSCPD"], *paths, "-a", "-f", self.spec.dup["formats"], "--formats-exts",
                 self.spec.dup["extensions"], "-i",
                 "**/node_modules/**,**/dist/**,**/vendor/**,**/*.min.js,**/storybook-static/**,**/tests/fixtures/**" +
                 self.spec.dup.get("ignore", ""),

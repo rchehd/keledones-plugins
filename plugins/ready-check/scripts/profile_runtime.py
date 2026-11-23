@@ -2,8 +2,6 @@ import importlib.util
 import sys
 from pathlib import Path
 
-import settings
-
 PLUGIN = Path(__file__).resolve().parent.parent
 SHARED = PLUGIN / "profiles/_shared/core"
 
@@ -18,6 +16,6 @@ def load_spec(profile):
 
 def profile_runner(application, profile):
     sys.path.insert(0, str(SHARED))
-    from core_runner import Runner
+    from core_runner import application_runner
     spec = load_spec(profile)
-    return Runner(application, settings.project_config(application, profile), spec.runner), spec
+    return application_runner(application, spec), spec

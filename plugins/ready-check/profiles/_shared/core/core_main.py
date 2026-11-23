@@ -10,10 +10,9 @@ sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from core_checks import CORE_CHECKS, run_check
-from core_runner import Runner
+from core_runner import application_runner
 from core_scope import changed_lines, lint_files, snapshot
 from core_toolchain import JS, STYLES, node_config, select
-from settings import project_config
 
 STATUS_CODES = {"PASS": 0, "N/A": 0, "FAIL": 1, "INCOMPLETE": 2, "READY": 0, "MISSING": 2}
 
@@ -47,21 +46,25 @@ def dependencies(check, project, files, runner, core, spec):
     if not runner.available():
         raise ValueError(f"Runner {runner.name} is unavailable; start or configure the intended environment")
 
+    linked_source = runner.linked_source if runner.linked_path else None
+    project, files = runner.check_files(check, project, files)
     config = partial(node_config, core=core, ignored=spec.core_configs)
 
     if check in CORE_CHECKS:
         if check == "js" and not runner.command_available("node"):
             raise ValueError("Node.js is missing in the selected runner")
 
-        return select(check, project, files, runner, config, spec)
-
-    if planner and not provider:
-        return planner(check, project, files, runner, spec)
-
-    if not provider:
+        plan = select(check, project, files, runner, config, spec)
+    elif planner and not provider:
+        plan = planner(check, project, files, runner, spec)
+    elif provider:
+        plan = provider.plan(check, project, files, runner, config, spec)
+    else:
         raise ValueError(f"Check {check} is not implemented by this profile")
 
-    return provider.plan(check, project, files, runner, config, spec)
+    if linked_source:
+        plan["linked_source"] = linked_source
+    return plan
 
 
 def verify_bootstrap_files(recovery, runner):
@@ -114,6 +117,12 @@ def evidence_directory(base, prefix):
     return Path(tempfile.mkdtemp(prefix=prefix, dir=base))
 
 
+def snapshot_hash(scope, plans):
+    identity = json.dumps(plans, sort_keys=True).encode()
+    linked = json.dumps(scope["linked_application"], sort_keys=True).encode() if "linked_application" in scope else b""
+    return hashlib.sha256(scope["snapshot"].encode() + identity + linked).hexdigest()
+
+
 def main(spec):
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -142,8 +151,10 @@ def main(spec):
         core = spec.core_prefixes
         scope = snapshot(project, spec, args.base, args.commits, args.path)
         result["scope"] = scope
-        runner = Runner(project, project_config(project, spec.id), spec.runner)
+        runner = application_runner(project, spec)
         result["runner"] = runner.name
+        if runner.linked_path:
+            scope["linked_application"] = runner.linked_identity()
         files = lint_files(scope["files"], core, spec)
         scope["excluded_files"] = sorted(set(scope["files"]) - set(files))
         apply = applicable(files, spec)
@@ -167,8 +178,7 @@ def main(spec):
                                  reason="Tool prerequisites are available; code not checked")
                 except (OSError, ValueError, TypeError, KeyError) as error:
                     check.update(status="MISSING" if doctor else "INCOMPLETE", reason=str(error))
-        identity = json.dumps(plans, sort_keys=True).encode()
-        scope["snapshot"] = hashlib.sha256(scope["snapshot"].encode() + identity).hexdigest()
+        scope["snapshot"] = snapshot_hash(scope, plans)
         log_dir = None
 
         if not doctor:
@@ -211,7 +221,7 @@ def main(spec):
                         raise ValueError(f"The {check_id} bootstrap recovery changed. Repeat static checks")
                     verify_bootstrap_files(saved, runner)
 
-        fresh_runner = Runner(project, project_config(project, spec.id), spec.runner)
+        fresh_runner = application_runner(project, spec)
         current_plans = {}
 
         for check in result["checks"]:
@@ -220,8 +230,10 @@ def main(spec):
                     current_plans[check["id"]] = dependencies(check["id"], project, files, fresh_runner, core, spec)
                 except (OSError, ValueError, TypeError, KeyError):
                     pass
-        current_identity = json.dumps(current_plans, sort_keys=True).encode()
-        current_snapshot = hashlib.sha256(snapshot(project, spec, args.base, args.commits, args.path)["snapshot"].encode() + current_identity).hexdigest()
+        current_scope = snapshot(project, spec, args.base, args.commits, args.path)
+        if fresh_runner.linked_path:
+            current_scope["linked_application"] = fresh_runner.linked_identity()
+        current_snapshot = snapshot_hash(current_scope, current_plans)
 
         if current_snapshot != scope["snapshot"]:
             status = "INCOMPLETE"

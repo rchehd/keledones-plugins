@@ -7,11 +7,10 @@ from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from core_runner import Runner
+from core_runner import application_runner
 from core_toolchain import runner_data_root, versioned
 from dependency_support import PLUGIN, asset_files, asset_id, outside_repositories, release_lock, take_lock
 from managed_storage import prepare_storage
-from settings import project_config
 
 
 def file_digest(runner, path):
@@ -23,7 +22,7 @@ def file_digest(runner, path):
 
 def setup(project, host_root, override, dry_run, timeout, spec, ecosystems=()):
     source = spec.bundle_source
-    runner = Runner(project, project_config(project, spec.id), spec.runner)
+    runner = application_runner(project, spec)
     root = runner_data_root(runner, override or os.environ.get("READY_CHECK_RUNNER_DATA_DIR")
                             or (str(host_root) if runner.name == "local" else None))
     path_type = Path if runner.name == "local" else PurePosixPath

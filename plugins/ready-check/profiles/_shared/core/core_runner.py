@@ -1,17 +1,21 @@
+import hashlib
 import os
 import re
 import shlex
 import sys
+from functools import cached_property
 from pathlib import Path, PurePosixPath
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
 from detect import COMPOSE as COMPOSE_FILES
 from process_support import execute, find_command
+from settings import project_config
 
 
 class Runner:
     def __init__(self, project, config, defaults):
         self.project = project
+        self.linked_path = None
         self.compose = next((name for name in COMPOSE_FILES if (project / name).is_file()), "")
         automatic = defaults.get("name") or ("ddev" if (project / ".ddev/config.yaml").is_file() else "compose" if self.compose else "local")
         self.name = os.environ.get("LINT_RUNNER") or config.get("runner") or automatic
@@ -32,6 +36,29 @@ class Runner:
         if any("\0" in path or "\n" in path or "\r" in path for path in (self.root, self.tools)):
             raise ValueError("Runner paths cannot contain NUL or newline characters")
         self.cache = {}
+
+    @cached_property
+    def linked_source(self):
+        target = self.path(self.linked_path)
+        if self.name == "local":
+            return str(self.source_project)
+        status, _, _ = self.exec(["test", "-L", target])
+        if status or not self.exists(target, "dir"):
+            raise ValueError(f"Linked application is unavailable in the {self.name} runner: {target}")
+        return self.realpath(target)
+
+    def check_files(self, check, source, files):
+        if not self.linked_path or check in {"debug", "diff"}:
+            return source, files
+        return self.project, [f"{self.linked_path}/{file}" for file in files]
+
+    def linked_identity(self):
+        if not self.linked_path:
+            return None
+        inputs = (Path("composer.json"), Path("composer.lock"), self.linked_core)
+        return dict(project=str(self.project), path=self.linked_path, runner=self.name, runner_root=self.root,
+                    inputs={path.as_posix(): hashlib.sha256((self.project / path).read_bytes()).hexdigest()
+                            for path in inputs if (self.project / path).is_file()})
 
     def compose_services(self):
         try:
@@ -160,3 +187,15 @@ class Runner:
                   '[ "$n" = "$p" ] && exit 1; p=$n; done; real=$(readlink -f -- "$p") && [ -n "$real" ] || exit 1; '
                   'printf "%s%s" "$real" "$tail"')
         return self.sh(script, path).decode().strip()
+
+
+def application_runner(project, spec):
+    config = project_config(project, spec.id)
+    find_link = getattr(spec, "linked_application", None)
+    linked = find_link(project) if find_link else None
+    if not linked:
+        return Runner(project, config, spec.runner)
+    runtime, path, core = linked
+    runner = Runner(runtime, project_config(runtime) | config, spec.runner)
+    runner.source_project, runner.linked_path, runner.linked_core = project, path, core
+    return runner

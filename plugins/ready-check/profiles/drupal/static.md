@@ -92,6 +92,11 @@ uses a fresh cache directory and saves the result under `bootstrap_verification`
 failed analysis or changed recovery requires a new static result.
 When recovery is ineligible or yields no usable report, PHPStan reports `INCOMPLETE` with the locations and log.
 
+Ready Check can check a Drupal extension stored elsewhere in the repository when exactly one installed Drupal
+application links to that directory from its profiles, modules or themes. Ready Check uses that
+application's runner, Composer dependencies and tools. Git scope and findings stay relative to the
+source directory. An unavailable or ambiguous link leaves the check incomplete.
+
 The dispatcher runs the portable `scripts/lint.py` engine. Auto-fix is never enabled. Linters
 may create their normal caches. Generated configs use external temporary storage for local checks;
 containers use a unique bridge directory under `.ai/ready-check/tmp`, removed after that check. All its
