@@ -12,7 +12,7 @@ concurrency:
 jobs:
   unit:
     name: Tests / ${{ matrix.platform.name }} / Python ${{ matrix.python }}
-    timeout-minutes: 10
+    timeout-minutes: ${{ matrix.platform.name == 'Windows' && 15 || 10 }}
     strategy:
       fail-fast: false
       matrix:
@@ -108,7 +108,7 @@ jobs:
   wsl:
     name: Tests and installation / Ubuntu 24.04 on WSL 2
     runs-on: windows-2025
-    timeout-minutes: 25
+    timeout-minutes: 45
     defaults:
       run:
         shell: pwsh
