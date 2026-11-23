@@ -228,7 +228,7 @@ def entry_points(root):
         servers = read_json(root / manifest).get("mcpServers", {})
         require({"ready-playwright", "ready-ui"} <= servers.keys(), f"{manifest} must bundle the Ready Check MCP servers")
     digest = hashlib.sha256()
-    for name in ("index.html", "ui.js", "ui.css", "vite.config.mjs", "package.json", "package-lock.json"):
+    for name in ("index.html", "ui.js", "ui.css", "dashboard.js", "dashboard.css", "vite.config.mjs", "package.json", "package-lock.json"):
         source = resource(root, root, "ui/" + name).read_text(encoding="utf-8")
         digest.update(name.encode() + b"\0" + source.encode() + b"\0")
     bundle = resource(root, root, "ui/dist/index.html").read_text(encoding="utf-8")

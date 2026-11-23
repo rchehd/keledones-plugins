@@ -7,11 +7,12 @@ import sys
 from collections import Counter
 from datetime import date, datetime
 from pathlib import Path
+from uuid import uuid4
 
 sys.dont_write_bytecode = True
 from dependency_support import PLUGIN, bundle_path, data_root, installed
 from feedback import recent as feedback_records
-from project import BASE, ensure_excluded, toplevel
+from project import BASE, ensure_excluded, redirected, toplevel, write_json
 from reports import all_tasks
 
 VERDICTS = ("READY TO PUSH", "PARTIAL CHECK COMPLETE", "BLOCKED", "INCOMPLETE")
@@ -141,6 +142,81 @@ def collect(top, limit):
                 feedback_reasons=reasons, view_dispositions=dict(dispositions))
 
 
+def summary_value(totals, key, empty="No data", coverage="tasks with summaries"):
+    available = totals["with_summary"]
+    if not available:
+        return empty
+    if key == "qa_test_problems":
+        return f"{totals[key]} ({available} {coverage})"
+    return f"{totals[key]} / {available}"
+
+
+def dashboard(digest, locale):
+    def label(en, uk):
+        return uk if locale == "uk" else en
+
+    totals = digest["totals"]
+    empty = label("No data", "Немає даних")
+    coverage = label("tasks with summaries", "задач із підсумками")
+    summary_keys = {"passed_first_round", "with_defects", "qa_test_problems"}
+    metrics = []
+    for key, caption in (
+        ("tasks", label("Tasks", "Задачі")),
+        ("passed_first_round", label("Passed in round 1", "Пройшли з першого раунду")),
+        ("with_defects", label("Tasks with defects", "Задачі з дефектами")),
+        ("returned", label("Returned after review", "Повернули після рев’ю")),
+        ("returned_missed", label("Missed by Ready Check", "Пропустив Ready Check")),
+        ("qa_test_problems", label("QA test problems", "Збої QA-тестів")),
+        ("without_summary", label("Missing round summaries", "Без підсумків раундів")),
+    ):
+        value = summary_value(totals, key, empty, coverage) if key in summary_keys else totals[key]
+        metrics.append(dict(label=caption, value=value))
+    task_rows = [[row["task_id"], row["date"], row["rounds"], row["verdict"],
+                  ", ".join(value for value in row["return_reasons"] if value) or None] for row in digest["tasks"]]
+    for key, caption in (("false-positive", label("False positives", "Хибні спрацювання")),
+                         ("accept-risk", label("Accepted risks", "Прийняті ризики"))):
+        if key in digest["view_dispositions"]:
+            metrics.append(dict(label=caption, value=digest["view_dispositions"][key]))
+    return dict(locale=locale, title=label("Ready Check overview", "Статистика Ready Check"),
+                labels=dict(empty=label("No data for these tasks.", "Для цих задач немає даних.")), metrics=metrics,
+                sections=[
+                    dict(title=label("Tasks", "Задачі"),
+                         columns=[label("Task", "Задача"), label("Date", "Дата"), label("Rounds", "Раунди"),
+                                  label("Verdict", "Результат"), label("Return reason", "Причина повернення")],
+                         rows=task_rows),
+                    dict(title=label("Finding areas", "Категорії знахідок"),
+                         columns=[label("Area", "Категорія"), label("Count", "Кількість")], rows=digest["areas"]),
+                    dict(title=label("Returns by week", "Повернення за тижнями"),
+                         columns=[label("Week", "Тиждень"), label("Count", "Кількість")],
+                         rows=digest["returns_per_week"]),
+                ])
+
+
+def snapshot_path(top, identifier):
+    if not isinstance(identifier, str) or not re.fullmatch(r"[a-f0-9]{32}", identifier):
+        raise ValueError("Expected a valid Reflect snapshot ID")
+    directory = top / BASE / "reflect"
+    path = directory / f"snapshot-{identifier}.json"
+    if any(redirected(item) for item in (path, directory, directory.parent, directory.parent.parent)):
+        raise ValueError("Reflect snapshots require local files in the report directory")
+    return path
+
+
+def read_snapshot(top, identifier):
+    path = snapshot_path(top, identifier)
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as error:
+        raise ValueError("Reflect snapshot is unavailable. Collect the overview again.") from error
+
+
+def snapshot_data(digest):
+    snapshot = {key: digest[key] for key in ("totals", "areas", "returns_per_week", "view_dispositions")}
+    fields = ("task_id", "date", "rounds", "verdict", "return_reasons")
+    snapshot["tasks"] = [{key: task[key] for key in fields} for task in digest["tasks"]]
+    return snapshot
+
+
 def chart_source():
     source = PLUGIN / "dependencies/browser"
     folder = bundle_path(source, data_root(), "browser")
@@ -163,10 +239,13 @@ def short(label, size=22):
 def render_html(digest):
     totals, tasks = digest["totals"], digest["tasks"]
     library = chart_source()
+    first = summary_value(totals, "passed_first_round")
+    defects = summary_value(totals, "with_defects")
     charts = dict(
-        rounds=dict(type="bar", labels=[short(task["task_id"]) for task in tasks], values=[task["rounds"] or 0 for task in tasks]),
-        outcomes=dict(type="doughnut", labels=["Passed in round 1", "Confirmed defects", "Returned after review"],
-                      values=[totals["passed_first_round"], totals["with_defects"], totals["returned"]]),
+        rounds=dict(type="bar", labels=[short(task["task_id"]) for task in tasks], values=[task["rounds"] for task in tasks]),
+        outcomes=dict(type="doughnut", labels=[f"Passed in round 1 ({first})", f"Confirmed defects ({defects})", "Returned after review"],
+                      values=[totals["passed_first_round"] if totals["with_summary"] else None,
+                              totals["with_defects"] if totals["with_summary"] else None, totals["returned"]]),
         areas=dict(type="bar", labels=[short(area) for area, _ in digest["areas"][:8]], values=[count for _, count in digest["areas"][:8]]),
         weeks=dict(type="line", labels=[week for week, _ in digest["returns_per_week"]],
                    values=[count for _, count in digest["returns_per_week"]]),
@@ -174,10 +253,10 @@ def render_html(digest):
     titles = dict(rounds="Rounds per task", outcomes="Task outcomes", areas="Top error areas", weeks="Returns per week")
     cards = "".join(f'<section class="card"><h2>{titles[name]}</h2><div class="chart"><canvas id="{name}"></canvas></div></section>'
                     for name in charts)
-    totals_rows = [("Tasks", totals["tasks"]), ("Passed in round 1", totals["passed_first_round"]),
-                   ("With confirmed defects", totals["with_defects"]), ("Returned after review", totals["returned"]),
+    totals_rows = [("Tasks", totals["tasks"]), ("Passed in round 1", first),
+                   ("With confirmed defects", defects), ("Returned after review", totals["returned"]),
                    ("Returned and missed by Ready Check", totals["returned_missed"]),
-                   ("QA cases that failed because of the test", totals["qa_test_problems"]),
+                   ("QA cases that failed because of the test", summary_value(totals, "qa_test_problems")),
                    ("Tasks without round summaries", totals["without_summary"])]
     task_rows = [(task["task_id"], re.sub(r"-[0-9a-f]{12}$", "", task["branch"] or ""), task["date"] or "unknown", task["rounds"] or "unknown", task["verdict"],
                   "yes" if task["returned"] else "no", "; ".join(r for r in task["return_reasons"] if r) or "") for task in tasks]
@@ -208,11 +287,12 @@ for (const [id, c] of Object.entries(DATA)) {
 </script>"""
     else:
         cards = "".join(f'<section class="card"><h2>{titles[name]}</h2>' +
-                        table(["Label", "Value"], list(zip(chart["labels"], chart["values"]))) + "</section>"
+                        table(["Label", "Value"], [(label, "No data" if value is None else value)
+                                                   for label, value in zip(chart["labels"], chart["values"])]) + "</section>"
                         for name, chart in charts.items())
 
     tiles = "".join(f'<div class="tile"><span>{html.escape(label)}</span><strong>{number}</strong></div>' for label, number in (
-        ("Tasks", totals["tasks"]), ("Passed in round 1", totals["passed_first_round"]),
+        ("Tasks", totals["tasks"]), ("Passed in round 1", first),
         ("Returned after review", totals["returned"]), ("Missed by Ready Check", totals["returned_missed"])))
 
     return f"""<!doctype html>
@@ -278,11 +358,14 @@ def main():
         digest = collect(top, max(args.tasks, 1))
 
         if args.html:
-            path = top / BASE / "reflect" / f"overview-{date.today().isoformat()}.html"
+            identifier = uuid4().hex
+            snapshot = snapshot_path(top, identifier)
+            path = snapshot.with_name(f"overview-{date.today().isoformat()}-{identifier}.html")
             ensure_excluded(top)
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(render_html(digest), encoding="utf-8")
-            digest["html"] = str(path)
+            write_json(snapshot, snapshot_data(digest), top)
+            digest.update(html=str(path), snapshot_id=identifier)
 
         result.update(status="PASS", **digest)
     except (OSError, ValueError) as error:

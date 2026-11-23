@@ -4,6 +4,7 @@ import stat
 import sys
 import unittest
 from datetime import date
+from pathlib import Path
 from unittest import mock
 
 from helpers import PLUGIN, TempHome
@@ -257,6 +258,7 @@ class RenderCliTest(unittest.TestCase):
         self.assertEqual((code, result["status"]), (0, "PASS"), result)
         path = self.home.root / "data/reports" / f"portrait-month-{date.today().isoformat()}.html"
         self.assertEqual(result["html"], str(path))
+        self.assertNotIn("widget_id", result)
         self.assertTrue(path.is_file())
         history = (self.home.root / "data/history.jsonl").read_text().splitlines()
         self.assertEqual(len(history), 1)
@@ -264,6 +266,28 @@ class RenderCliTest(unittest.TestCase):
 
         if sys.platform != "win32":
             self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+
+    def test_render_with_metrics_opt_in_prepares_both_html_reports(self):
+        self.write(portrait(self.digest))
+        code, result = run("render", "--widget-metrics", self.digest["digest_id"])
+        self.assertEqual((code, result["status"]), (0, "PASS"), result)
+        self.assertTrue(Path(result["html"]).is_file())
+        widget = Path(result["widget_html"])
+        self.assertIn(result["widget_id"], widget.name)
+        self.assertIn("Aggregate metrics from the selected period", widget.read_text(encoding="utf-8"))
+        if sys.platform != "win32":
+            self.assertEqual(stat.S_IMODE(widget.stat().st_mode), 0o600)
+
+    def test_metrics_opt_in_rejects_a_digest_replaced_after_collection(self):
+        self.write(portrait(self.digest))
+        code, newer = run("collect", "--period", "all")
+        self.assertEqual(code, 0, newer)
+        self.assertNotEqual(newer["digest_id"], self.digest["digest_id"])
+        code, result = run("render", "--widget-metrics", self.digest["digest_id"])
+        self.assertEqual((code, result["status"]), (2, "FAIL"))
+        self.assertIn("approved Gnothi digest changed", result["reason"])
+        self.assertNotIn("widget_id", result)
+        self.assertFalse((self.home.root / "data/history.jsonl").exists())
 
     def test_render_fails_on_invalid(self):
         data = portrait(self.digest)

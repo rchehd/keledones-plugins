@@ -51,8 +51,9 @@ def collect(args):
         return data
 
     profiles.set_options(period=period)
-    path = storage.write_private(storage.data_root() / "tmp/digest.json", json.dumps(data, ensure_ascii=False, indent=1))
-    return dict(data, digest=str(path))
+    encoded = json.dumps(data, ensure_ascii=False, indent=1)
+    path = storage.write_private(storage.data_root() / "tmp/digest.json", encoded)
+    return dict(data, digest=str(path), digest_id=digest.fingerprint(encoded))
 
 
 def profile(args):
@@ -75,7 +76,7 @@ def profile(args):
 
 
 def render(args):
-    return report.render(args.portrait)
+    return report.render(args.portrait, args.widget_metrics)
 
 
 def forget(args):
@@ -116,6 +117,8 @@ def parser():
     command.set_defaults(run=profile)
     command = commands.add_parser("render", help="Validate portrait.json and write the HTML report")
     command.add_argument("--portrait")
+    command.add_argument("--widget-metrics", metavar="DIGEST_ID",
+                         help="Prepare aggregate metrics from the approved collect result")
     command.set_defaults(run=render)
     commands.add_parser("ui-strings", help="List report strings and placeholders for translation").set_defaults(
         run=lambda _: {"strings": ENGLISH})

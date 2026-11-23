@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "gnothi-ui": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/widget-mcp.mjs"]
+    }
+  }
+}

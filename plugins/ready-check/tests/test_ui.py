@@ -184,6 +184,23 @@ class InteractiveViewTest(unittest.TestCase):
         self.assertEqual(list(view_feedback(self.directory)),
                          [dict(id="QA-001", action="false-positive", source="QA", reason="Fixture drift", round=2)])
 
+    def test_reflect_reads_project_history_without_a_task_or_decision(self):
+        self.report_file.write_text("Round: 2\nVerdict: BLOCKED\n", encoding="utf-8")
+        view = View(self.project, None, "reflect", tasks=1, locale="uk")
+        state = view.current()
+        data = state["data"]
+        self.assertEqual(data["title"], "Статистика Ready Check")
+        self.assertEqual(data["metrics"][0]["value"], 1)
+        self.assertEqual(data["sections"][0]["rows"][0], [self.task, self.task[-10:], 2, "BLOCKED", None])
+        self.assertIsNone(view.decision(state))
+        with self.assertRaisesRegex(ValueError, "read-only"):
+            view.submit(dict(action="approve", revision=state["revision"]))
+        following = prepare(self.project, "newer task")
+        Path(following["report"]).write_text("Round: 1\nVerdict: READY TO PUSH\n", encoding="utf-8")
+        self.assertEqual(view.current(), state)
+        latest = View(self.project, None, "reflect", tasks=1, locale="uk").current()
+        self.assertEqual(latest["data"]["sections"][0]["rows"][0][0], following["task_id"])
+
     def test_gallery_cli_returns_saved_actions_after_round_rollover(self):
         scenarios = [dict(id="QA-001"), dict(id="QA-002")]
         view, original = self.prepare("qa-results", dict(round=1, scenarios=scenarios))

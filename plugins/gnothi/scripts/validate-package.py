@@ -103,6 +103,37 @@ def check_report(root):
     except OSError:
         problems.append("missing report/vendor/chart.umd.min.js")
 
+    for relative in ("scripts/widget.py", "scripts/widget-mcp.py", "scripts/widget-mcp.mjs",
+                     "report/widget/THIRD_PARTY_NOTICES.md"):
+        if not (root / relative).is_file():
+            problems.append(f"missing {relative}")
+
+    try:
+        page = (root / "report/widget/portrait.html").read_text(encoding="utf-8")
+        if page.count('<script id="portrait-data" type="application/json">null</script>') != 1:
+            problems.append("Gnothi portrait widget requires one empty data placeholder")
+        if re.search(r"""<script\b[^>]*\bsrc\s*=|<link\b[^>]*rel=['"]stylesheet|@import\s+(?:url\()?['"]?https?://""",
+                     page, re.I):
+            problems.append("Gnothi portrait widget must bundle its JavaScript and CSS locally")
+    except OSError:
+        problems.append("missing report/widget/portrait.html")
+
+    return problems
+
+
+def check_widget_registration(root):
+    problems = []
+    for name, variable in ((".mcp.json", "CLAUDE_PLUGIN_ROOT"),
+                           (".codex-plugin/plugin.json", "PLUGIN_ROOT"),
+                           (".cursor-plugin/plugin.json", "CURSOR_PLUGIN_ROOT")):
+        try:
+            config = json.loads((root / name).read_text(encoding="utf-8"))
+            server = config["mcpServers"]["gnothi-ui"]
+            expected = "${" + variable + "}/scripts/widget-mcp.mjs"
+            if server.get("command") != "node" or server.get("args") != [expected]:
+                raise ValueError("Gnothi MCP must use the packaged launcher")
+        except (OSError, KeyError, TypeError, ValueError, AttributeError) as error:
+            problems.append(f"{name}: {error}")
     return problems
 
 
@@ -142,7 +173,7 @@ def check_skills(root, names=SKILLS):
 
 def check(root):
     root = Path(root)
-    return check_manifests(root) + check_templates(root) + check_report(root) + check_skills(root)
+    return check_manifests(root) + check_templates(root) + check_report(root) + check_widget_registration(root) + check_skills(root)
 
 
 def main():

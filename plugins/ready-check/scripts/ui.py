@@ -175,6 +175,9 @@ def main():
     parser.add_argument("--input", help="JSON file relative to the task report")
     parser.add_argument("--ttl", type=int, default=TTL)
     parser.add_argument("--ide-status", choices=IDE_STATUSES, default="unverified")
+    parser.add_argument("--tasks", type=int, default=10, help="Number of recent tasks in Reflect")
+    parser.add_argument("--locale", choices=("en", "uk"), default="en")
+    parser.add_argument("--snapshot", help="Use the saved Reflect snapshot from reflect-collect")
     args = parser.parse_args()
     try:
         if args.operation == "snapshot":
@@ -183,7 +186,7 @@ def main():
                 raise ValueError("A Git project and the review view are required for a source snapshot")
             emit(dict(status="PASS", reviewed_source=reviewed_source(root)))
             return 0
-        view = View(args.project, args.task, args.view, args.ide_status)
+        view = View(args.project, args.task, args.view, args.ide_status, args.tasks, args.locale, args.snapshot)
         if args.operation == "prepare":
             if not args.input:
                 raise ValueError("View preparation requires --input")

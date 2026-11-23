@@ -7,6 +7,12 @@
   },
   "skills": "./skills/",
   "onboardingSkill": "./skills/setup/SKILL.md",
+  "mcpServers": {
+    "gnothi-ui": {
+      "command": "node",
+      "args": ["${PLUGIN_ROOT}/scripts/widget-mcp.mjs"]
+    }
+  },
   "interface": {
     "displayName": "Gnothi · AI Work Profile",
     "shortDescription": "A private portrait of how you work with AI agents.",

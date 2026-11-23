@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build"
+    "build": "vite build",
+    "build:portrait": "node build-portrait.mjs"
   },
   "dependencies": {
     "@awesome.me/webawesome": "3.15.0",

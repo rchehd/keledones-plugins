@@ -115,7 +115,7 @@ Cursor: **Customize → From GitHub Repository** with `rchehd/keledones-plugins`
 To install Gnothi on its own, follow the
 [individual plugin instructions](https://github.com/rchehd/keledones-plugins#install-an-individual-plugin).
 
-The local report needs Python 3.9 or newer.
+The local report needs Python 3.9 or newer. The MCP widget also uses Node.js to start its local adapter.
 
 ## Use
 
@@ -145,6 +145,10 @@ remains at its original path. Each run discovers local agent logs and uses the e
 Each run asks for the period: all history, the last year, 6 months or month (the last choice is offered first). The
 previous period of the same length is the comparison; for all history the report shows a monthly trend instead.
 The report opens from the path the skill prints.
+
+You can also open the aggregate metrics as an interactive MCP widget after approving that view. It shows the
+selected and previous periods. When MCP Apps are unavailable, open the same view as a private offline HTML file.
+Detailed findings and session examples stay in the full local report.
 
 ### Windows storage access
 

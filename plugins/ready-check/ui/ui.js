@@ -10,6 +10,7 @@ import "@awesome.me/webawesome/dist/components/option/option.js";
 import "@awesome.me/webawesome/dist/components/select/select.js";
 import "@awesome.me/webawesome/dist/components/textarea/textarea.js";
 import "./ui.css";
+import { renderDashboard } from "./dashboard.js";
 
 const main = document.getElementById("ready-check");
 const token = location.hash.slice(1);
@@ -439,6 +440,7 @@ function settings(pane, rows, data) {
 const screens = {
   "qa-plan": [qaPlan, "qaPlan"], "qa-results": [qaResults, "qaResults"],
   review: [review, "review"], settings: [settings, "settings"],
+  reflect: [(pane, _rows, data) => renderDashboard(pane, data), "reflect"],
 };
 
 function render(value) {
@@ -450,9 +452,9 @@ function render(value) {
   const [screen, title] = screens[value.view];
   const pane = element("section");
   const header = element("header");
-  header.append(element("h1", labels[title]));
+  header.append(element("h1", value.view === "reflect" ? value.data.title : labels[title]));
   const data = value.data;
-  const meta = [data.title, data.status, data.round && labels.round + " " + data.round,
+  const meta = [value.view === "reflect" ? data.summary : data.title, data.status, data.round && labels.round + " " + data.round,
     data.qa_plan_revision && labels.revision + " " + data.qa_plan_revision].filter(Boolean);
   if (meta.length) header.append(element("p", meta.join(" · "), "meta"));
   if (data.coverage) header.append(element("p", data.coverage, "meta"));

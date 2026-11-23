@@ -98,6 +98,15 @@ Run `render`. If storage access fails here or at another local step, follow
 [Private storage access](references/chat-history.md#private-storage-access). For other failures, fix what
 `reason` lists and run it again. Pass on `warnings` in one line.
 
+Offer the interactive **aggregate metrics** view if the user has not specified a format. Ask for approval
+to display the aggregate metrics in this client. If the user explicitly asks for that view, or approves it,
+run `render --widget-metrics <digest_id>` using the ID returned by the `collect` whose data the user approved.
+If the ID no longer matches, collect the selected data again and confirm the metrics view before rendering.
+Call Gnothi's `show_portrait` tool with the returned `widget_id`.
+It sends the selected period's numeric aggregates and the previous period for comparison. If the client
+cannot render MCP Apps, or the tool is unavailable, give the returned `widget_html` path to the same view.
+The full private HTML report stays at the separate `html` path.
+
 ## 5. Reply
 
 5–8 lines: the summary, the top strengths and growth areas, a comparable change when there is one, and the

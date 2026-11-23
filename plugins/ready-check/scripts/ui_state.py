@@ -10,7 +10,7 @@ from project import BASE, ensure_excluded, migrate, migration_lock, redirected, 
 from reports import branch_name, prepare
 
 
-VIEWS = ("qa-plan", "qa-results", "review", "settings")
+VIEWS = ("qa-plan", "qa-results", "review", "settings", "reflect")
 PREFERENCES = ("browser", "remind", "captureTasks", "phpstormMcp")
 ASSET_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
                ".webp": "image/webp", ".gif": "image/gif", ".mp4": "video/mp4",
@@ -66,7 +66,7 @@ def reviewed_source(root):
 
 
 class View:
-    def __init__(self, project, task, kind, ide_status="unverified"):
+    def __init__(self, project, task, kind, ide_status="unverified", tasks=10, locale="en", snapshot=None):
         project = Path(project).resolve(strict=True)
         self.root = toplevel(project)
         if not self.root or not project.is_dir() or kind not in VIEWS or ide_status not in IDE_STATUSES:
@@ -76,7 +76,14 @@ class View:
         self.ide_status = ide_status
         self.phpstorm_request = self.root / BASE / settings.PHPSTORM_REQUEST
         self.directory = None
-        if kind != "settings":
+        if kind == "reflect":
+            from reflect_collect import collect, dashboard, read_snapshot
+
+            if not positive_number(tasks) or locale not in {"en", "uk"}:
+                raise ValueError("Reflect needs a positive task count and a supported display language")
+            digest = read_snapshot(self.root, snapshot) if snapshot is not None else collect(self.root, tasks)
+            self.reflect_data = dashboard(digest, locale)
+        if kind not in {"settings", "reflect"}:
             if not task:
                 raise ValueError("A task ID is required for this view")
             target = prepare(project, task, dry_run=True)
@@ -101,7 +108,7 @@ class View:
 
     def prepare(self, name):
         if not self.directory:
-            raise ValueError("The settings view reads existing preferences")
+            raise ValueError("This view reads existing project data without preparation")
         data = object_at(self.path(name))
         if not positive_number(data.get("round")):
             raise ValueError("A positive round is required")
@@ -161,7 +168,9 @@ class View:
                 raise ValueError(f"{label} changed. Refresh this view before using it.")
 
     def current(self, expected_revision=None):
-        if self.kind == "settings":
+        if self.kind == "reflect":
+            data = self.reflect_data
+        elif self.kind == "settings":
             values = settings.load(self.root)
             data = {key: values[key] for key in PREFERENCES}
             data["ideStatus"] = self.ide_status
@@ -194,6 +203,8 @@ class View:
         return path, ASSET_TYPES[path.suffix.lower()]
 
     def decision(self, current=None):
+        if self.kind == "reflect":
+            return None
         current = current or self.current()
         if self.kind == "settings":
             pending = settings.pending_phpstorm_request(self.root)
@@ -228,6 +239,8 @@ class View:
         return self.directory / f"ui-{self.kind}-decision-{revision}.json"
 
     def submit(self, request):
+        if self.kind == "reflect":
+            raise ValueError("The Reflect overview is read-only")
         if not isinstance(request, dict):
             raise ValueError("Expected a decision object")
         if self.kind == "settings":

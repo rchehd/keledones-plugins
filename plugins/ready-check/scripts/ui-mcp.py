@@ -34,9 +34,11 @@ class ReadyUI:
     def tools(self):
         string = {"type": "string"}
         private = {"resourceUri": URI, "visibility": ["app"]}
-        show = tool("show_view", "Open a prepared Ready Check report view or project settings.",
+        show = tool("show_view", "Open a prepared Ready Check report, project settings, or the Reflect overview.",
                     {"project": string, "task": string, "view": {"type": "string", "enum": list(VIEWS)},
-                     "ide_status": {"type": "string", "enum": list(IDE_STATUSES)}},
+                     "ide_status": {"type": "string", "enum": list(IDE_STATUSES)},
+                     "tasks": {"type": "integer", "minimum": 1}, "locale": {"type": "string", "enum": ["en", "uk"]},
+                     "snapshot": {"type": "string", "description": "Reflect snapshot ID returned by reflect-collect."}},
                     ["project", "view"], {"resourceUri": URI} if self.supports_ui else None)
         if not self.supports_ui:
             return [show]
@@ -49,7 +51,8 @@ class ReadyUI:
                      {"handle": string}, ["handle"], private)]
 
     def show(self, args):
-        view = View(args["project"], args.get("task"), args["view"], args.get("ide_status", "unverified"))
+        view = View(args["project"], args.get("task"), args["view"], args.get("ide_status", "unverified"),
+                    args.get("tasks", 10), args.get("locale", "en"), args.get("snapshot"))
         current = view.current()
         state = dict(current, decision=view.decision(current))
         if not self.supports_ui:

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { defineConfig } from "vite";
 import { viteSingleFile } from "vite-plugin-singlefile";
 
-const inputs = ["index.html", "ui.js", "ui.css", "vite.config.mjs", "package.json", "package-lock.json"];
+const inputs = ["index.html", "ui.js", "ui.css", "dashboard.js", "dashboard.css", "vite.config.mjs", "package.json", "package-lock.json"];
 
 function revisionTag() {
   return {

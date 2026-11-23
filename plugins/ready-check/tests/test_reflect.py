@@ -43,6 +43,28 @@ class ReflectTest(RepoTest):
         digest = self.entry_json("reflect-collect", "--project", str(self.repo))
         task = digest["tasks"][0]
         self.assertEqual((task["verdict"], task["rounds"], digest["totals"]["without_summary"]), ("READY TO PUSH", None, 1))
+        metrics = {item["label"]: item["value"] for item in reflect_collect.dashboard(digest, "en")["metrics"]}
+        self.assertEqual(metrics["Passed in round 1"], "No data")
+        self.assertEqual(metrics["Tasks with defects"], "No data")
+        self.assertEqual(metrics["QA test problems"], "No data")
+        with patch.object(reflect_collect, "chart_source", return_value=None):
+            self.assertIn("<td>Passed in round 1</td><td>No data</td>", reflect_collect.render_html(digest))
+
+    def test_saved_overview_keeps_the_original_task_selection_and_coverage(self):
+        first = self.task("First", [("READY TO PUSH", [])])
+        legacy = self.entry_json("reports", "--project", str(self.repo), "--task", "Legacy")
+        Path(legacy["report"]).write_text("Round: 1\nVerdict: READY TO PUSH\n", encoding="utf-8")
+        earlier = self.entry_json("reflect-collect", "--project", str(self.repo), "--tasks", "2", "--html")
+        before = Path(earlier["html"]).read_text(encoding="utf-8")
+        self.task("New", [("BLOCKED", [])])
+        later = self.entry_json("reflect-collect", "--project", str(self.repo), "--tasks", "1", "--html")
+        self.assertNotEqual(earlier["html"], later["html"])
+        self.assertEqual(Path(earlier["html"]).read_text(encoding="utf-8"), before)
+        saved = reflect_collect.read_snapshot(self.repo, earlier["snapshot_id"])
+        self.assertEqual({item["task_id"] for item in saved["tasks"]}, {first, legacy["task_id"]})
+        self.assertNotIn("report", saved["tasks"][0])
+        metrics = {item["label"]: item["value"] for item in reflect_collect.dashboard(saved, "en")["metrics"]}
+        self.assertEqual(metrics["Passed in round 1"], "1 / 1")
 
     def test_feedback_reasons_are_scoped_to_selected_tasks(self):
         older = self.task("Older task", [("BLOCKED", [])])

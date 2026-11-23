@@ -227,7 +227,8 @@ If the same report already exists in both folders, each copy keeps its own evide
 - **Feedback:** when a lead or QA returns a checked task, say so ("the task was returned…"); the agent asks and
   records it with `feedback`: who, why, and whether Ready Check missed it.
 - **Reflect:** "show my Ready Check stats" gives an overview of the last 10 tasks (rounds, defects, returns, typical
-  errors) in the chat and an HTML report with charts in `.ai/ready-check/reflect/`. Only if you ask does it propose
+  errors) in an MCP widget or the same read-only view in a local browser. An offline HTML report is also saved
+  in `.ai/ready-check/reflect/`. Only if you ask does it propose
   improvements; for each you choose any of: project, global, PR to Ready Check, skip.
   For a private portrait of how you give instructions, delegate and redirect agents, use the
   [Gnothi portrait](https://github.com/rchehd/keledones-plugins/tree/main/plugins/gnothi).
