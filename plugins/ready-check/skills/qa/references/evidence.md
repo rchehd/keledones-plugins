@@ -122,7 +122,8 @@ that establishes the result for the case.
 
 Use the [QA evidence viewer](interactive-ui.md#qa-results) for selected screenshots and short clips. Put
 “Replay with steps” beside the result in the user's language when available. If the viewer cannot render,
-give the local HTML link and use any verified image preview or file link supported by the client. For long
+open the local HTML in the client's browser when available and provide its link. Use any verified image
+preview or file link supported by the client. For long
 recordings, give a replay link and the relevant timestamps.
 Keep other evidence in the report. Never present a planned action, placeholder or inaccessible file as
 observed evidence. If no video was approved or the clip is unavailable, state the limitation when it affects
