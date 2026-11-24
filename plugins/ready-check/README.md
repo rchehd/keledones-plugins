@@ -145,8 +145,9 @@ Both views use the packaged Web Awesome components with the Awesome theme and Re
 See the [interactive views guide](skills/qa/references/interactive-ui.md).
 
 **PhpStorm.** After a full setup, choose whether to connect its optional MCP inspections. You can also
-say "Connect PhpStorm MCP" later. With the integration enabled and the right project open in the IDE,
-review can use inspection warnings and errors as evidence candidates. See the
+say "Connect PhpStorm MCP" later. In Cursor, Ready Check registers the running PhpStorm MCP for the project
+after opt-in. With the right project open in the IDE and the inspection tools available, review can use IDE
+warnings and errors as evidence candidates. See the
 [connection guide](skills/setup/references/phpstorm.md).
 
 **Browser.** Browser scenarios run in a **visible** browser (bundled Playwright MCP; you watch and can log in yourself) or in

@@ -1,5 +1,9 @@
 Ready Check is enabled in this client.
 
+For a request only to open Ready Check settings, follow the settings section in the setup skill and use the
+`ready-ui` settings view. When the widget opens, end the turn there. When it returns a local URL, give that URL.
+Keep any project setup questions for work that needs setup.
+
 Write Ready Check files (reports, QA plans and handoffs) in {language}; keep chat replies in the user's language.
 These stay in English everywhere: the report's `task_id:`, `Round:` and `Verdict:` lines, finding labels and IDs,
 commit messages, PR/MR text and contributed changes.

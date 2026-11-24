@@ -29,6 +29,32 @@ class HookTest(RepoTest):
         self.assertIsNone(self.hook("prompt", "claude", dict(payload, session_id="c")))
         self.assertEqual(len(list((self.repo / ".ai/ready-check/tasks").glob("*/*.jsonl"))), 1)
 
+    def test_cursor_settings_defers_project_setup_until_the_first_work_request(self):
+        requests = (
+            "Виклич show_view з ready-ui з view: settings. Відкрий віджет Ready Check. #194887",
+            'Call show_view with {"view": "settings"}',
+            "Відкрий налаштування плагіна Ready Check",
+            "Open Ready Check settings",
+            "A Ready Check settings request example-id was saved.",
+        )
+        for index, request in enumerate(requests):
+            with self.subTest(request=request):
+                payload = {"conversation_id": f"settings-{index}", "workspace_roots": [str(self.repo)]}
+                start = self.hook("session-start", "cursor", payload)["additional_context"]
+                self.assertIn("When the widget opens, end the turn there.", start)
+                self.assertNotIn("Ready Check detected:", start)
+                opened = self.hook("prompt", "cursor", dict(payload, prompt=request))["additional_context"]
+                self.assertIn("end the turn there", opened)
+                self.assertNotIn("consent yes", opened)
+                self.assertNotIn("config set artifactLanguage", opened)
+                repeated = self.hook("prompt", "cursor", dict(payload, prompt=request))
+                self.assertEqual(repeated, {"continue": True})
+                work = dict(payload, prompt="Run Ready Check setup for this project")
+                setup = self.hook("prompt", "cursor", work)["additional_context"]
+                self.assertIn("Ready Check detected:", setup)
+                self.assertIn("consent yes", setup)
+                self.assertEqual(self.hook("prompt", "cursor", work), {"continue": True})
+
     def test_prompt_outside_git_writes_nothing(self):
         outside = self.root / "outside"
         outside.mkdir()
@@ -47,6 +73,10 @@ class HookTest(RepoTest):
                             ("cursor", ("additional_context",))):
             output = self.hook("session-start", client, {"cwd": str(self.repo), "session_id": client})
             text = output[key[0]][key[1]] if len(key) == 2 else output[key[0]]
+            if client == "cursor":
+                self.assertNotIn("Ready Check setup for this project", text)
+                payload = {"cwd": str(self.repo), "session_id": client, "prompt": "Check my changes"}
+                text = self.hook("prompt", client, payload)["additional_context"]
             self.assertIn("ask once in the user's", text)
             self.assertIn("skills/check/references/check-offer.md", text)
             self.assertIn("turn off for this session", text)
@@ -54,6 +84,7 @@ class HookTest(RepoTest):
             self.assertIn(f"offers off --client {client} --session {client}", text)
             self.assertNotIn("{offer}", text)
             self.assertLess(text.index("Ready Check setup for this project"), text.index("Ready Check is enabled"))
+            self.assertIn("For a request only to open settings", text)
             self.assertIn("Ready Check browser tools:", text)
             self.assertIn("consent yes", text)
             self.assertIn("template commit --project <repo>", text)

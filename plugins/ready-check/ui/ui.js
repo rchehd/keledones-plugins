@@ -33,10 +33,12 @@ const strings = {
     retest: "Retest", draft: "Draft comment", falsePositive: "False positive", reason: "Reason",
     triage: "Save decisions", fix: "Fix", accept: "Accept risk", outside: "Out of scope", choose: "Choose action",
     browser: "Browser mode", reminders: "Check reminders", capture: "Capture task context", save: "Save",
-    connect: "Connect PhpStorm MCP", disable: "Disable integration", enabled: "Enabled", off: "Off",
-    unverified: "The agent can verify IDE availability in the current client.",
-    available: "IDE inspection is available.", notAvailable: "IDE inspection is unavailable in this client.",
-    connectSaved: "Connection requested. Return to the chat to complete PhpStorm setup.",
+    connect: "Connect PhpStorm MCP", disable: "Disable IDE inspections", off: "Off",
+    inspectionsVerified: "Inspections verified", connectionUnverified: "Connection not verified",
+    inspectionsUnavailable: "Inspections unavailable in this client",
+    verificationHint: "Permission saved. Ask the agent to verify the connection.",
+    unavailableHint: "Permission saved. Check the PhpStorm MCP configuration in this client and the open IDE project.",
+    connectSaved: "Return to the chat to complete PhpStorm setup.", settingsSaved: "Settings saved.",
     pendingConnection: "Connection requested", cancelConnection: "Cancel request",
     ask: "Ask", visible: "Visible", background: "Background",
     all: "All", status: "Status", severity: "Severity", file: "File",
@@ -57,10 +59,12 @@ const strings = {
     retest: "Перетестувати", draft: "Підготувати коментар", falsePositive: "Хибне спрацювання", reason: "Причина",
     triage: "Зберегти рішення", fix: "Виправити", accept: "Прийняти ризик", outside: "Поза межами задачі", choose: "Обрати дію",
     browser: "Режим браузера", reminders: "Нагадування про перевірку", capture: "Зберігати контекст задачі",
-    save: "Зберегти", connect: "Підключити PhpStorm MCP", disable: "Вимкнути інтеграцію", enabled: "Увімкнено",
-    off: "Вимкнено", unverified: "Агент може перевірити доступність IDE в поточному клієнті.",
-    available: "Інспекції IDE доступні.", notAvailable: "Інспекції IDE недоступні в цьому клієнті.",
-    connectSaved: "Запит збережено. Повернися в чат, щоб завершити підключення PhpStorm.",
+    save: "Зберегти", connect: "Підключити PhpStorm MCP", disable: "Вимкнути IDE-інспекції", off: "Вимкнено",
+    inspectionsVerified: "Інспекції перевірено", connectionUnverified: "З’єднання не перевірено",
+    inspectionsUnavailable: "Інспекції недоступні в цьому клієнті",
+    verificationHint: "Дозвіл збережено. Попроси агента перевірити з’єднання.",
+    unavailableHint: "Дозвіл збережено. Перевір конфігурацію PhpStorm MCP у цьому клієнті та відкритий проєкт в IDE.",
+    connectSaved: "Повернися в чат, щоб завершити підключення PhpStorm.", settingsSaved: "Налаштування збережено.",
     pendingConnection: "Очікує підключення", cancelConnection: "Скасувати запит",
     ask: "Запитувати", visible: "Видимий", background: "Фоновий",
     all: "Усі", status: "Статус", severity: "Серйозність", file: "Файл",
@@ -424,10 +428,15 @@ function settings(pane, rows, data) {
   const card = surface();
   const layout = element("div", undefined, "setting");
   const description = element("div");
-  const availability = { available: labels.available, unavailable: labels.notAvailable };
-  const connection = data.phpstormMcp ? labels.enabled : data.phpstormPending ? labels.pendingConnection : labels.off;
-  description.append(element("h2", "PhpStorm MCP"), element("p", connection),
-    element("small", data.phpstormPending ? labels.connectSaved : availability[data.ideStatus] || labels.unverified));
+  const availability = {
+    available: [labels.inspectionsVerified],
+    unavailable: [labels.inspectionsUnavailable, labels.unavailableHint],
+    unverified: [labels.connectionUnverified, labels.verificationHint],
+  };
+  const [connection, hint] = data.phpstormMcp ? availability[data.ideStatus] ?? availability.unverified :
+    data.phpstormPending ? [labels.pendingConnection, labels.connectSaved] : [labels.off];
+  description.append(element("h2", "PhpStorm MCP"), element("p", connection));
+  if (hint) description.append(element("small", hint));
   const control = data.phpstormMcp || data.phpstormPending ?
     button(data.phpstormMcp ? labels.disable : labels.cancelConnection,
       () => submit({ action: "set", key: "phpstormMcp", value: false })) :
@@ -492,7 +501,7 @@ async function submit(value) {
     const connecting = value.action === "connect-phpstorm";
     if (state.view === "settings") render({ ...result, handle: state.handle });
     else saved = state.view !== "qa-results";
-    message(connecting ? labels.connectSaved : labels.saved);
+    if (!connecting) message(state.view === "settings" ? labels.settingsSaved : labels.saved);
     const requestId = connecting && result.data.phpstormRequestId;
     if (inApp && (state.view !== "settings" || requestId)) {
       const text = requestId ? "A Ready Check settings request " + requestId

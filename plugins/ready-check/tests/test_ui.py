@@ -6,13 +6,16 @@ import unittest
 from http.client import HTTPConnection
 from pathlib import Path
 from threading import Thread
+from unittest.mock import patch
 
 
 PLUGIN = Path(__file__).resolve().parent.parent
 ENTRY = PLUGIN / "scripts/ready-check.py"
 sys.path.insert(0, str(PLUGIN / "scripts"))
+import git_exclude
 from reports import prepare
 from reflect_collect import view_feedback
+from setup import enable_phpstorm
 from ui import LocalView, html
 from ui_state import View, reviewed_source
 
@@ -273,6 +276,117 @@ class InteractiveViewTest(unittest.TestCase):
         self.assertEqual(view.decision()["request_id"], replacement["data"]["phpstormRequestId"])
         subprocess.run(command, capture_output=True, check=True)
         self.assertTrue(view.current()["data"]["phpstormMcp"])
+
+    def test_cursor_setup_registers_only_an_approved_local_connection(self):
+        view = View(self.project, None, "settings")
+        config = self.project / ".cursor/mcp.json"
+        config.parent.mkdir()
+        other = dict(url="https://example.test/mcp")
+        config.write_text(json.dumps(dict(mcpServers=dict(other=other))), encoding="utf-8")
+        original = config.read_bytes()
+        endpoint = "http://127.0.0.1:64442/stream"
+
+        requested = view.submit(dict(revision=view.current()["revision"], action="connect-phpstorm"))
+        request_id = requested["data"]["phpstormRequestId"]
+        view.submit(dict(revision=requested["revision"], action="set", key="phpstormMcp", value=False))
+        with patch("phpstorm_mcp.verified_endpoint", return_value=True):
+            with self.assertRaisesRegex(ValueError, "cancelled or replaced"):
+                enable_phpstorm(self.project, False, request_id, "cursor", endpoint)
+            self.assertEqual(config.read_bytes(), original)
+            self.assertFalse(view.current()["data"]["phpstormMcp"])
+
+            pending = view.submit(dict(revision=view.current()["revision"], action="connect-phpstorm"))
+            applied = enable_phpstorm(self.project, False, pending["data"]["phpstormRequestId"], "cursor", endpoint)
+            repeated = enable_phpstorm(self.project, False, client="cursor", url=endpoint)
+
+        registration = applied["components"][0]["registration"]
+        self.assertEqual(registration["status"], "REGISTERED")
+        self.assertTrue(registration["restart_required"])
+        self.assertEqual(applied["components"][0]["connection"], "UNVERIFIED")
+        self.assertEqual(repeated["components"][0]["registration"]["status"], "ALREADY_REGISTERED")
+        servers = json.loads(config.read_text(encoding="utf-8"))["mcpServers"]
+        self.assertEqual(servers, {"other": other, registration["server"]: dict(url=endpoint,
+                         headers={"IJ_MCP_SERVER_PROJECT_PATH": "${workspaceFolder}"})})
+        subprocess.run(["git", "check-ignore", str(config)], cwd=self.project, capture_output=True, check=True)
+        self.assertTrue(view.current()["data"]["phpstormMcp"])
+        self.assertIsNone(view.decision())
+
+    def test_cursor_setup_leaves_tracked_config_and_missing_server_alone(self):
+        config = self.project / ".cursor/mcp.json"
+        config.parent.mkdir()
+        config.write_text('{"mcpServers": {}}\n', encoding="utf-8")
+        subprocess.run(["git", "add", str(config)], cwd=self.project, capture_output=True, check=True)
+        endpoint = "http://127.0.0.1:64442/stream"
+        with patch("phpstorm_mcp.verified_endpoint", return_value=True):
+            with self.assertRaisesRegex(ValueError, "tracked Cursor MCP config"):
+                enable_phpstorm(self.project, False, client="cursor", url=endpoint)
+        self.assertEqual(config.read_text(encoding="utf-8"), '{"mcpServers": {}}\n')
+        self.assertFalse(View(self.project, None, "settings").current()["data"]["phpstormMcp"])
+
+        with patch("phpstorm_mcp.verified_endpoint", return_value=False):
+            result = enable_phpstorm(self.project, False, client="cursor", url=endpoint)["components"][0]
+        self.assertEqual(result["registration"]["status"], "SERVER_UNAVAILABLE")
+        self.assertEqual(result["connection"], "UNVERIFIED")
+        self.assertEqual(config.read_text(encoding="utf-8"), '{"mcpServers": {}}\n')
+
+    def test_cursor_setup_preserves_concurrent_config_edit_and_can_retry(self):
+        config = self.project / ".cursor/mcp.json"
+        config.parent.mkdir()
+        config.write_text('{"mcpServers": {}}\n', encoding="utf-8")
+        updated = '{"mcpServers": {"new-server": {"url": "https://example.test/mcp"}}}\n'
+        view = View(self.project, None, "settings")
+        request = view.submit(dict(revision=view.current()["revision"], action="connect-phpstorm"))
+        request_id = request["data"]["phpstormRequestId"]
+        apply_exclude = git_exclude.apply
+
+        def save_from_cursor(plan, **kwargs):
+            apply_exclude(plan, **kwargs)
+            if "/.cursor/mcp.json" in plan["entries"]:
+                config.write_text(updated, encoding="utf-8")
+
+        endpoint = "http://127.0.0.1:64442/stream"
+        with patch("phpstorm_mcp.verified_endpoint", return_value=True):
+            with patch.object(git_exclude, "apply", side_effect=save_from_cursor):
+                with self.assertRaisesRegex(ValueError, "File changed during setup"):
+                    enable_phpstorm(self.project, False, request_id, "cursor", endpoint)
+            self.assertEqual(config.read_text(encoding="utf-8"), updated)
+            self.assertFalse(view.current()["data"]["phpstormMcp"])
+            self.assertEqual(view.decision()["request_id"], request_id)
+            result = enable_phpstorm(self.project, False, request_id, "cursor", endpoint)["components"][0]
+        self.assertEqual(result["registration"]["status"], "REGISTERED")
+        servers = json.loads(config.read_text(encoding="utf-8"))["mcpServers"]
+        self.assertEqual(servers["new-server"], {"url": "https://example.test/mcp"})
+        self.assertIsNone(view.decision())
+
+    def test_cursor_setup_verifies_unicode_project_with_inspection_only(self):
+        endpoint = "http://127.0.0.1:64442/stream"
+        for index, tool in enumerate(("lint_files", "get_file_problems")):
+            with self.subTest(tool=tool):
+                project = self.project / f"Проєкт-{index}"
+                project.mkdir()
+                subprocess.run(["git", "init", "--quiet"], cwd=project, capture_output=True, check=True)
+                (project / "index.php").write_text("<?php\n", encoding="utf-8")
+                subprocess.run(["git", "add", "index.php"], cwd=project, capture_output=True, check=True)
+
+                def reply(_port, headers, method, params, request_id=None):
+                    self.assertNotIn("IJ_MCP_SERVER_PROJECT_PATH", headers)
+                    if method == "initialize":
+                        return dict(serverInfo=dict(name="PhpStorm MCP Server"), protocolVersion="2025-03-26")
+                    if method == "tools/list":
+                        return dict(tools=[dict(name=tool)])
+                    if method == "tools/call":
+                        self.assertEqual(params["name"], tool)
+                        args = params["arguments"]
+                        self.assertEqual(args["projectPath"], str(project))
+                        self.assertEqual(args.get("files", [args.get("filePath")]), ["index.php"])
+                    return {}
+
+                with patch("phpstorm_mcp.rpc", side_effect=reply):
+                    result = enable_phpstorm(project, False, client="cursor", url=endpoint)["components"][0]
+                registration = result["registration"]
+                self.assertEqual(registration["status"], "REGISTERED")
+                config = json.loads((project / ".cursor/mcp.json").read_text(encoding="utf-8"))
+                self.assertEqual(config["mcpServers"][registration["server"]], {"url": endpoint})
 
     def test_mcp_exposes_app_resource_and_records_a_view_decision(self):
         self.prepare("qa-plan", self.plan())

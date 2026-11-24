@@ -121,11 +121,14 @@ re-evaluating the evidence and applicable requirements before any change to the 
 
 Use `settings` with the repository path and no task or input. The widget reads and saves the same project
 preferences as `config`; it includes browser mode, check reminders, task capture, and PhpStorm MCP.
+For a settings-only request, the rendered widget is the response. If the tool returns a local URL, give the
+URL. If the tool is unavailable, use `ui serve --project <repo> --view settings` and give its local URL.
 Pass `ide_status` (or `--ide-status` for the local server) as `available` after a successful inspection
 or `unavailable` when the requested connection cannot be inspected. Leave it unverified otherwise.
 After a PhpStorm connect action or its MCP App notification, read
 `ui decision --project <repo> --view settings`. Continue the [PhpStorm setup flow](../../setup/references/phpstorm.md)
 only for a pending `connect-phpstorm` decision. If the notification includes an ID, require it to match
 the pending `request_id`. Pass that ID to `setup --component phpstorm --phpstorm-request <request_id>`
-to apply the widget request. Stop if the decision is missing or the command reports cancellation or
+to apply the widget request. In Cursor, add `--client cursor` to register the MCP server for the project.
+Stop if the decision is missing or the command reports cancellation or
 replacement. Report the IDE connection as verified after an inspection succeeds.

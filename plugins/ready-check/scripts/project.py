@@ -351,7 +351,10 @@ def migrate(top):
             source.rmdir()
 
 
-def write_json(path, data, root=None):
+UNCHECKED = object()
+
+
+def write_json(path, data, root=None, *, original=UNCHECKED):
     path = Path(path)
     current = Path(root) if root else path.parent
 
@@ -368,6 +371,15 @@ def write_json(path, data, root=None):
         with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, prefix=".ready-check.", delete=False) as stream:
             temporary = Path(stream.name)
             stream.write(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+        if original is not UNCHECKED:
+            if redirected(path) or path.exists() and not path.is_file():
+                raise ValueError(f"File changed during setup. Retry to preserve current edits: {path}")
+            try:
+                current_bytes = path.read_bytes()
+            except FileNotFoundError:
+                current_bytes = None
+            if current_bytes != original:
+                raise ValueError(f"File changed during setup. Retry to preserve current edits: {path}")
         temporary.replace(path)
     finally:
         if temporary is not None:

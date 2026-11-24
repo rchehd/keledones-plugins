@@ -21,6 +21,8 @@ Use the portable entry point `<plugin>/scripts/ready-check.py`; Bash and WSL are
 
 For a request specifically to connect PhpStorm MCP, go directly to the [connection flow](references/phpstorm.md).
 For a request to show Ready Check settings, open the [settings widget](../qa/references/interactive-ui.md#settings).
+When settings are the sole request, finish at that step. Opening settings does not require profile detection,
+an installation decision, or a report language.
 
 Run `ready-check.py profiles --project <repo>` to get the detected or configured profiles, application roots
 relative to the repository, runners and detection evidence. Keep independent matches, including several
@@ -51,7 +53,8 @@ Setup can exceed the default command timeout: run it with the maximum timeout or
 Do not kill or rerun an active setup, and never remove a lock because a run is slow. The installer downloads
 pinned dependencies outside the project, checks compatibility and smoke-tests a real browser launch; do not
 duplicate that with ad hoc package-manager commands. Application manifests, lock files, source, client settings
-and project instruction files stay unchanged.
+and project instruction files stay unchanged during tool installation. Opting into the separate PhpStorm flow
+in Cursor can add a local, Git-excluded MCP registration for that project.
 
 Read the JSON statuses and exit code: `0` is `PASS` or preview `PLANNED`, `2` is `INCOMPLETE`. A missing or
 malformed result is `INCOMPLETE`. On failure read the specific log and report the concrete cause: missing

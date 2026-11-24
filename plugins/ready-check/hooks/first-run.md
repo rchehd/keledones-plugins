@@ -1,4 +1,6 @@
-Ready Check setup for this project. Before answering the user's first message, do this once:
+Ready Check setup for this project. Use this once when handling installation, verification, or work that needs
+Ready Check's project setup. For a request only to open settings, complete the widget request and defer this
+setup, including the profile, installation and report-language questions.
 
 {question}
 

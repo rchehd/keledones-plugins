@@ -8,6 +8,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 sys.dont_write_bytecode = True
 import logs
 from dependency_support import PLUGIN, data_root
+from phpstorm_mcp import register_cursor
 from project import BASE, LEGACY_BASE, ensure_excluded, migrate, migration_lock, project_file, redirected, toplevel, write_json
 
 DEFAULTS = {"browser": "ask", "install": "ask", "captureTasks": True, "remind": True, "artifactLanguage": "English",
@@ -139,7 +140,7 @@ def pending_phpstorm_request(top):
     return None
 
 
-def store(key, value, top=None, *, phpstorm_request_id=None):
+def store(key, value, top=None, *, phpstorm_request_id=None, phpstorm_cursor_url=None):
     path, root = setting_location(key, top)
     if not valid(key, value):
         raise ValueError(f"Invalid value for {key}: {value!r}")
@@ -166,10 +167,12 @@ def store(key, value, top=None, *, phpstorm_request_id=None):
                 data.pop(field, None)
         elif key in SCALAR_SELECTION and "profiles" in data:
             raise ValueError("Replace the profiles list to change a configured selection")
+        registration = register_cursor(top, phpstorm_cursor_url) if phpstorm_cursor_url else None
         data[key] = value
         write_json(path, data, root)
         if key == "phpstormMcp":
             (path.parent / PHPSTORM_REQUEST).unlink(missing_ok=True)
+        return registration
 
 
 def unset(key, top=None):

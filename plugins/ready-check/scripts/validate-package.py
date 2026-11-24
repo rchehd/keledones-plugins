@@ -215,7 +215,7 @@ def dependencies(root):
 def entry_points(root):
     for name in ("doctor.sh", "check-static.sh", "check-profile.py", "setup.sh", "setup.py", "dependency_support.py", "profile_selection.py",
                  "process_support.py", "profile_runtime.py", "managed_storage.py", "git_exclude.py", "reports.py", "mcp.py", "mcp.mjs",
-                 "ui.py", "ui_state.py", "ui-mcp.py",
+                 "ui.py", "ui_state.py", "ui-mcp.py", "phpstorm_mcp.py",
                  "ready-check.py", "playwright.sh", "playwright.py", "project.py", "settings.py", "detect.py", "logs.py",
                  "tasks.py", "answers.py", "hook.py", "hook_state.py", "offers.py", "fingerprint.py", "consent.py", "uninstall.py", "rules.py", "a11y.py", "qa-gate.py", "qa-record.py", "qa_evidence.py", "customize.py", "draft_template.py", "summary.py", "feedback.py", "reflect_collect.py", "publication.py"):
         resource(root, root, "scripts/" + name)
