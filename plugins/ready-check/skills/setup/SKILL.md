@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Install, reinstall or diagnose Ready Check tools (Playwright, the browser and framework-profile checkers) and change the install decision or project type, when the automatic first run did not cover it.
+description: Install or diagnose Ready Check tools, open Ready Check settings, or connect optional PhpStorm MCP inspections. Trigger on “Connect PhpStorm MCP” and “Підключи PhpStorm MCP”.
 ---
 
 # Ready Check setup
@@ -18,6 +18,12 @@ if none is open, ask which local project to prepare. The plugin directory is nev
 
 Detect the host Python 3 interpreter: `python3` on Linux/macOS/WSL, `py -3` or `python` on native Windows.
 Use the portable entry point `<plugin>/scripts/ready-check.py`; Bash and WSL are not required.
+
+For a request specifically to connect PhpStorm MCP, go directly to the [connection flow](references/phpstorm.md).
+For a request to show Ready Check settings, run `ready-check.py config get --project <repo>` and show the
+requested values in chat. For a change, use `config set <key> <value> --project <repo>` and confirm the saved
+value. Use the [PhpStorm connection flow](references/phpstorm.md) to connect the IDE. A settings-only request
+ends after the settings response. Defer profile detection, installation and the report-language question.
 
 Run `ready-check.py profiles --project <repo>` to get the detected or configured profiles, application roots
 relative to the repository, runners and detection evidence. Keep independent matches, including several
@@ -48,7 +54,8 @@ Setup can exceed the default command timeout: run it with the maximum timeout or
 Do not kill or rerun an active setup, and never remove a lock because a run is slow. The installer downloads
 pinned dependencies outside the project, checks compatibility and smoke-tests a real browser launch; do not
 duplicate that with ad hoc package-manager commands. Application manifests, lock files, source, client settings
-and project instruction files stay unchanged.
+and project instruction files stay unchanged during tool installation. Opting into the separate PhpStorm flow
+in Cursor can add a local, Git-excluded MCP registration for that project.
 
 Read the JSON statuses and exit code: `0` is `PASS` or preview `PLANNED`, `2` is `INCOMPLETE`. A missing or
 malformed result is `INCOMPLETE`. On failure read the specific log and report the concrete cause: missing
@@ -63,7 +70,8 @@ the session rule or first-run question never appears there, tell the user to tru
 ## Finish
 
 Report the profiles with their application roots and runners, the components, versions and remaining prerequisites. Setup results are
-not a task-readiness verdict. If the user also asked to check a task, continue with the packaged
+not a task-readiness verdict. After a successful full installation, follow the Yes/No offer in the
+[PhpStorm connection flow](references/phpstorm.md). If the user also asked to check a task, continue with the packaged
 [check skill](../check/SKILL.md) in this chat; otherwise show the `check` command as the next step.
 
 Do not commit, push, publish, install another plugin, or modify global skills.

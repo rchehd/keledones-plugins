@@ -20,8 +20,10 @@ if available. Wait for the choice before reading data. An explicit request for `
 
 1. When a phrase triggered this skill rather than the explicit command, ask once: "Show the Ready Check overview of
    the last 10 tasks?" Ask how many tasks only if the user wants a different number.
-2. Run `ready-check.py reflect-collect --project <app> --tasks <N> --html`.
-3. Show structured text, no charts in the chat:
+2. Run `ready-check.py reflect-collect --project <app> --tasks <N> --html` for the digest and offline report.
+3. Give the collector's offline HTML path and a short summary in chat. For a localized local browser
+   overview when requested, run `ready-check.py ui serve --project <app> --view reflect --snapshot
+   <snapshot_id> --locale <en|uk>` in the background and give its URL. Use this format for the summary:
 
    ```text
    Overview: <N> tasks, <first date>–<last date>
@@ -41,7 +43,9 @@ if available. Wait for the choice before reading data. An explicit request for `
 
    Group feedback reasons by meaning into the typical errors; never change the script's counts. Say which values are
    `unknown` (older tasks without round summaries) instead of guessing.
-4. Give the HTML report path (`html` in the JSON). Charts need the installed browser tools; otherwise it has tables.
+   When present, report false-positive and risk-acceptance counts from `view_dispositions`, including saved
+   chat decisions and decisions carried over from older reports. Each ID in a round contributes its latest decision.
+   Use each task's `view_feedback` source and reason to identify noisy checks separately from task returns.
 
 ## 2. Ask
 

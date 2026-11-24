@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from datetime import date
+from hashlib import sha256
 from itertools import groupby
 
 import signals
@@ -12,6 +13,10 @@ from sessions import CHAT_CLIENTS, load, window
 from sources import chat_history
 
 PRIORITY = ("correction", "repeat", "debug", "question", "plan")
+
+
+def fingerprint(text):
+    return sha256(text.encode("utf-8")).hexdigest()
 
 
 def iso(day):

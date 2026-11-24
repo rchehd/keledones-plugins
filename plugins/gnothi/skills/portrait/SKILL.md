@@ -98,6 +98,11 @@ Run `render`. If storage access fails here or at another local step, follow
 [Private storage access](references/chat-history.md#private-storage-access). For other failures, fix what
 `reason` lists and run it again. Pass on `warnings` in one line.
 
+For a requested aggregate-only HTML view, run `render --widget-metrics <digest_id>` using the approved
+collection's ID. If it no longer matches, collect the selected data and confirm the period again. Give the
+returned `widget_html` path. It contains the selected period's metrics and the previous period for comparison.
+The full private report is at `html`.
+
 ## 5. Reply
 
 5–8 lines: the summary, the top strengths and growth areas, a comparable change when there is one, and the

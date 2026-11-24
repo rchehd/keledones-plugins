@@ -138,6 +138,16 @@ it), or you fix it. After a fix, or when you say "retest", the next round reruns
 affect: static checks, review of changed code and its callers, failed and related QA cases and each RC's main
 flow; shared-code changes or "full recheck" run everything.
 
+**QA evidence.** Ready Check opens screenshots and supported short clips next to their scenario results
+in compatible clients and provides a local HTML report for other clients or larger recordings. Ask about
+settings, QA plans, or review decisions in chat. See the [QA evidence viewer](skills/qa/references/interactive-ui.md).
+
+**PhpStorm.** After a full setup, choose whether to connect its optional MCP inspections. You can also
+say "Connect PhpStorm MCP" later. In Cursor, Ready Check registers the running PhpStorm MCP for the project
+after opt-in. With the right project open in the IDE and the inspection tools available, review can use IDE
+warnings and errors as evidence candidates. See the
+[connection guide](skills/setup/references/phpstorm.md).
+
 **Browser.** Browser scenarios run in a **visible** browser (bundled Playwright MCP; you watch and can log in yourself) or in
 the **background** (Playwright CLI). The agent asks for a mode unless you set a default:
 `config set browser visible|background`. In Drupal the agent logs in through `drush uli`, in Symfony through `login_link` when configured, elsewhere
@@ -216,7 +226,7 @@ If the same report already exists in both folders, each copy keeps its own evide
 - **Feedback:** when a lead or QA returns a checked task, say so ("the task was returned…"); the agent asks and
   records it with `feedback`: who, why, and whether Ready Check missed it.
 - **Reflect:** "show my Ready Check stats" gives an overview of the last 10 tasks (rounds, defects, returns, typical
-  errors) in the chat and an HTML report with charts in `.ai/ready-check/reflect/`. Only if you ask does it propose
+  errors) in chat and saves an offline HTML report in `.ai/ready-check/reflect/`. Only if you ask does it propose
   improvements; for each you choose any of: project, global, PR to Ready Check, skip.
   For a private portrait of how you give instructions, delegate and redirect agents, use the
   [Gnothi portrait](https://github.com/rchehd/keledones-plugins/tree/main/plugins/gnothi).

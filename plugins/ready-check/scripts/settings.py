@@ -8,17 +8,20 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 sys.dont_write_bytecode = True
 import logs
 from dependency_support import PLUGIN, data_root
-from project import BASE, LEGACY_BASE, ensure_excluded, migrate, migration_lock, project_file, toplevel, write_json
+from phpstorm_mcp import register_cursor
+from project import BASE, LEGACY_BASE, ensure_excluded, migrate, migration_lock, project_file, redirected, toplevel, write_json
 
-DEFAULTS = {"browser": "ask", "install": "ask", "captureTasks": True, "remind": True, "artifactLanguage": "English"}
+DEFAULTS = {"browser": "ask", "install": "ask", "captureTasks": True, "remind": True, "artifactLanguage": "English",
+            "phpstormMcp": False}
 CHOICES = {"browser": {"ask", "visible", "background"}, "install": {"ask", "auto", "never"},
            "runner": {"local", "ddev", "compose"}}
-BOOLEAN = {"captureTasks", "remind"}
+BOOLEAN = {"captureTasks", "remind", "phpstormMcp"}
 USER_ONLY = {"install"}
 SCALAR_SELECTION = {"profile", "runner", "application"}
-PROJECT_ONLY = SCALAR_SELECTION | {"profiles"}
+PROJECT_ONLY = SCALAR_SELECTION | {"profiles", "phpstormMcp"}
 TEMPLATE_KEYS = {"commitTemplate", "pullRequestTemplate", "taskCommentTemplate"}
 KEYS = set(DEFAULTS) | PROJECT_ONLY | TEMPLATE_KEYS
+PHPSTORM_REQUEST = "ui-phpstorm-request.json"
 
 
 def user_path():
@@ -127,7 +130,17 @@ def template_path(value, top=None):
     return resolved
 
 
-def store(key, value, top=None):
+def pending_phpstorm_request(top):
+    path = project_path(top).parent / PHPSTORM_REQUEST
+    request = read(path) if not redirected(path) else {}
+    request_id = request.get("request_id")
+    if (request.get("action") == "connect-phpstorm" and isinstance(request_id, str)
+            and re.fullmatch(r"[A-Za-z0-9_-]{32}", request_id)):
+        return request
+    return None
+
+
+def store(key, value, top=None, *, phpstorm_request_id=None, phpstorm_cursor_url=None):
     path, root = setting_location(key, top)
     if not valid(key, value):
         raise ValueError(f"Invalid value for {key}: {value!r}")
@@ -142,6 +155,10 @@ def store(key, value, top=None):
         migrate(top)
         ensure_excluded(top)
     with migration_lock(path.parent):
+        if phpstorm_request_id is not None:
+            pending = pending_phpstorm_request(top)
+            if not pending or pending["request_id"] != phpstorm_request_id:
+                raise ValueError("The PhpStorm connection request was cancelled or replaced.")
         data = read(project_file(top, path.name) if project else path)
         if key == "profiles":
             for item in value:
@@ -150,8 +167,12 @@ def store(key, value, top=None):
                 data.pop(field, None)
         elif key in SCALAR_SELECTION and "profiles" in data:
             raise ValueError("Replace the profiles list to change a configured selection")
+        registration = register_cursor(top, phpstorm_cursor_url) if phpstorm_cursor_url else None
         data[key] = value
         write_json(path, data, root)
+        if key == "phpstormMcp":
+            (path.parent / PHPSTORM_REQUEST).unlink(missing_ok=True)
+        return registration
 
 
 def unset(key, top=None):
@@ -165,6 +186,8 @@ def unset(key, top=None):
         if key in data:
             del data[key]
             write_json(path, data, root)
+        if key == "phpstormMcp":
+            (path.parent / PHPSTORM_REQUEST).unlink(missing_ok=True)
 
 
 def shared_config(application):

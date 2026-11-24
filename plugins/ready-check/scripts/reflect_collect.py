@@ -7,12 +7,14 @@ import sys
 from collections import Counter
 from datetime import date, datetime
 from pathlib import Path
+from uuid import uuid4
 
 sys.dont_write_bytecode = True
 from dependency_support import PLUGIN, bundle_path, data_root, installed
 from feedback import recent as feedback_records
-from project import BASE, ensure_excluded, toplevel
+from project import BASE, ensure_excluded, redirected, toplevel, write_json
 from reports import all_tasks
+from summary import COUNTED_DISPOSITIONS, DISPOSITIONS, disposition_key, saved_dispositions, read as read_summary
 
 VERDICTS = ("READY TO PUSH", "PARTIAL CHECK COMPLETE", "BLOCKED", "INCOMPLETE")
 KEY = re.compile(r"^(task_id|Round|Verdict):\s*(.+?)\s*$", re.M)
@@ -34,13 +36,8 @@ def key_lines(report):
     return found
 
 
-def summary(directory):
-    try:
-        data = json.loads((directory / "summary.json").read_text(encoding="utf-8"))
-        rounds = [item for item in data.get("rounds", []) if isinstance(item, dict)]
-    except (OSError, ValueError, AttributeError):
-        return []
-
+def round_summaries(data):
+    rounds = [item for item in data.get("rounds") or [] if isinstance(item, dict)]
     for item in rounds:
         item["findings"] = [entry for entry in item.get("findings") or [] if isinstance(entry, dict)]
         item["qa"] = [entry for entry in item.get("qa") or [] if isinstance(entry, dict)]
@@ -63,10 +60,55 @@ def test_problems(rounds):
     return sorted(problem for problem in problems if problem)
 
 
+def widget_decisions(decision):
+    from ui_state import gallery_actions
+
+    if decision.get("view") == "review":
+        for row in decision.get("rows", []):
+            if isinstance(row, dict) and row.get("action") in DISPOSITIONS:
+                yield row
+    if decision.get("view") == "qa-results":
+        for action in gallery_actions(decision):
+            if action["action"] == "false-positive":
+                yield dict(id=action["scenario"], action="false-positive", source="QA", reason=action["reason"])
+
+
+def view_feedback(directory):
+    from ui_state import object_at
+
+    latest = {}
+    for filename in sorted(directory.glob("ui-*-decision-*.json")):
+        try:
+            decision = object_at(filename)
+            modified = filename.stat().st_mtime_ns
+        except (ValueError, OSError):
+            continue
+        round_number = decision.get("round")
+        if type(round_number) is not int:
+            continue
+        revision = decision.get("requirements_revision")
+        order = (revision if type(revision) is int else 0, modified)
+        for item in widget_decisions(decision):
+            if not isinstance(item.get("id"), str):
+                continue
+            row = dict(item, round=round_number)
+            key = disposition_key(row)
+            if key not in latest or order >= latest[key][0]:
+                latest[key] = (order, row)
+    return (row for _, row in latest.values() if row["action"] in COUNTED_DISPOSITIONS)
+
+
+def recorded_feedback(directory, data):
+    recorded = saved_dispositions(data)
+    history = [row for row in view_feedback(directory) if disposition_key(row) not in recorded]
+    return history + [row for row in recorded.values() if row["action"] in COUNTED_DISPOSITIONS]
+
+
 def task_record(item, feedback):
     directory = item["directory"]
     keys = key_lines(directory / "report.md")
-    rounds = summary(directory)
+    summary_data = read_summary(directory / "summary.json")
+    rounds = round_summaries(summary_data)
     findings = {}
 
     for entry in rounds:
@@ -83,6 +125,7 @@ def task_record(item, feedback):
                 returned=bool(returned), returned_missed=any(record.get("missed") is True or record.get("missed") == "yes"
                                                               for record in returned),
                 return_reasons=[record.get("reason") for record in returned], has_summary=bool(rounds),
+                view_feedback=recorded_feedback(directory, summary_data),
                 report=str(directory / "report.md"))
 
 
@@ -116,8 +159,90 @@ def collect(top, limit):
     )
     reasons = [dict(task=record.get("task"), reason=record.get("reason"), area=record.get("area"),
                     missed=record.get("missed")) for record in returns]
+    dispositions = Counter(row["action"] for task in tasks for row in task["view_feedback"])
     return dict(tasks=tasks, totals=totals, areas=areas.most_common(), returns_per_week=sorted(weeks.items()),
-                feedback_reasons=reasons)
+                feedback_reasons=reasons, view_dispositions=dict(dispositions))
+
+
+def summary_value(totals, key, empty="No data", coverage="tasks with summaries"):
+    available = totals["with_summary"]
+    if not available:
+        return empty
+    if key == "qa_test_problems":
+        return f"{totals[key]} ({available} {coverage})"
+    return f"{totals[key]} / {available}"
+
+
+def disposition_metrics(digest, locale="en"):
+    counts = digest.get("view_dispositions", {})
+    labels = (
+        ("false-positive", "False positives", "Хибні спрацювання"),
+        ("accept-risk", "Accepted risks", "Прийняті ризики"),
+    )
+    return [(uk if locale == "uk" else en, counts[key]) for key, en, uk in labels if key in counts]
+
+
+def dashboard(digest, locale):
+    def label(en, uk):
+        return uk if locale == "uk" else en
+
+    totals = digest["totals"]
+    empty = label("No data", "Немає даних")
+    coverage = label("tasks with summaries", "задач із підсумками")
+    summary_keys = {"passed_first_round", "with_defects", "qa_test_problems"}
+    metrics = []
+    for key, caption in (
+        ("tasks", label("Tasks", "Задачі")),
+        ("passed_first_round", label("Passed in round 1", "Пройшли з першого раунду")),
+        ("with_defects", label("Tasks with defects", "Задачі з дефектами")),
+        ("returned", label("Returned after review", "Повернули після рев’ю")),
+        ("returned_missed", label("Missed by Ready Check", "Пропустив Ready Check")),
+        ("qa_test_problems", label("QA test problems", "Збої QA-тестів")),
+        ("without_summary", label("Missing round summaries", "Без підсумків раундів")),
+    ):
+        value = summary_value(totals, key, empty, coverage) if key in summary_keys else totals[key]
+        metrics.append(dict(label=caption, value=value))
+    task_rows = [[row["task_id"], row["date"], row["rounds"], row["verdict"],
+                  ", ".join(value for value in row["return_reasons"] if value) or None] for row in digest["tasks"]]
+    metrics.extend(dict(label=caption, value=value) for caption, value in disposition_metrics(digest, locale))
+    return dict(locale=locale, title=label("Ready Check overview", "Статистика Ready Check"),
+                labels=dict(empty=label("No data for these tasks.", "Для цих задач немає даних.")), metrics=metrics,
+                sections=[
+                    dict(title=label("Tasks", "Задачі"),
+                         columns=[label("Task", "Задача"), label("Date", "Дата"), label("Rounds", "Раунди"),
+                                  label("Verdict", "Результат"), label("Return reason", "Причина повернення")],
+                         rows=task_rows),
+                    dict(title=label("Finding areas", "Категорії знахідок"),
+                         columns=[label("Area", "Категорія"), label("Count", "Кількість")], rows=digest["areas"]),
+                    dict(title=label("Returns by week", "Повернення за тижнями"),
+                         columns=[label("Week", "Тиждень"), label("Count", "Кількість")],
+                         rows=digest["returns_per_week"]),
+                ])
+
+
+def snapshot_path(top, identifier):
+    if not isinstance(identifier, str) or not re.fullmatch(r"[a-f0-9]{32}", identifier):
+        raise ValueError("Expected a valid Reflect snapshot ID")
+    directory = top / BASE / "reflect"
+    path = directory / f"snapshot-{identifier}.json"
+    if any(redirected(item) for item in (path, directory, directory.parent, directory.parent.parent)):
+        raise ValueError("Reflect snapshots require local files in the report directory")
+    return path
+
+
+def read_snapshot(top, identifier):
+    path = snapshot_path(top, identifier)
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as error:
+        raise ValueError("Reflect snapshot is unavailable. Collect the overview again.") from error
+
+
+def snapshot_data(digest):
+    snapshot = {key: digest[key] for key in ("totals", "areas", "returns_per_week", "view_dispositions")}
+    fields = ("task_id", "date", "rounds", "verdict", "return_reasons")
+    snapshot["tasks"] = [{key: task[key] for key in fields} for task in digest["tasks"]]
+    return snapshot
 
 
 def chart_source():
@@ -142,10 +267,13 @@ def short(label, size=22):
 def render_html(digest):
     totals, tasks = digest["totals"], digest["tasks"]
     library = chart_source()
+    first = summary_value(totals, "passed_first_round")
+    defects = summary_value(totals, "with_defects")
     charts = dict(
-        rounds=dict(type="bar", labels=[short(task["task_id"]) for task in tasks], values=[task["rounds"] or 0 for task in tasks]),
-        outcomes=dict(type="doughnut", labels=["Passed in round 1", "Confirmed defects", "Returned after review"],
-                      values=[totals["passed_first_round"], totals["with_defects"], totals["returned"]]),
+        rounds=dict(type="bar", labels=[short(task["task_id"]) for task in tasks], values=[task["rounds"] for task in tasks]),
+        outcomes=dict(type="doughnut", labels=[f"Passed in round 1 ({first})", f"Confirmed defects ({defects})", "Returned after review"],
+                      values=[totals["passed_first_round"] if totals["with_summary"] else None,
+                              totals["with_defects"] if totals["with_summary"] else None, totals["returned"]]),
         areas=dict(type="bar", labels=[short(area) for area, _ in digest["areas"][:8]], values=[count for _, count in digest["areas"][:8]]),
         weeks=dict(type="line", labels=[week for week, _ in digest["returns_per_week"]],
                    values=[count for _, count in digest["returns_per_week"]]),
@@ -153,11 +281,12 @@ def render_html(digest):
     titles = dict(rounds="Rounds per task", outcomes="Task outcomes", areas="Top error areas", weeks="Returns per week")
     cards = "".join(f'<section class="card"><h2>{titles[name]}</h2><div class="chart"><canvas id="{name}"></canvas></div></section>'
                     for name in charts)
-    totals_rows = [("Tasks", totals["tasks"]), ("Passed in round 1", totals["passed_first_round"]),
-                   ("With confirmed defects", totals["with_defects"]), ("Returned after review", totals["returned"]),
+    totals_rows = [("Tasks", totals["tasks"]), ("Passed in round 1", first),
+                   ("With confirmed defects", defects), ("Returned after review", totals["returned"]),
                    ("Returned and missed by Ready Check", totals["returned_missed"]),
-                   ("QA cases that failed because of the test", totals["qa_test_problems"]),
+                   ("QA cases that failed because of the test", summary_value(totals, "qa_test_problems")),
                    ("Tasks without round summaries", totals["without_summary"])]
+    totals_rows.extend(disposition_metrics(digest))
     task_rows = [(task["task_id"], re.sub(r"-[0-9a-f]{12}$", "", task["branch"] or ""), task["date"] or "unknown", task["rounds"] or "unknown", task["verdict"],
                   "yes" if task["returned"] else "no", "; ".join(r for r in task["return_reasons"] if r) or "") for task in tasks]
     script = ""
@@ -187,11 +316,12 @@ for (const [id, c] of Object.entries(DATA)) {
 </script>"""
     else:
         cards = "".join(f'<section class="card"><h2>{titles[name]}</h2>' +
-                        table(["Label", "Value"], list(zip(chart["labels"], chart["values"]))) + "</section>"
+                        table(["Label", "Value"], [(label, "No data" if value is None else value)
+                                                   for label, value in zip(chart["labels"], chart["values"])]) + "</section>"
                         for name, chart in charts.items())
 
     tiles = "".join(f'<div class="tile"><span>{html.escape(label)}</span><strong>{number}</strong></div>' for label, number in (
-        ("Tasks", totals["tasks"]), ("Passed in round 1", totals["passed_first_round"]),
+        ("Tasks", totals["tasks"]), ("Passed in round 1", first),
         ("Returned after review", totals["returned"]), ("Missed by Ready Check", totals["returned_missed"])))
 
     return f"""<!doctype html>
@@ -257,11 +387,14 @@ def main():
         digest = collect(top, max(args.tasks, 1))
 
         if args.html:
-            path = top / BASE / "reflect" / f"overview-{date.today().isoformat()}.html"
+            identifier = uuid4().hex
+            snapshot = snapshot_path(top, identifier)
+            path = snapshot.with_name(f"overview-{date.today().isoformat()}-{identifier}.html")
             ensure_excluded(top)
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(render_html(digest), encoding="utf-8")
-            digest["html"] = str(path)
+            write_json(snapshot, snapshot_data(digest), top)
+            digest.update(html=str(path), snapshot_id=identifier)
 
         result.update(status="PASS", **digest)
     except (OSError, ValueError) as error:

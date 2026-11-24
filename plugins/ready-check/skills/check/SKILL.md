@@ -100,7 +100,8 @@ Show a compact requirements table and a TODO covering requirements, scope/profil
 requirements/stack/security review, QA-plan approval, QA, and the final result. Keep unselected stages
 NOT_SELECTED. Keep unresolved requirements `DRAFT`; mark sufficiently
 specified ones `DEFINED`. These statuses describe clarity, not whether the implementation satisfies a requirement.
-Record a requirements revision in the report and increment it when an answer changes criteria or exclusions.
+Record `Requirements revision: 1` for a new report and increment the number when an answer changes
+criteria or exclusions. Keep the key in English so the findings view can check it before accepting decisions.
 Revisit affected checks even when the code snapshot has not changed; old answers remain reusable context.
 
 Keep the TODO in the harness's native task-list tool whenever one is available (Claude Code's todo/task
@@ -111,7 +112,9 @@ The report's TODO section is the persisted copy for resuming; keep both in sync.
 ## 5. Run static checks and enforce the gate
 
 Run this stage only when selected and the task requirements, acceptance conditions, affected profiles and
-application roots, and diff scope are clear. Save the report using step 9 first. For each applicable pair,
+application roots, and diff scope are clear. Save the report using step 9 first. Capture the
+[findings source snapshot](../qa/references/interactive-ui.md#review-and-static-findings) before running
+statics so later decisions can be checked against this code. For each applicable pair,
 read `instructions.static` and run `scripts/ready-check.py doctor --profile <id> --project <application-root>`
 with the agreed `--base` or `--commits`. Use the available Python 3 interpreter (`python3` on Unix, `py -3` or
 `python` on native Windows). For shell syntax, use the profile's result. For extra project checks, use the
@@ -190,8 +193,9 @@ When QA is selected and all selected preceding gates pass, follow the packaged [
 Pass the report, current requirements revision, complete RC list, any selected review matrix, affected
 profile and application pairs, and their static JSON or partial scope evidence. Build requirements and scenarios from the session's
 task history and human answers, distinguishing feature acceptance from bug reproduction and regression
-coverage. Show the QA plan in a standalone Markdown message before presenting the short approval prompt,
-then wait for explicit approval or clarification. General validation consent does not approve an unseen QA plan. Persist plan revision,
+coverage. Follow the QA skill and show the plan in standalone Markdown before the
+short chat approval prompt. Wait for explicit approval or clarification. General validation consent does not
+approve an unseen QA plan. Persist plan revision,
 approved scenario IDs and the human decision; a material plan change needs renewed approval before its cases run.
 The skill reads applicable QA guidance per scenario and checks the relevant runtime. When tests are a
 deliverable, include the affected cases in the plan and run them in the
@@ -233,6 +237,13 @@ running later stages. Keep their TODO items open; a paused run is not complete. 
 make the fix offer below.
 
 ## Fix offer
+
+Show the current findings with IDs, file and line. In chat, let the user select fixes or give a reason for a
+false positive, accepted risk or out-of-scope finding. Record those choices in Decisions and re-evaluate the
+evidence before changing any gate. Save confirmed decisions for Reflect
+using [the decision command below](#record-a-round-and-its-decisions). Immediately before editing, verify that the
+[findings source snapshot](../qa/references/interactive-ui.md#review-and-static-findings) and requirements are
+still current. Refresh findings and seek a new decision if either changed.
 
 When a stage ends with confirmed blocking findings (static `FAIL`, review `FAIL`, or QA `FAIL`), save the
 report, list the finding IDs with a one-line cause each, and ask once in the user's language how to fix them:
@@ -280,6 +291,8 @@ and report its absolute path as a clickable link. Start the
 report with three English key lines regardless of the report language: `task_id: <id>`, `Round: <n>`,
 `Verdict: <verdict>`, and keep them current.
 
+### Record a round and its decisions
+
 At the end of every round, and at the final verdict, record the round:
 `scripts/ready-check.py summary --project <repo> --task <task_id> --round <n> --verdict "<READY TO PUSH | PARTIAL CHECK COMPLETE | BLOCKED | INCOMPLETE>" --static <status>
 --review <status> --qa <status> [--finding "F-001:issue (blocking):review:I. Render and cache:RC-001:open" ...]
@@ -287,6 +300,18 @@ At the end of every round, and at the final verdict, record the round:
 statics preceded an explicitly narrowed selection. Statuses: PASS, FAIL, INCOMPLETE, N/A, NOT_SELECTED, NOT_RUN. Finding status is
 `open` or `fixed`; the area is the checklist section or `code quality`, `tests`, `rule`, `bug fix`. Repeat a QA case
 with a higher attempt number when it is rerun. These summaries feed `reflect`; keep them factual.
+
+When a user confirms a decision for a finding, also persist it for Reflect:
+
+```text
+scripts/ready-check.py summary --project <repo> --task <task_id> --round <original_round> --disposition "F-001:accept-risk:Review:<user's reason>"
+```
+
+Repeat `--disposition` for each decision from the same round. The format is `ID:action:source:reason`.
+Use `false-positive`, `accept-risk`, `out-of-scope` or `fix`. Give the actual source of the finding or `QA`
+for a scenario. Record why the user made the decision, or record their explicit selection when they ask for a fix.
+Use the original round even when discussing its evidence in a later round. The latest decision for an ID in
+that round replaces the earlier one in Reflect. The saved verdict, findings and QA outcomes stay intact.
 
 Save known facts and open questions before pausing for an answer. Incorporate each answer into its criterion
 and the decisions section, then continue from that point. If a new answer changes earlier criteria, revise

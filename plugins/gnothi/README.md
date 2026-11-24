@@ -146,6 +146,9 @@ Each run asks for the period: all history, the last year, 6 months or month (the
 previous period of the same length is the comparison; for all history the report shows a monthly trend instead.
 The report opens from the path the skill prints.
 
+Ask for an aggregate-only HTML report to compare the selected and previous periods. Detailed findings and
+session examples are available in the full private report.
+
 ### Windows storage access
 
 From the plugin directory, run `py -3 scripts/gnothi.py storage-check` to test the private data folder. An access

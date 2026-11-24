@@ -120,10 +120,10 @@ that establishes the result for the case.
 | A sequence and a final visual state | Show both if each establishes something different. Label the moment shown in the clip and the state visible in the screenshot. |
 | API, persistence, accessibility scan or CI result | Show the decisive observed value or short diagnostic excerpt. Link the trace, journal or raw result. Use a screenshot or clip when a separate visual claim needs it. |
 
-Use a Markdown image for a verified, client-accessible screenshot with a label that describes the shown state.
-For a short video use the client's inline media preview when supported. Put “Replay with steps” beside it
-in the user's language when available. If inline playback is unavailable, give a direct video link when the
-file is accessible in that client. For long recordings, give a replay link and the relevant timestamps.
+Use the [QA evidence viewer](interactive-ui.md#qa-results) for selected screenshots and short clips. Put
+“Replay with steps” beside the result in the user's language when available. If the viewer cannot render,
+give the local HTML link and use any verified image preview or file link supported by the client. For long
+recordings, give a replay link and the relevant timestamps.
 Keep other evidence in the report. Never present a planned action, placeholder or inaccessible file as
 observed evidence. If no video was approved or the clip is unavailable, state the limitation when it affects
 what can be shown and link the evidence actually collected.

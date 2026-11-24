@@ -1,7 +1,7 @@
 {
   "name": "ready",
   "displayName": "Ready Check · Review & QA",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Check task readiness against requirements, static checks, and browser QA.",
   "author": {
     "name": "Roman Chekhaniuk"
@@ -10,6 +10,10 @@
   "skills": "./skills/",
   "hooks": "./hooks/cursor-hooks.json",
   "mcpServers": {
+    "ready-ui": {
+      "command": "node",
+      "args": ["${CURSOR_PLUGIN_ROOT}/scripts/mcp.mjs", "--ui"]
+    },
     "ready-playwright": {
       "command": "node",
       "args": [

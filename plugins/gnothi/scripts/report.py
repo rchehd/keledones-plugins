@@ -8,6 +8,7 @@ from pathlib import Path
 
 import profiles
 import storage
+from digest import fingerprint
 from report_strings import check_ui, strings_for
 from sessions import CHAT_CLIENTS
 from signals import ARCHETYPES, AXES
@@ -699,13 +700,17 @@ if (DATA.trend) {
 }"""
 
 
-def render(portrait_path=None):
+def render(portrait_path=None, widget_metrics=None):
     root = storage.data_root()
 
     try:
-        digest = json.loads((root / "tmp/digest.json").read_text(encoding="utf-8"))
+        encoded = (root / "tmp/digest.json").read_text(encoding="utf-8")
+        digest = json.loads(encoded)
     except (OSError, ValueError):
         raise ValueError("No digest yet: run collect first")
+
+    if widget_metrics is not None and widget_metrics != fingerprint(encoded):
+        raise ValueError("The approved Gnothi digest changed. Collect the selected data and confirm the metrics view again.")
 
     path = Path(portrait_path) if portrait_path else root / "tmp/portrait.json"
 
@@ -739,4 +744,9 @@ def render(portrait_path=None):
     if digest["period"].get("previous") and not previous and not digest["metrics_only"]:
         warnings.append("No earlier portrait for the previous period: personal axes show no comparison yet")
 
-    return {"html": str(target), "warnings": warnings}
+    result = {"html": str(target), "warnings": warnings}
+    if widget_metrics is not None:
+        import widget
+
+        result.update(widget.prepare(digest, portrait.get("language")))
+    return result

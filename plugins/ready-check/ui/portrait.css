@@ -1,0 +1,11 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+  background: light-dark(#f6f6f3, #1b1e1d);
+  color: light-dark(#242622, #e3e4df);
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 860px; margin: auto; padding: clamp(14px, 3vw, 28px); }
+h1 { font-size: clamp(1.3rem, 2.6vw, 1.75rem); margin: 0 0 .3rem; letter-spacing: -.02em; }
+.intro { color: light-dark(#545c5c, #b9c4c2); margin: .35rem 0; }

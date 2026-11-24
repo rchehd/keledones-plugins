@@ -1,5 +1,8 @@
 Ready Check is enabled in this client.
 
+For a request only to view or change Ready Check settings, follow the setup skill's chat flow. Keep project
+setup questions for work that needs setup.
+
 Write Ready Check files (reports, QA plans and handoffs) in {language}; keep chat replies in the user's language.
 These stay in English everywhere: the report's `task_id:`, `Round:` and `Verdict:` lines, finding labels and IDs,
 commit messages, PR/MR text and contributed changes.

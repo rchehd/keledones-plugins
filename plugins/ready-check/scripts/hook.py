@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json
 import os
+import re
 import shlex
 import sys
 from pathlib import Path
@@ -28,6 +29,12 @@ REMINDER = ("If you have finished the user's task and the user has not turned Re
             "ask once about Ready Check ({check}) with the choices in `{offer}`: all checks, static + review, QA only, "
             "or turn off for this session. Use {question} when available. A yes/no prompt alone is insufficient.")
 QUESTION_TOOL = {"claude": "AskUserQuestion", "codex": "request_user_input or request_user_input_async"}
+SETTINGS_REQUEST = re.compile(
+    r"\b(?:open|show|change|update)\s+(?:the\s+)?ready[ -]check\s+settings\b|"
+    r"\b(?:відкрий|покажи|зміни|онови)\s+налаштування\s+(?:плагіна\s+)?ready[ -]check\b|"
+    r"\b(?:connect|enable|підключи|увімкни)\s+phpstorm\s+mcp\b",
+    re.IGNORECASE,
+)
 # Claude Code drops additionalContext over 10,000 characters to a file the model is not told to read.
 CONTEXT_LIMIT = 9500
 
@@ -72,7 +79,7 @@ def status_line(status, client):
     last = settings.read(data_root() / "install-result.json")
     setup = {"claude": "/ready:setup", "cursor": "/setup", "codex": "$setup"}[client]
     return (f"Ready Check browser tools: failed ({last.get('reason')}; log: {last.get('log')}). "
-            f"Tell the user once; they can retry with {setup} after fixing the cause.")
+            f"For setup or checks that need these tools, tell the user once and offer {setup} after fixing the cause.")
 
 
 def posix(client):
@@ -179,7 +186,7 @@ def language_note(values, client):
             f"another language can be chosen. If the user names one, run `{config} \"<language in English>\"`.\n\n")
 
 
-def session_context(client, payload, top):
+def session_context(client, payload, top, include_setup=True):
     migration_error = None
     try:
         migrate(top)
@@ -206,7 +213,8 @@ def session_context(client, payload, top):
         except ValueError as error:
             logs.error(f"{client} session-start fingerprint skipped: {error}")
 
-    parts = [first_run(top, client, values, status), rules.context(top), rule, status_line(status, client)]
+    setup = first_run(top, client, values, status) if include_setup else None
+    parts = [setup, rules.context(top), rule, status_line(status, client)]
 
     if migration_error:
         parts.append(f"Ready Check project data migration could not complete: {migration_error}")
@@ -228,7 +236,7 @@ def session_start(client, payload):
     if not top:
         return None
 
-    text = session_context(client, payload, top)
+    text = session_context(client, payload, top, include_setup=client != "cursor")
 
     if client == "cursor":
         return {"additional_context": text}
@@ -243,16 +251,27 @@ def prompt(client, payload):
     if not top:
         return None
 
-    if settings.load(top)["captureTasks"]:
-        tasks.record(top, client, session_id(payload), payload.get("prompt"))
+    values = settings.load(top)
+    session = session_id(payload)
+    request = payload.get("prompt")
+    if values["captureTasks"]:
+        tasks.record(top, client, session, request)
 
-    # Cursor may drop sessionStart context that arrives after the chat's first request, so the first prompt repeats it.
-    if client != "cursor" or hook_state.load(client, session_id(payload)).get("context"):
+    if client != "cursor":
         return None
 
-    text = session_context(client, payload, top)
-    hook_state.save(client, session_id(payload), dict(hook_state.load(client, session_id(payload)), context=True))
-    return {"continue": True, "additional_context": text}
+    request = request if isinstance(request, str) else ""
+    include_setup = SETTINGS_REQUEST.search(request) is None
+    state = hook_state.load(client, session)
+    if state.get("context"):
+        if not include_setup or state.get("setup_context", True):
+            return None
+        text = first_run(top, client, values, browser_status())
+    else:
+        # Cursor can receive its sessionStart context after the first prompt.
+        text = session_context(client, payload, top, include_setup=include_setup)
+    hook_state.save(client, session, dict(hook_state.load(client, session), context=True, setup_context=include_setup))
+    return {"continue": True, "additional_context": text} if text else None
 
 
 def answer(client, payload):
