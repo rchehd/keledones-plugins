@@ -143,17 +143,19 @@ class View:
                                     for asset in row.get("artifacts", [])]
 
         with migration_lock(self.directory):
-            self.check_freshness(data)
+            self.check_freshness(data, require_current_round=True)
             write_json(self.view_file, data, self.root)
         return self.current()
 
-    def check_freshness(self, data):
+    def check_freshness(self, data, *, require_current_round=False):
         if self.kind == "review":
             if data.get("reviewed_source") != reviewed_source(self.root):
                 raise ValueError("The review source snapshot is stale. Refresh the findings before using this view.")
             fields = [("requirements_revision", "Requirements revision")]
         elif self.kind == "qa-plan":
             fields = [("requirements_revision", "Requirements revision"), ("qa_plan_revision", "QA plan revision")]
+        elif self.kind == "qa-results" and require_current_round:
+            fields = [("round", "Round")]
         else:
             return
         report = self.path("report.md")
@@ -167,7 +169,7 @@ class View:
             if revisions[0] != str(data[key]):
                 raise ValueError(f"{label} changed. Refresh this view before using it.")
 
-    def current(self, expected_revision=None):
+    def current(self, expected_revision=None, *, require_current_round=False):
         if self.kind == "reflect":
             data = self.reflect_data
         elif self.kind == "settings":
@@ -180,7 +182,7 @@ class View:
                 data["phpstormRequestId"] = pending["request_id"]
         else:
             data = object_at(self.view_file)
-            self.check_freshness(data)
+            self.check_freshness(data, require_current_round=require_current_round)
         revision = identity(data)
         if expected_revision is not None and expected_revision != revision:
             raise ValueError("This view is out of date. Open the current round or revision.")
@@ -196,7 +198,7 @@ class View:
     def artifact(self, name, revision):
         if self.kind != "qa-results":
             raise ValueError("Artifacts belong to a QA results view")
-        cases = self.current(revision)["data"]["scenarios"]
+        cases = self.current(revision, require_current_round=True)["data"]["scenarios"]
         if not any(asset["path"] == name for case in cases for asset in case.get("artifacts", [])):
             raise ValueError("Artifact is not listed in this round")
         path = self.artifact_path(name)

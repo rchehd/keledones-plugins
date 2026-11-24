@@ -11,9 +11,6 @@ finds the running PhpStorm MCP, checks that it can resolve this Git project and 
 local `.cursor/mcp.json`. This opt-in authorizes the project-scoped Cursor configuration update. It preserves
 other MCP entries and keeps a newly configured file out of Git through the local exclude file.
 
-For a widget request, follow the [saved settings decision](../../qa/references/interactive-ui.md#settings)
-and use `--phpstorm-request <request_id>`. A widget notification is a request to check that decision.
-
 Read `registration.status` and give only the next step the result requires.
 
 - `REGISTERED`: Ready Check added or updated the server. Restart Cursor and open a new chat to load it.

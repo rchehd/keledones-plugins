@@ -20,9 +20,10 @@ Detect the host Python 3 interpreter: `python3` on Linux/macOS/WSL, `py -3` or `
 Use the portable entry point `<plugin>/scripts/ready-check.py`; Bash and WSL are not required.
 
 For a request specifically to connect PhpStorm MCP, go directly to the [connection flow](references/phpstorm.md).
-For a request to show Ready Check settings, open the [settings widget](../qa/references/interactive-ui.md#settings).
-When settings are the sole request, finish at that step. Opening settings does not require profile detection,
-an installation decision, or a report language.
+For a request to show Ready Check settings, run `ready-check.py config get --project <repo>` and show the
+requested values in chat. For a change, use `config set <key> <value> --project <repo>` and confirm the saved
+value. Use the [PhpStorm connection flow](references/phpstorm.md) to connect the IDE. A settings-only request
+ends after the settings response. Defer profile detection, installation and the report-language question.
 
 Run `ready-check.py profiles --project <repo>` to get the detected or configured profiles, application roots
 relative to the repository, runners and detection evidence. Keep independent matches, including several

@@ -29,10 +29,10 @@ REMINDER = ("If you have finished the user's task and the user has not turned Re
             "ask once about Ready Check ({check}) with the choices in `{offer}`: all checks, static + review, QA only, "
             "or turn off for this session. Use {question} when available. A yes/no prompt alone is insufficient.")
 QUESTION_TOOL = {"claude": "AskUserQuestion", "codex": "request_user_input or request_user_input_async"}
-SETTINGS_VIEW = re.compile(r"""\bview["'`]?\s*[:=]\s*["'`]?settings\b""", re.IGNORECASE)
 SETTINGS_REQUEST = re.compile(
-    r"\b(?:open|show)\s+(?:the\s+)?ready[ -]check\s+settings\b|"
-    r"\b(?:відкрий|покажи)\s+налаштування\s+(?:плагіна\s+)?ready[ -]check\b",
+    r"\b(?:open|show|change|update)\s+(?:the\s+)?ready[ -]check\s+settings\b|"
+    r"\b(?:відкрий|покажи|зміни|онови)\s+налаштування\s+(?:плагіна\s+)?ready[ -]check\b|"
+    r"\b(?:connect|enable|підключи|увімкни)\s+phpstorm\s+mcp\b",
     re.IGNORECASE,
 )
 # Claude Code drops additionalContext over 10,000 characters to a file the model is not told to read.
@@ -261,10 +261,7 @@ def prompt(client, payload):
         return None
 
     request = request if isinstance(request, str) else ""
-    settings_only = (SETTINGS_REQUEST.search(request) or
-                     ("show_view" in request.casefold() and SETTINGS_VIEW.search(request)) or
-                     request.startswith("A Ready Check settings request "))
-    include_setup = not settings_only
+    include_setup = SETTINGS_REQUEST.search(request) is None
     state = hook_state.load(client, session)
     if state.get("context"):
         if not include_setup or state.get("setup_context", True):

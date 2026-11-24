@@ -1,5 +1,6 @@
 import json
 import unittest
+from os import utime
 from pathlib import Path
 from unittest.mock import patch
 
@@ -49,6 +50,92 @@ class ReflectTest(RepoTest):
         self.assertEqual(metrics["QA test problems"], "No data")
         with patch.object(reflect_collect, "chart_source", return_value=None):
             self.assertIn("<td>Passed in round 1</td><td>No data</td>", reflect_collect.render_html(digest))
+
+    def test_html_combines_historical_widget_and_confirmed_chat_decisions(self):
+        task = self.task("Decisions", [("BLOCKED", []), ("READY TO PUSH", [])])
+        directory = Path(self.entry_json("reports", "--project", str(self.repo), "--task", task)["directory"])
+        summary_path = directory / "summary.json"
+        original_rounds = json.loads(summary_path.read_text(encoding="utf-8"))["rounds"]
+        legacy = dict(view="review", round=1, rows=[
+            dict(id="F-001", action="false-positive", reason="Original explanation"),
+            dict(id="F-004", action="accept-risk", reason="Kept from the old widget"),
+        ])
+        (directory / "ui-review-decision-fixture.json").write_text(json.dumps(legacy), encoding="utf-8")
+        self.entry_json("summary", "--project", str(self.repo), "--task", task, "--round", "1",
+                        "--disposition", "F-001:false-positive:Review:Initial chat triage")
+        for _ in range(2):
+            self.entry_json("summary", "--project", str(self.repo), "--task", task, "--round", "1",
+                            "--disposition", "F-001:accept-risk:Review:An earlier risk explanation",
+                            "--disposition", "F-001:false-positive:Review:An earlier classification",
+                            "--disposition", "F-001:accept-risk:Review:Accepted: migration already planned",
+                            "--disposition", "QA-002:false-positive:QA:Incorrect fixture")
+
+        saved = json.loads(summary_path.read_text(encoding="utf-8"))
+        self.assertEqual(saved["rounds"], original_rounds)
+        finding, = (row for row in saved["dispositions"] if row["id"] == "F-001")
+        self.assertEqual(finding["action"], "accept-risk")
+        digest = self.entry_json("reflect-collect", "--project", str(self.repo), "--html")
+        self.assertEqual(digest["view_dispositions"], {"accept-risk": 2, "false-positive": 1})
+        reasons = {row["id"]: row["reason"] for row in digest["tasks"][0]["view_feedback"]}
+        self.assertEqual(reasons["F-001"], "Accepted: migration already planned")
+        html = Path(digest["html"]).read_text(encoding="utf-8")
+        self.assertIn("<td>Accepted risks</td><td>2</td>", html)
+        self.assertIn("<td>False positives</td><td>1</td>", html)
+
+    def test_legacy_dispositions_use_the_latest_revision_in_each_round(self):
+        target = self.entry_json("reports", "--project", str(self.repo), "--task", "Legacy decisions")
+        directory = Path(target["directory"])
+        Path(target["report"]).write_text("Round: 2\nVerdict: READY TO PUSH\n", encoding="utf-8")
+        older = [
+            dict(id="F-001", action="false-positive", reason="Initial triage"),
+            dict(id="F-002", action="accept-risk", reason="Initial risk"),
+        ]
+        current = [
+            dict(id="F-001", action="accept-risk", reason="Updated risk"),
+            dict(id="F-002", action="fix", reason="Selected for a fix"),
+        ]
+        reviews = (
+            ("c", 1, 1, older, 1_700_000_003),
+            ("a", 1, 2, current, 1_700_000_001),
+            ("b", 2, 2, [older[0]], 1_700_000_002),
+        )
+        for name, round_number, revision, rows, modified in reviews:
+            path = directory / f"ui-review-decision-{name}.json"
+            path.write_text(json.dumps(dict(view="review", round=round_number, requirements_revision=revision,
+                                            rows=rows)), encoding="utf-8")
+            utime(path, (modified, modified))
+        for name, reason, modified in (("b", "Old QA note", 1_700_000_001), ("a", "New QA note", 1_700_000_002)):
+            path = directory / f"ui-qa-results-decision-{name}.json"
+            path.write_text(json.dumps(dict(view="qa-results", round=2, action="false-positive",
+                                            selected=["QA-001"], reason=reason)), encoding="utf-8")
+            utime(path, (modified, modified))
+
+        digest = self.entry_json("reflect-collect", "--project", str(self.repo))
+        self.assertEqual(digest["view_dispositions"], {"accept-risk": 1, "false-positive": 2})
+        decisions = {(row["round"], row["id"]): row["reason"] for row in digest["tasks"][0]["view_feedback"]}
+        self.assertEqual(decisions, {(1, "F-001"): "Updated risk", (2, "F-001"): "Initial triage",
+                                     (2, "QA-001"): "New QA note"})
+
+    def test_chat_reclassification_removes_superseded_counts_in_that_round(self):
+        task = self.task("Reclassified findings", [("BLOCKED", []), ("READY TO PUSH", [])])
+        directory = Path(self.entry_json("reports", "--project", str(self.repo), "--task", task)["directory"])
+        legacy = dict(view="review", round=1, rows=[
+            dict(id="F-002", action="false-positive", reason="Initial widget triage"),
+        ])
+        (directory / "ui-review-decision-fixture.json").write_text(json.dumps(legacy), encoding="utf-8")
+        command = ("summary", "--project", str(self.repo), "--task", task, "--round")
+        for number in ("1", "2"):
+            self.entry_json(*command, number, "--disposition", "F-001:accept-risk:Review:Initial risk")
+        self.entry_json(*command, "1", "--disposition", "F-001:out-of-scope:Review:Scope clarified",
+                        "--disposition", "F-002:fix:Review:User selected this finding for a fix")
+
+        digest = self.entry_json("reflect-collect", "--project", str(self.repo), "--html")
+        self.assertEqual(digest["view_dispositions"], {"accept-risk": 1})
+        decision, = digest["tasks"][0]["view_feedback"]
+        self.assertEqual((decision["round"], decision["id"], decision["action"]), (2, "F-001", "accept-risk"))
+        html = Path(digest["html"]).read_text(encoding="utf-8")
+        self.assertIn("<td>Accepted risks</td><td>1</td>", html)
+        self.assertNotIn("<td>False positives</td>", html)
 
     def test_saved_overview_keeps_the_original_task_selection_and_coverage(self):
         first = self.task("First", [("READY TO PUSH", [])])

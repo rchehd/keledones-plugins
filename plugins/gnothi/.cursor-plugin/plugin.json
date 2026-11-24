@@ -7,11 +7,5 @@
     "name": "Roman Chekhaniuk"
   },
   "logo": "assets/logo.png",
-  "skills": "./skills/",
-  "mcpServers": {
-    "gnothi-ui": {
-      "command": "node",
-      "args": ["${CURSOR_PLUGIN_ROOT}/scripts/widget-mcp.mjs"]
-    }
-  }
+  "skills": "./skills/"
 }

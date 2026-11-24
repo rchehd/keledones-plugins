@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import re
 from datetime import date
 from math import isfinite
 from uuid import uuid4
@@ -72,26 +71,10 @@ def prepare(digest, language):
         raise ValueError("Gnothi's packaged widget could not be loaded")
     encoded = json.dumps(data, ensure_ascii=False, allow_nan=False).replace("<", "\\u003c")
     identifier = uuid4().hex
-    source, target = widget_paths(identifier)
+    root = storage.guard(storage.data_root())
+    target = root / "reports" / f"dashboard-{identifier}.html"
+    if target.resolve() != target:
+        raise ValueError("The Gnothi metrics report requires a file in its private data folder")
     page = asset.replace(PLACEHOLDER, PLACEHOLDER.replace(">null<", ">" + encoded + "<", 1))
     storage.write_private(target, page)
-    storage.write_private(source, encoded)
     return {"widget_id": identifier, "widget_html": str(target)}
-
-
-def widget_paths(identifier):
-    if not isinstance(identifier, str) or not re.fullmatch(r"[a-f0-9]{32}", identifier):
-        raise ValueError("Select an approved Gnothi metrics view")
-    root = storage.guard(storage.data_root())
-    source = root / "tmp" / f"dashboard-{identifier}.json"
-    target = root / "reports" / f"dashboard-{identifier}.html"
-    if any(path.resolve() != path for path in (source, target)):
-        raise ValueError("The Gnothi metrics view requires files in its private data folder")
-    return source, target
-
-
-def load(identifier):
-    source, target = widget_paths(identifier)
-    if not source.is_file() or not target.is_file():
-        raise ValueError("The Gnothi metrics view is unavailable. Prepare it again after approval.")
-    return json.loads(source.read_text(encoding="utf-8")), str(target)

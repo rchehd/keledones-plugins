@@ -15,7 +15,7 @@ from ui_state import IDE_STATUSES, VIEWS, View, reviewed_source
 
 ASSETS = Path(__file__).resolve().parent.parent / "ui"
 TTL = 900
-MAX_DECISION = 64_000
+LOCAL_VIEWS = {"qa-results", "reflect"}
 RANGE = re.compile(r"bytes=(\d*)-(\d*)")
 
 
@@ -25,13 +25,14 @@ def html():
 
 class LocalView(ThreadingHTTPServer):
     def __init__(self, view, revision=None):
+        if view.kind not in LOCAL_VIEWS:
+            raise ValueError("The local HTML view only displays QA results or the Reflect overview")
         super().__init__(("127.0.0.1", 0), Handler)
         self.view = view
         self.revision = revision
         self.host = f"127.0.0.1:{self.server_port}"
-        self.origin = f"http://{self.host}"
         self.token = secrets.token_urlsafe(32)
-        self.url = f"{self.origin}/#{self.token}"
+        self.url = f"http://{self.host}/#{self.token}"
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -75,8 +76,8 @@ class Handler(BaseHTTPRequestHandler):
             if url.path == "/":
                 self.send_bytes(html().encode(), "text/html; charset=utf-8", html_page=True)
             elif url.path == "/state" and self.authorized():
-                current = self.server.view.current(self.server.revision)
-                self.send_json(dict(current, decision=self.server.view.decision(current)))
+                current = self.server.view.current(self.server.revision, require_current_round=True)
+                self.send_json(current)
             elif url.path == "/asset":
                 query = parse_qs(url.query)
                 token = query.get("access", [""])[0]
@@ -93,20 +94,6 @@ class Handler(BaseHTTPRequestHandler):
         except (OSError, ValueError, TypeError, KeyError) as error:
             if not isinstance(error, (BrokenPipeError, ConnectionResetError)):
                 self.send_json({"error": str(error)}, 400)
-
-    def do_POST(self):
-        if (self.path != "/decision" or not self.allowed_host() or not self.authorized()
-                or self.headers.get("Origin", self.server.origin) != self.server.origin):
-            self.send_json({"error": "Decision access denied"}, 403)
-            return
-        try:
-            size = int(self.headers.get("Content-Length", 0))
-            if not 0 < size <= MAX_DECISION or self.headers.get_content_type() != "application/json":
-                raise ValueError("Expected a bounded JSON decision")
-            request = json.loads(self.rfile.read(size))
-            self.send_json(self.server.view.submit(request))
-        except (OSError, ValueError, TypeError, KeyError) as error:
-            self.send_json({"error": str(error)}, 400)
 
     def send_asset(self, path, media_type):
         with path.open("rb") as source:
@@ -153,13 +140,14 @@ def start(view, ttl=TTL, revision=None):
     thread.start()
 
     def close():
+        timer.cancel()
         server.shutdown()
         server.server_close()
 
     timer = Timer(ttl, close)
     timer.daemon = True
     timer.start()
-    return server.url, thread
+    return server.url, thread, close
 
 
 def emit(data):
@@ -204,8 +192,8 @@ def main():
         else:
             if not 1 <= args.ttl <= TTL:
                 raise ValueError(f"--ttl must be between 1 and {TTL} seconds")
-            view.current()
-            url, thread = start(view, args.ttl)
+            current = view.current(require_current_round=True)
+            url, thread, _ = start(view, args.ttl, revision=current["revision"])
             emit(dict(status="PASS", url=url, expires_in=args.ttl))
             thread.join()
         return 0

@@ -31,20 +31,19 @@ class HookTest(RepoTest):
 
     def test_cursor_settings_defers_project_setup_until_the_first_work_request(self):
         requests = (
-            "Виклич show_view з ready-ui з view: settings. Відкрий віджет Ready Check. #194887",
-            'Call show_view with {"view": "settings"}',
             "Відкрий налаштування плагіна Ready Check",
             "Open Ready Check settings",
-            "A Ready Check settings request example-id was saved.",
+            "Зміни налаштування Ready Check",
+            "Підключи PhpStorm MCP",
         )
         for index, request in enumerate(requests):
             with self.subTest(request=request):
                 payload = {"conversation_id": f"settings-{index}", "workspace_roots": [str(self.repo)]}
                 start = self.hook("session-start", "cursor", payload)["additional_context"]
-                self.assertIn("When the widget opens, end the turn there.", start)
+                self.assertIn("follow the setup skill's chat flow", start)
                 self.assertNotIn("Ready Check detected:", start)
                 opened = self.hook("prompt", "cursor", dict(payload, prompt=request))["additional_context"]
-                self.assertIn("end the turn there", opened)
+                self.assertIn("follow the setup skill's chat flow", opened)
                 self.assertNotIn("consent yes", opened)
                 self.assertNotIn("config set artifactLanguage", opened)
                 repeated = self.hook("prompt", "cursor", dict(payload, prompt=request))
@@ -84,7 +83,7 @@ class HookTest(RepoTest):
             self.assertIn(f"offers off --client {client} --session {client}", text)
             self.assertNotIn("{offer}", text)
             self.assertLess(text.index("Ready Check setup for this project"), text.index("Ready Check is enabled"))
-            self.assertIn("For a request only to open settings", text)
+            self.assertIn("For a request only to view or change settings", text)
             self.assertIn("Ready Check browser tools:", text)
             self.assertIn("consent yes", text)
             self.assertIn("template commit --project <repo>", text)

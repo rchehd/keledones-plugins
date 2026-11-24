@@ -5,12 +5,13 @@ import sys
 from time import monotonic
 
 from ui import TTL, emit, html, start
-from ui_state import IDE_STATUSES, VIEWS, View
+from ui_state import View
 
 
 URI = "ui://ready-check/view.html"
 MIME = "text/html;profile=mcp-app"
 EXTENSION = "io.modelcontextprotocol/ui"
+INLINE_MEDIA_LIMIT = 4_000_000
 VERSIONS = {"2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}
 
 
@@ -34,37 +35,45 @@ class ReadyUI:
     def tools(self):
         string = {"type": "string"}
         private = {"resourceUri": URI, "visibility": ["app"]}
-        show = tool("show_view", "Open a prepared Ready Check report, project settings, or the Reflect overview.",
-                    {"project": string, "task": string, "view": {"type": "string", "enum": list(VIEWS)},
-                     "ide_status": {"type": "string", "enum": list(IDE_STATUSES)},
-                     "tasks": {"type": "integer", "minimum": 1}, "locale": {"type": "string", "enum": ["en", "uk"]},
-                     "snapshot": {"type": "string", "description": "Reflect snapshot ID returned by reflect-collect."}},
-                    ["project", "view"], {"resourceUri": URI} if self.supports_ui else None)
+        show = tool("show_view", "Open the screenshots and recordings in a prepared Ready Check QA round.",
+                    {"project": string, "task": string, "view": {"type": "string", "enum": ["qa-results"]}},
+                    ["project", "task", "view"], {"resourceUri": URI} if self.supports_ui else None)
         if not self.supports_ui:
             return [show]
         return [show,
-                tool("submit_decision", "Record an explicit decision from the Ready Check view.",
-                     {"handle": string, "decision": {"type": "object"}}, ["handle", "decision"], private),
-                tool("preview_image", "Show an approved image from the current report.",
+                tool("preview_media", "Show a listed screenshot or recording from the current QA round.",
                      {"handle": string, "path": string}, ["handle", "path"], private),
                 tool("local_view", "Open the current view in the local browser.",
                      {"handle": string}, ["handle"], private)]
 
     def show(self, args):
-        view = View(args["project"], args.get("task"), args["view"], args.get("ide_status", "unverified"),
-                    args.get("tasks", 10), args.get("locale", "en"), args.get("snapshot"))
-        current = view.current()
-        state = dict(current, decision=view.decision(current))
-        if not self.supports_ui:
-            url, _ = start(view)
-            return result(dict(url=url, view=view.kind), f"Open Ready Check in a local browser: {url}")
+        if args["view"] != "qa-results":
+            raise ValueError("The Ready Check MCP App only displays QA results")
+        view = View(args["project"], args["task"], "qa-results")
+        current = view.current(require_current_round=True)
         now = monotonic()
         self.views = {key: session for key, session in self.views.items() if session["expires"] > now}
         if len(self.views) >= 32:
-            del self.views[next(iter(self.views))]
+            evicted = self.views.pop(next(iter(self.views)))
+            if "close" in evicted:
+                evicted["close"]()
         handle = secrets.token_urlsafe(24)
-        self.views[handle] = dict(view=view, revision=current["revision"], expires=now + TTL)
-        return result(dict(state, handle=handle), "Ready Check opened an interactive view.")
+        session = dict(view=view, revision=current["revision"], expires=now + TTL)
+        try:
+            url = self.local_url(session)
+        except OSError:
+            if not self.supports_ui:
+                raise
+            url = None
+        self.views[handle] = session
+        if not self.supports_ui:
+            return result(dict(url=url, view=view.kind), f"Open Ready Check in a local browser: {url}")
+        return result(dict(current, handle=handle, url=url), "Ready Check opened the QA evidence.")
+
+    def local_url(self, session):
+        if "url" not in session:
+            session["url"], _, session["close"] = start(session["view"], revision=session["revision"])
+        return session["url"]
 
     def call(self, name, args):
         if name == "show_view":
@@ -73,20 +82,18 @@ class ReadyUI:
         if not self.supports_ui or not session or session["expires"] <= monotonic():
             raise ValueError("Open the current Ready Check view to continue")
         view = session["view"]
-        if name == "submit_decision":
-            return result(view.submit(args["decision"]), "Ready Check saved the decision.")
         if name == "local_view":
-            view.current(session["revision"])
-            if "url" not in session:
-                session["url"], _ = start(view, revision=session["revision"])
-            return result({"url": session["url"]})
-        if name == "preview_image":
+            view.current(session["revision"], require_current_round=True)
+            return result({"url": self.local_url(session)})
+        if name == "preview_media":
             path, mime = view.artifact(args["path"], session["revision"])
-            if not mime.startswith("image/"):
-                raise ValueError("Expected an image from the current report")
-            if path.stat().st_size > 4_000_000:
+            if not mime.startswith(("image/", "video/")):
                 return result({"open_local": True}, "Open the local report to view this evidence.")
-            return result(dict(mimeType=mime, data=base64.b64encode(path.read_bytes()).decode("ascii")))
+            with path.open("rb") as source:
+                data = source.read(INLINE_MEDIA_LIMIT + 1)
+            if len(data) > INLINE_MEDIA_LIMIT:
+                return result({"open_local": True}, "Open the local report to view this evidence.")
+            return result(dict(mimeType=mime, data=base64.b64encode(data).decode("ascii")))
         raise ValueError("Unknown Ready Check UI tool")
 
     def handle(self, method, params):

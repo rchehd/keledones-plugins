@@ -24,7 +24,7 @@ to resolve it. Do not infer requirements solely from the diff or begin implement
 Use existing answers rather than asking for the same facts again.
 
 Capture the [findings source snapshot](../qa/references/interactive-ui.md#review-and-static-findings)
-before inspecting code, and keep it with the findings for the interactive view.
+before inspecting code, and keep it with the findings for chat decisions.
 
 For each applicable pair, read its static JSON. It must have `action: static`, `status: PASS` or justified `N/A`, `can_proceed: true`,
 and the same application, base, profile and profile version as the task report. A successful doctor result
@@ -224,8 +224,8 @@ Update the Ready Check report with exactly one row for every current RC:
 Add the practices/security table, findings, open questions, nonblocking observations, limitations, the static
 snapshots reviewed (or partial scope identities), and the
 current requirements revision. Changed criteria invalidate affected review rows even if the diff is unchanged.
-Offer the [interactive findings view](../qa/references/interactive-ui.md#review-and-static-findings)
-when there are current findings. Let `check` process selected fixes and re-evaluate decisions against the rubric.
+Present current findings in chat with their IDs, file and line. Let `check` process selected fixes and
+re-evaluate decisions against the rubric.
 Record which relevant framework checks were considered and concise reasons for any that did not apply.
 Compare the matrix IDs with the source requirement list; omitted or duplicate RC rows must be resolved.
 

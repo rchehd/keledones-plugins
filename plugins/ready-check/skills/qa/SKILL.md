@@ -102,15 +102,13 @@ Check automatic capture and uploads in the runner settings before launching test
 [QA evidence](references/evidence.md) for retention and the local chat handoff.
 
 Save the current values as `QA plan revision: <number>` and `Requirements revision: <number>` in the
-report, along with scenario IDs and `approval: PENDING`. Keep both revision keys in English. Offer
-the [interactive QA plan](references/interactive-ui.md#qa-plan) and use it when the user chooses it. It must
-record the current approval and explicit recording selections. On the chat path, send a
+report, along with scenario IDs and `approval: PENDING`. Keep both revision keys in English. Send a
 standalone Markdown message headed “QA plan — round N, revision R” in the user's language. Give each `QA-ID`
 its own list item with the action, expected result, and planned evidence. Include the role, test data and
 recording scope where applicable. For a later round, mark each case to rerun or cite the prior round whose
 evidence carries over.
 
-On the chat path, after the message, open a short form asking “Approve the QA plan for round N, revision R?” Offer “Approve”
+After the message, open a short native question asking “Approve the QA plan for round N, revision R?” Offer “Approve”
 and “Suggest changes.” If a form is unavailable, ask the same question in chat. When video is proposed, get
 an explicit yes or no for the listed recordings in the same approval step. Approving the plan alone approves
 execution. Wait for approval of every required scenario. If the plan changes, update affected RCs, increment
@@ -196,9 +194,13 @@ Record each scenario as `PASS`, `FAIL`, `INCOMPLETE`, `NOT_RUN` or reasoned `N/A
 result, time, role and evidence. Summarize every RC's coverage. List limitations (for example "Chromium only"),
 untested areas, test data created and cleanup still needed.
 Use the [evidence handoff rules](references/evidence.md#create-a-replay-and-hand-off-from-qa) for each case.
-Offer the [interactive results gallery](references/interactive-ui.md#qa-results) after recording the round.
+Open the [QA evidence view](references/interactive-ui.md#qa-results) after recording a round with screenshots
+or recordings. Use the same report and show text results in chat for cases without visual evidence.
 Show the evidence that demonstrates the result beside its `QA-ID` in chat. Record why expected evidence
 is unavailable. If an approved retry passes, reference the failed attempt and its retained evidence separately.
+Handle retest, false-positive decisions and comment drafts in chat, using the original scenario ID and round.
+Save a confirmed user's false-positive decision with `summary --disposition` using the original `QA-ID`,
+round, source `QA` and the user's reason. Follow [the decision command](../check/SKILL.md#record-a-round-and-its-decisions).
 
 After QA, verify fresh scope evidence for each applicable pair using the same rules as before QA.
 Changed code, scope, runner, profile,

@@ -1,6 +1,4 @@
 import json
-import subprocess
-import sys
 import unittest
 from pathlib import Path
 
@@ -10,7 +8,7 @@ import widget
 
 
 class WidgetTest(unittest.TestCase):
-    def test_opted_in_metrics_work_in_mcp_and_the_offline_bundle(self):
+    def test_aggregate_metrics_are_written_to_private_html(self):
         with TempHome():
             digest = {
                 "period": {"start": "2026-11-01", "end": "2026-11-23",
@@ -22,28 +20,15 @@ class WidgetTest(unittest.TestCase):
                 "projects": [{"name": "Confidential project fixture"}],
             }
             prepared = widget.prepare(digest, "uk")
-            identifier = prepared["widget_id"]
             offline = Path(prepared["widget_html"]).read_text(encoding="utf-8")
             self.assertIn("Робочий портрет Gnothi", offline)
             self.assertIn('"previous": 6.5', offline)
             self.assertNotIn("Private session fixture", offline)
-            calls = [
-                ("initialize", {"protocolVersion": "2025-11-25"}),
-                ("tools/call", {"name": "show_portrait", "arguments": {"widget_id": identifier}}),
-                ("initialize", {"protocolVersion": "2025-11-25", "capabilities": {
-                    "extensions": {"io.modelcontextprotocol/ui": {"mimeTypes": ["text/html;profile=mcp-app"]}}}}),
-                ("tools/list", {}),
-                ("tools/call", {"name": "show_portrait", "arguments": {"widget_id": identifier}}),
-                ("tools/call", {"name": "show_portrait", "arguments": {"widget_id": "../digest.json"}}),
-            ]
-            requests = "".join(json.dumps(dict(jsonrpc="2.0", id=i, method=method, params=params)) + "\n"
-                               for i, (method, params) in enumerate(calls))
-            response = subprocess.check_output([sys.executable, str(PLUGIN / "scripts/widget-mcp.py")],
-                                               input=requests, encoding="utf-8")
-            replies = [json.loads(line)["result"] for line in response.splitlines()]
-            self.assertEqual(replies[1]["structuredContent"]["html"], prepared["widget_html"])
-            self.assertEqual(replies[3]["tools"][0]["_meta"]["ui"]["resourceUri"], "ui://gnothi/portrait.html")
-            self.assertEqual(replies[4]["structuredContent"]["metrics"][0], {"label": "Сесії", "value": 5, "previous": 2})
-            self.assertNotIn("Confidential project fixture", response)
-            self.assertNotIn("Private session fixture", response)
-            self.assertTrue(replies[5]["isError"])
+            self.assertIn('"label": "Сесії", "value": 5, "previous": 2', offline)
+            self.assertNotIn("Confidential project fixture", offline)
+
+    def test_no_plugin_manifest_registers_the_retired_mcp_view(self):
+        self.assertFalse((PLUGIN / ".mcp.json").exists())
+        for name in (".claude-plugin", ".codex-plugin", ".cursor-plugin"):
+            manifest = json.loads((PLUGIN / name / "plugin.json").read_text(encoding="utf-8"))
+            self.assertNotIn("gnothi-ui", manifest.get("mcpServers", {}))

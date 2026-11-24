@@ -1,14 +1,10 @@
-import { App } from "@modelcontextprotocol/ext-apps";
+import { App, applyHostStyleVariables } from "@modelcontextprotocol/ext-apps";
 import "@awesome.me/webawesome/dist/styles/webawesome.css";
 import "@awesome.me/webawesome/dist/styles/themes/awesome.css";
 import "@awesome.me/webawesome/dist/components/badge/badge.js";
 import "@awesome.me/webawesome/dist/components/button/button.js";
 import "@awesome.me/webawesome/dist/components/card/card.js";
-import "@awesome.me/webawesome/dist/components/checkbox/checkbox.js";
 import "@awesome.me/webawesome/dist/components/dialog/dialog.js";
-import "@awesome.me/webawesome/dist/components/option/option.js";
-import "@awesome.me/webawesome/dist/components/select/select.js";
-import "@awesome.me/webawesome/dist/components/textarea/textarea.js";
 import "./ui.css";
 import { renderDashboard } from "./dashboard.js";
 
@@ -19,63 +15,33 @@ const app = inApp ? new App({ name: "Ready Check", version: "1.0.0" }) : null;
 const systemColor = matchMedia("(prefers-color-scheme: dark)");
 const strings = {
   en: {
-    qaPlan: "QA plan", qaResults: "QA results", review: "Review findings", settings: "Ready Check settings",
-    round: "Round", revision: "Revision", required: "Required", optional: "Optional", expected: "Expected",
-    actual: "Actual", approve: "Approve plan", revise: "Submit changes", cancel: "Cancel QA",
-    edits: "Changes to this scenario", additions: "Add a scenario", charter: "Exploratory charter",
-    environment: "Environment", preconditions: "Preconditions", execution: "Execution",
-    testData: "Test data", cleanup: "Cleanup", recordingScope: "Recording scope and retention",
-    pendingEdits: "Submit your changes first so you can approve the next revision.",
-    record: "Approve recording", inspect: "View evidence", saved: "Decision saved. Return to the chat to continue.",
-    loading: "Opening Ready Check…", unavailable: "The view could not be loaded.", artifact: "Open evidence",
+    qaResults: "QA results", round: "Round", expected: "Expected", actual: "Actual",
+    loading: "Opening Ready Check…", unavailable: "The view could not be loaded.",
+    artifact: "View evidence", play: "Play", localReport: "Open local report", noMedia: "No media evidence.",
+    compareScreenshots: "Compare screenshots", screenshot: "Screenshot",
     copyEvidenceUrl: "Copy this local address to open the evidence in your browser.",
+    requestLocalReport: "Ask the agent for the local QA report link.",
     staleEvidence: "The evidence could not be loaded. Reopen the current QA round.",
-    retest: "Retest", draft: "Draft comment", falsePositive: "False positive", reason: "Reason",
-    triage: "Save decisions", fix: "Fix", accept: "Accept risk", outside: "Out of scope", choose: "Choose action",
-    browser: "Browser mode", reminders: "Check reminders", capture: "Capture task context", save: "Save",
-    connect: "Connect PhpStorm MCP", disable: "Disable IDE inspections", off: "Off",
-    inspectionsVerified: "Inspections verified", connectionUnverified: "Connection not verified",
-    inspectionsUnavailable: "Inspections unavailable in this client",
-    verificationHint: "Permission saved. Ask the agent to verify the connection.",
-    unavailableHint: "Permission saved. Check the PhpStorm MCP configuration in this client and the open IDE project.",
-    connectSaved: "Return to the chat to complete PhpStorm setup.", settingsSaved: "Settings saved.",
-    pendingConnection: "Connection requested", cancelConnection: "Cancel request",
-    ask: "Ask", visible: "Visible", background: "Background",
-    all: "All", status: "Status", severity: "Severity", file: "File",
-    selected: "Selected", hiddenByFilter: "hidden by filter",
+    videoFallback: "This client could not play the video. Open the local report to watch it.",
   },
   uk: {
-    qaPlan: "План QA", qaResults: "Результати QA", review: "Знахідки рев’ю", settings: "Налаштування Ready Check",
-    round: "Раунд", revision: "Ревізія", required: "Обов’язковий", optional: "Опційний", expected: "Очікувано",
-    actual: "Фактично", approve: "Затвердити план", revise: "Надіслати правки", cancel: "Скасувати QA",
-    edits: "Правки до сценарію", additions: "Додати сценарій", charter: "План дослідницької сесії",
-    environment: "Середовище", preconditions: "Передумови", execution: "Спосіб запуску",
-    testData: "Тестові дані", cleanup: "Прибирання", recordingScope: "Обсяг і зберігання запису",
-    pendingEdits: "Спершу надішли правки, щоб затвердити наступну ревізію.",
-    record: "Дозволити запис", inspect: "Переглянути докази", saved: "Рішення збережено. Повернися в чат, щоб продовжити.",
-    loading: "Відкриваємо Ready Check…", unavailable: "Не вдалося відкрити екран.", artifact: "Відкрити доказ",
-    copyEvidenceUrl: "Скопіюй цю локальну адресу, щоб відкрити доказ у браузері.",
+    qaResults: "Результати QA", round: "Раунд", expected: "Очікувано", actual: "Фактично",
+    loading: "Відкриваємо Ready Check…", unavailable: "Не вдалося відкрити звіт.",
+    artifact: "Переглянути доказ", play: "Відтворити", localReport: "Відкрити локальний звіт",
+    compareScreenshots: "Порівняти скріншоти", screenshot: "Скріншот",
+    noMedia: "Медіадоказів немає.",
+    copyEvidenceUrl: "Скопіюй цю локальну адресу, щоб відкрити докази у браузері.",
+    requestLocalReport: "Попроси агента дати посилання на локальний звіт QA.",
     staleEvidence: "Не вдалося завантажити доказ. Відкрий поточний раунд QA ще раз.",
-    retest: "Перетестувати", draft: "Підготувати коментар", falsePositive: "Хибне спрацювання", reason: "Причина",
-    triage: "Зберегти рішення", fix: "Виправити", accept: "Прийняти ризик", outside: "Поза межами задачі", choose: "Обрати дію",
-    browser: "Режим браузера", reminders: "Нагадування про перевірку", capture: "Зберігати контекст задачі",
-    save: "Зберегти", connect: "Підключити PhpStorm MCP", disable: "Вимкнути IDE-інспекції", off: "Вимкнено",
-    inspectionsVerified: "Інспекції перевірено", connectionUnverified: "З’єднання не перевірено",
-    inspectionsUnavailable: "Інспекції недоступні в цьому клієнті",
-    verificationHint: "Дозвіл збережено. Попроси агента перевірити з’єднання.",
-    unavailableHint: "Дозвіл збережено. Перевір конфігурацію PhpStorm MCP у цьому клієнті та відкритий проєкт в IDE.",
-    connectSaved: "Повернися в чат, щоб завершити підключення PhpStorm.", settingsSaved: "Налаштування збережено.",
-    pendingConnection: "Очікує підключення", cancelConnection: "Скасувати запит",
-    ask: "Запитувати", visible: "Видимий", background: "Фоновий",
-    all: "Усі", status: "Статус", severity: "Серйозність", file: "Файл",
-    selected: "Вибрано", hiddenByFilter: "приховано фільтром",
+    videoFallback: "Клієнт не зміг відтворити відео. Відкрий локальний звіт, щоб його переглянути.",
   },
 };
 let labels = strings[navigator.language.startsWith("uk") ? "uk" : "en"];
 let state;
 let status;
-let busy = false;
-let saved = false;
+let hostTheme;
+let appliedDark;
+const hostColors = new Set();
 
 function element(tag, text, className) {
   const item = document.createElement(tag);
@@ -84,64 +50,13 @@ function element(tag, text, className) {
   return item;
 }
 
-function button(text, action, primary = false) {
+function button(text, action) {
   const item = element("wa-button", text);
   item.type = "button";
   item.size = "small";
-  item.variant = primary ? "brand" : "neutral";
-  item.appearance = primary ? "accent" : "outlined";
+  item.appearance = "outlined";
   item.addEventListener("click", action);
   return item;
-}
-
-function field(text, input, className = "action-field") {
-  input.classList.add(className);
-  if (input.localName === "wa-checkbox") input.textContent = text;
-  else input.label = text;
-  return input;
-}
-
-function checkbox(checked = false, disabled = false) {
-  const input = element("wa-checkbox");
-  input.size = "small";
-  input.checked = checked;
-  input.disabled = disabled;
-  return input;
-}
-
-function textarea() {
-  const input = element("wa-textarea");
-  input.size = "small";
-  input.rows = 2;
-  input.maxLength = 4000;
-  return input;
-}
-
-function select(options) {
-  const list = element("wa-select");
-  list.size = "small";
-  options.forEach(([value, caption]) => {
-    const option = element("wa-option", caption);
-    option.value = value;
-    list.append(option);
-  });
-  list.value = options[0]?.[0];
-  return list;
-}
-
-function surface() {
-  const card = element("wa-card", undefined, "card");
-  card.appearance = "outlined";
-  return card;
-}
-
-function badge(label) {
-  const flag = element("wa-badge", label);
-  const variants = { pass: "success", fail: "danger", blocked: "danger", critical: "danger",
-    error: "danger", warning: "warning", incomplete: "warning" };
-  flag.variant = variants[String(label).toLowerCase()] || "neutral";
-  flag.appearance = "filled";
-  return flag;
 }
 
 function message(text, error = false) {
@@ -150,134 +65,10 @@ function message(text, error = false) {
 }
 
 function facts(card, caption, value) {
-  if (!value) return;
-  const line = element("p");
-  if (Array.isArray(value)) {
-    if (!value.length) return;
-    line.append(element("strong", caption));
-    card.append(line);
-    const list = element("ul");
-    value.forEach((item) => list.append(element("li", item)));
-    card.append(list);
-    return;
-  }
-  line.append(element("strong", caption + " · "), document.createTextNode(String(value)));
+  if (!value || (Array.isArray(value) && !value.length)) return;
+  const line = element("p", undefined, "qa-fact");
+  line.append(element("strong", caption), element("span", Array.isArray(value) ? value.join(" · ") : value));
   card.append(line);
-}
-
-function heading(row, extra) {
-  const card = surface();
-  const top = element("div", undefined, "heading");
-  const title = element("div");
-  title.append(element("h2", [row.id, row.title].filter(Boolean).join(" · ")));
-  const meta = [row.role, row.risk, row.source, row.file && [row.file, row.line].filter(Boolean).join(":"),
-    row.elapsed, row.classification, row.blocking && "BLOCKED",
-    ...(Array.isArray(row.requirements) ? row.requirements : [])].filter(Boolean);
-  if (meta.length) title.append(element("small", meta.join(" · ")));
-  top.append(title);
-  if (extra) top.append(extra);
-  card.append(top);
-  return card;
-}
-
-function steps(card, values) {
-  if (!Array.isArray(values) || !values.length) return;
-  const list = element("ol");
-  values.forEach((value) => list.append(element("li", value)));
-  card.append(list);
-}
-
-function actions(pane, items) {
-  const footer = element("div", undefined, "actions");
-  items.forEach((item) => footer.append(item));
-  pane.append(footer);
-}
-
-function filters(pane, rows, items, fields, onChange) {
-  const bar = element("div", undefined, "filters");
-  const controls = [];
-  for (const [label, values] of fields) {
-    const choices = [...new Set(items.flatMap(({ row }) => values(row)).filter(Boolean))].sort();
-    if (!choices.length) continue;
-    const input = select([["all", labels.all], ...choices.map((choice, index) => [String(index), choice])]);
-    controls.push({ input, values, choices });
-    input.addEventListener("change", () => {
-      items.forEach(({ card, row }) => {
-        card.hidden = !controls.every((control) => control.input.value === "all"
-          || control.values(row).includes(control.choices[Number(control.input.value)]));
-      });
-      onChange();
-    });
-    bar.append(field(label, input, "choice"));
-  }
-  if (controls.length) pane.insertBefore(bar, rows);
-}
-
-function selectionSummary(pane, items, selected, describe) {
-  const summary = element("p", undefined, "meta selection");
-  summary.setAttribute("role", "status");
-  pane.append(summary);
-  const update = () => {
-    const choices = selected().map((item) => describe(item) + (item.card.hidden ? " (" + labels.hiddenByFilter + ")" : ""));
-    summary.textContent = choices.length ? labels.selected + " · " + choices.join(", ") : "";
-  };
-  for (const item of items) item.control.addEventListener("change", update);
-  return update;
-}
-
-function qaPlan(pane, rows, data) {
-  const inputs = [];
-  for (const row of data.scenarios) {
-    const include = checkbox(true, row.required);
-    const checked = field(row.required ? labels.required : labels.optional, include, "choice");
-    if (row.required && row.required_reason) checked.title = row.required_reason;
-    const card = heading(row, checked);
-    facts(card, labels.environment, row.environment);
-    facts(card, labels.preconditions, row.preconditions);
-    facts(card, labels.execution, row.execution);
-    facts(card, labels.testData, row.test_data);
-    steps(card, row.steps);
-    facts(card, labels.expected, row.expected);
-    facts(card, labels.cleanup, row.cleanup);
-    facts(card, labels.recordingScope, row.recording_scope);
-    if (row.evidence) card.append(element("small", row.evidence));
-    let recording;
-    if (row.recording) {
-      recording = checkbox();
-      card.append(field(labels.record + " · " + row.recording, recording, "choice"));
-      include.addEventListener("change", () => {
-        recording.disabled = !include.checked;
-        if (!include.checked) recording.checked = false;
-      });
-    }
-    const edit = textarea();
-    card.append(field(labels.edits, edit));
-    rows.append(card);
-    inputs.push({ id: row.id, include, edit, recording });
-  }
-  const additions = textarea();
-  const charter = textarea();
-  charter.value = data.charter || "";
-  pane.append(field(labels.additions, additions), field(labels.charter, charter));
-  const edits = () => Object.fromEntries(inputs.filter((row) => row.edit.value.trim()).map((row) => [row.id, row.edit.value]));
-  const changedCharter = () => charter.value !== (data.charter || "");
-  actions(pane, [
-    button(labels.approve, () => {
-      if (Object.keys(edits()).length || additions.value.trim() || changedCharter()) {
-        message(labels.pendingEdits, true);
-        return;
-      }
-      submit({
-        action: "approve", selected: inputs.filter((row) => row.include.checked).map((row) => row.id),
-        recordings: inputs.filter((row) => row.recording?.checked).map((row) => row.id),
-      });
-    }, true),
-    button(labels.revise, () => submit({
-      action: "revise", additions: additions.value, edits: edits(),
-      ...(changedCharter() ? { charter: charter.value } : {}),
-    })),
-    button(labels.cancel, () => submit({ action: "cancel" })),
-  ]);
 }
 
 function openImage(src, title) {
@@ -293,256 +84,291 @@ function openImage(src, title) {
   dialog.open = true;
 }
 
-function artifact(card, asset) {
-  const row = element("div", undefined, "evidence");
-  const title = asset.title || labels.artifact;
-  const isImage = /\.(png|jpe?g|webp|gif)$/i.test(asset.path);
-  if (inApp) {
-    const fallback = element("p", undefined, "meta");
-    fallback.hidden = true;
-    row.append(button(title, async () => {
-      fallback.hidden = true;
-      message("");
-      let url;
-      try {
-        if (isImage) {
-          const preview = await appTool("preview_image", { path: asset.path });
-          if (!preview.open_local) {
-            openImage("data:" + preview.mimeType + ";base64," + preview.data, title);
-            return;
-          }
-        }
-        ({ url } = await appTool("local_view", {}));
-        const result = await app.openLink({ url });
-        if (!result.isError) return;
-      } catch (error) {
-        if (!url) {
-          message(error.message, true);
-          return;
-        }
-      }
-      fallback.textContent = url;
-      fallback.hidden = false;
-      message(labels.copyEvidenceUrl);
-    }), fallback);
-  } else {
-    const url = "/asset?" + new URLSearchParams({ name: asset.path, access: token, revision: state.revision });
-    if (/\.(mp4|webm)$/i.test(asset.path)) {
-      const player = element("video");
-      player.controls = true;
-      player.preload = "metadata";
-      player.src = url;
-      player.setAttribute("aria-label", title);
-      player.addEventListener("error", () => message(labels.staleEvidence, true));
-      row.append(player);
-      const chapters = Array.isArray(asset.chapters) ? asset.chapters : [];
-      chapters.filter((chapter) => Number.isFinite(chapter.start) && chapter.start >= 0)
-        .forEach((chapter) => row.append(button(chapter.title, () => { player.currentTime = chapter.start; })));
-    } else {
-      const link = element("a", title);
-      link.href = url;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      if (isImage) {
-        const image = element("img");
-        image.alt = title;
-        image.loading = "lazy";
-        image.src = url;
-        image.addEventListener("error", () => message(labels.staleEvidence, true));
-        link.replaceChildren(image);
-        link.addEventListener("click", (event) => {
-          event.preventDefault();
-          openImage(url, title);
-        });
-      }
-      row.append(link);
+async function appTool(name, args = {}) {
+  const result = await app.callServerTool({ name, arguments: { ...args, handle: state.handle } });
+  if (result.isError) throw new Error(result.content?.[0]?.text || labels.unavailable);
+  return result.structuredContent;
+}
+
+async function openLocalReport(address) {
+  const snapshot = state;
+  address.hidden = true;
+  try {
+    const capabilities = app.getHostCapabilities();
+    const { url } = capabilities?.serverTools ? await appTool("local_view") : snapshot;
+    if (state !== snapshot) return;
+    if (!url) {
+      message(labels.requestLocalReport, true);
+      return;
+    }
+    if (capabilities?.openLinks) {
+      const opened = await app.openLink({ url }).catch(() => null);
+      if (state !== snapshot || (opened && !opened.isError)) return;
+    }
+    address.textContent = url;
+    address.hidden = false;
+    message(labels.copyEvidenceUrl);
+  } catch (error) {
+    if (state === snapshot) message(error.message, true);
+  }
+}
+
+function addVideo(row, asset, src, title, errorMessage) {
+  const player = element("video");
+  player.controls = true;
+  player.playsInline = true;
+  player.preload = "metadata";
+  player.setAttribute("aria-label", title);
+  player.addEventListener("error", () => message(errorMessage, true));
+  player.src = src;
+  row.replaceChildren(element("strong", title), player);
+  const chapters = Array.isArray(asset.chapters) ? asset.chapters : [];
+  for (const chapter of chapters) {
+    if (Number.isFinite(chapter.start) && chapter.start >= 0) {
+      row.append(button(chapter.title, () => { player.currentTime = chapter.start; }));
     }
   }
-  card.append(row);
+  return player;
 }
 
-function qaResults(pane, rows, data) {
-  const items = [];
+function isScreenshot(asset) {
+  return /\.(png|jpe?g|webp|gif)$/i.test(asset.path);
+}
+
+function isRecording(asset) {
+  return /\.(mp4|webm)$/i.test(asset.path);
+}
+
+function localAssetUrl(asset) {
+  return "/asset?" + new URLSearchParams({ name: asset.path, access: token, revision: state.revision });
+}
+
+async function previewUrl(asset) {
+  const preview = await appTool("preview_media", { path: asset.path });
+  if (preview.open_local || (isRecording(asset) && !document.createElement("video").canPlayType(preview.mimeType))) {
+    return null;
+  }
+  return "data:" + preview.mimeType + ";base64," + preview.data;
+}
+
+function mediaButton(text, assets, address, show) {
+  const snapshot = state;
+  const control = button(text, async () => {
+    control.disabled = true;
+    address.hidden = true;
+    message("");
+    try {
+      if (!app.getHostCapabilities()?.serverTools) {
+        await openLocalReport(address);
+        return;
+      }
+      const urls = [];
+      let failure;
+      for (const asset of assets) {
+        const url = await previewUrl(asset).catch((error) => {
+          failure ??= error;
+          return undefined;
+        });
+        if (state !== snapshot) return;
+        urls.push(url);
+      }
+      if (urls.some(Boolean)) show(urls);
+      else if (urls.includes(null)) await openLocalReport(address);
+      else throw failure;
+    } catch (error) {
+      if (state === snapshot) message(error.message, true);
+    } finally {
+      control.disabled = false;
+    }
+  });
+  return control;
+}
+
+function screenshotButton(url, title) {
+  const control = element("button", undefined, "screenshot-preview");
+  control.type = "button";
+  const image = element("img");
+  image.alt = title;
+  image.loading = inApp ? "eager" : "lazy";
+  image.src = url;
+  image.addEventListener("error", () => message(labels.staleEvidence, true));
+  control.append(image);
+  control.addEventListener("click", () => openImage(url, title));
+  return control;
+}
+
+function screenshotPair(card, assets, address) {
+  const row = element("div", undefined, "evidence");
+  card.append(row);
+  function show(urls) {
+    const pair = element("div", undefined, "screenshot-pair");
+    for (const [index, url] of urls.entries()) {
+      const title = assets[index].title || labels.screenshot + " " + (index + 1);
+      const figure = element("figure");
+      const view = url ? screenshotButton(url, title) : button(labels.localReport, () => openLocalReport(address));
+      figure.append(element("figcaption", title), view);
+      pair.append(figure);
+    }
+    row.replaceChildren(pair);
+    if (inApp) pair.querySelector("button").focus();
+  }
+  if (inApp) row.append(mediaButton(labels.compareScreenshots, assets, address, show));
+  else show(assets.map(localAssetUrl));
+}
+
+function artifact(card, asset, address) {
+  const row = element("div", undefined, "evidence");
+  const title = asset.title || labels.artifact;
+  const isImage = isScreenshot(asset);
+  const isVideo = isRecording(asset);
+  if (inApp) {
+    if (!isImage && !isVideo) return false;
+    row.append(mediaButton(isVideo ? labels.play + " · " + title : title, [asset], address, ([url]) => {
+      if (isImage) {
+        openImage(url, title);
+        return;
+      }
+      const player = addVideo(row, asset, url, title, labels.videoFallback);
+      player.focus();
+      player.play().catch(() => {});
+    }));
+  } else if (isVideo) {
+    addVideo(row, asset, localAssetUrl(asset), title, labels.staleEvidence);
+  } else if (isImage) {
+    row.append(screenshotButton(localAssetUrl(asset), title));
+  } else {
+    const link = element("a", title);
+    link.href = localAssetUrl(asset);
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    row.append(link);
+  }
+  card.append(row);
+  return true;
+}
+
+function qaResults(header, rows, data) {
+  const address = element("p", undefined, "meta qa-address");
+  address.hidden = true;
+  if (inApp) {
+    const report = button(labels.localReport, () => openLocalReport(address));
+    report.className = "qa-report";
+    header.append(report, address);
+  }
   for (const result of data.scenarios) {
-    const include = checkbox();
-    const card = heading(result, field(result.id, include, "choice"));
-    card.append(badge(result.status));
-    steps(card, result.steps);
+    const card = element("wa-card", undefined, "card");
+    card.appearance = "outlined";
+    const heading = element("div", undefined, "heading");
+    heading.append(element("h2", [result.id, result.title].filter(Boolean).join(" · ")));
+    if (result.status) {
+      const badge = element("wa-badge", result.status);
+      const variants = { PASS: "success", FAIL: "danger", BLOCKED: "danger", INCOMPLETE: "warning" };
+      badge.variant = variants[result.status] || "neutral";
+      badge.appearance = "filled";
+      heading.append(badge);
+    }
+    card.append(heading);
     facts(card, labels.expected, result.expected);
     facts(card, labels.actual, result.actual);
-    for (const asset of result.artifacts || []) artifact(card, asset);
-    rows.append(card);
-    items.push({ id: result.id, control: include, card, row: result });
-  }
-  const reason = textarea();
-  pane.append(field(labels.reason, reason));
-  const selected = () => items.filter((item) => item.control.checked);
-  const update = selectionSummary(pane, items, selected, (item) => item.id);
-  filters(pane, rows, items, [[labels.status, (row) => [row.status]], ["RC", (row) => row.requirements || []]], update);
-  actions(pane, [["retest", labels.retest], ["draft", labels.draft], ["false-positive", labels.falsePositive]]
-    .map(([action, caption]) => button(caption, () => submit({
-      action, selected: selected().map((item) => item.id), reason: reason.value,
-    }))));
-}
-
-function review(pane, rows, data) {
-  const items = [];
-  const choices = { none: labels.choose, fix: labels.fix, "accept-risk": labels.accept,
-    "false-positive": labels.falsePositive, "out-of-scope": labels.outside };
-  for (const row of data.findings) {
-    const card = heading(row, badge(row.severity));
-    if (row.description) card.append(element("p", row.description));
-    if (row.snippet) card.append(element("pre", row.snippet));
-    const action = select(Object.entries(choices));
-    const reason = textarea();
-    card.append(field(labels.choose, action), field(labels.reason, reason));
-    rows.append(card);
-    items.push({ id: row.id, control: action, reason, card, row });
-  }
-  const selected = () => items.filter((item) => item.control.value && item.control.value !== "none");
-  const update = selectionSummary(pane, items, selected, (item) => item.id + " · " + choices[item.control.value]);
-  filters(pane, rows, items, [[labels.severity, (row) => [row.severity]], [labels.file, (row) => [row.file]]], update);
-  actions(pane, [button(labels.triage, () => submit({
-    action: "triage",
-    rows: selected().map((item) => ({
-      id: item.id, action: item.control.value, reason: item.reason.value,
-    })),
-  }), true)]);
-}
-
-function settings(pane, rows, data) {
-  const browser = select([["ask", labels.ask], ["visible", labels.visible], ["background", labels.background]]);
-  browser.value = data.browser;
-  const options = [
-    ["browser", labels.browser, browser, () => browser.value],
-    ["remind", labels.reminders, checkbox(data.remind), (input) => input.checked],
-    ["captureTasks", labels.capture, checkbox(data.captureTasks), (input) => input.checked],
-  ];
-  for (const [key, label, input, value] of options) {
-    const card = surface();
-    const layout = element("div", undefined, "setting");
-    layout.append(field(label, input, "choice"), button(labels.save, () => submit({ action: "set", key, value: value(input) })));
-    card.append(layout);
+    const assets = result.artifacts || [];
+    const screenshots = assets.filter(isScreenshot);
+    const hasPair = screenshots.length === 2;
+    if (hasPair) screenshotPair(card, screenshots, address);
+    let hasMedia = hasPair;
+    for (const asset of hasPair ? assets.filter((asset) => !isScreenshot(asset)) : assets) {
+      if (artifact(card, asset, address)) hasMedia = true;
+    }
+    if (!hasMedia) card.append(element("small", labels.noMedia));
     rows.append(card);
   }
-  const card = surface();
-  const layout = element("div", undefined, "setting");
-  const description = element("div");
-  const availability = {
-    available: [labels.inspectionsVerified],
-    unavailable: [labels.inspectionsUnavailable, labels.unavailableHint],
-    unverified: [labels.connectionUnverified, labels.verificationHint],
-  };
-  const [connection, hint] = data.phpstormMcp ? availability[data.ideStatus] ?? availability.unverified :
-    data.phpstormPending ? [labels.pendingConnection, labels.connectSaved] : [labels.off];
-  description.append(element("h2", "PhpStorm MCP"), element("p", connection));
-  if (hint) description.append(element("small", hint));
-  const control = data.phpstormMcp || data.phpstormPending ?
-    button(data.phpstormMcp ? labels.disable : labels.cancelConnection,
-      () => submit({ action: "set", key: "phpstormMcp", value: false })) :
-    button(labels.connect, () => submit({ action: "connect-phpstorm" }), true);
-  layout.append(description, control);
-  card.append(layout);
-  rows.append(card);
 }
 
-const screens = {
-  "qa-plan": [qaPlan, "qaPlan"], "qa-results": [qaResults, "qaResults"],
-  review: [review, "review"], settings: [settings, "settings"],
-  reflect: [(pane, _rows, data) => renderDashboard(pane, data), "reflect"],
-};
+function closePreviews() {
+  document.querySelectorAll("wa-dialog.preview").forEach((dialog) => dialog.remove());
+}
+
+function showError(text) {
+  closePreviews();
+  state = undefined;
+  main.replaceChildren(element("p", text || labels.unavailable, "status error"));
+  main.setAttribute("aria-busy", "false");
+}
 
 function render(value) {
+  closePreviews();
   state = value;
-  saved = ["qa-plan", "review"].includes(value.view) && Boolean(value.decision);
-  const locale = value.data.locale === "uk" ? "uk" : value.data.locale === "en" ? "en" : document.documentElement.lang;
+  const locale = value.data.locale || document.documentElement.lang;
   document.documentElement.lang = locale;
   labels = strings[locale] || labels;
-  const [screen, title] = screens[value.view];
-  const pane = element("section");
-  const header = element("header");
-  header.append(element("h1", value.view === "reflect" ? value.data.title : labels[title]));
   const data = value.data;
-  const meta = [value.view === "reflect" ? data.summary : data.title, data.status, data.round && labels.round + " " + data.round,
-    data.qa_plan_revision && labels.revision + " " + data.qa_plan_revision].filter(Boolean);
-  if (meta.length) header.append(element("p", meta.join(" · "), "meta"));
-  if (data.coverage) header.append(element("p", data.coverage, "meta"));
-  if (data.limitations) header.append(element("p", data.limitations, "meta"));
+  const reflect = value.view === "reflect";
+  document.documentElement.classList.toggle("qa-evidence", !reflect);
+  const pane = element("section");
+  const header = element("header", undefined, reflect ? undefined : "qa-toolbar");
+  const summary = reflect ? header : element("div", undefined, "qa-summary");
+  if (!reflect) header.append(summary);
+  summary.append(element("h1", reflect ? data.title : labels.qaResults));
+  const meta = [reflect ? data.summary : data.title, data.status, data.round && labels.round + " " + data.round].filter(Boolean);
+  if (meta.length) summary.append(element("p", meta.join(" · "), "meta"));
+  if (data.coverage) summary.append(element("p", data.coverage, "meta"));
+  if (data.limitations) summary.append(element("p", data.limitations, "meta"));
   const rows = element("div", undefined, "rows");
   pane.append(header, rows);
-  screen(pane, rows, data);
-  status = element("p", saved ? labels.saved : "", "status");
+  if (reflect) renderDashboard(pane, data);
+  else qaResults(header, rows, data);
+  status = element("p", "", "status");
   status.setAttribute("role", "status");
   pane.append(status);
   main.replaceChildren(pane);
   main.setAttribute("aria-busy", "false");
 }
 
-async function request(path, value) {
-  const options = { headers: { Authorization: "Bearer " + token } };
-  if (value) {
-    options.method = "POST";
-    options.headers["Content-Type"] = "application/json";
-    options.body = JSON.stringify(value);
-  }
-  const response = await fetch(path, options);
+async function openLocal() {
+  const response = await fetch("/state", { headers: { Authorization: "Bearer " + token } });
   const result = await response.json();
   if (!response.ok) throw new Error(result.error || labels.unavailable);
-  return result;
+  render(result);
 }
 
-async function submit(value) {
-  if (busy || saved) return;
-  busy = true;
-  message("");
-  try {
-    const decision = { ...value, revision: state.revision };
-    const result = inApp ? await appTool("submit_decision", { decision }) : await request("/decision", decision);
-    const connecting = value.action === "connect-phpstorm";
-    if (state.view === "settings") render({ ...result, handle: state.handle });
-    else saved = state.view !== "qa-results";
-    if (!connecting) message(state.view === "settings" ? labels.settingsSaved : labels.saved);
-    const requestId = connecting && result.data.phpstormRequestId;
-    if (inApp && (state.view !== "settings" || requestId)) {
-      const text = requestId ? "A Ready Check settings request " + requestId
-        + " was saved. Read the settings decision and continue only if that request is still pending." :
-        "A Ready Check " + state.view + " decision was saved for task " + state.task + ". Read the saved decision.";
-      app.sendMessage({ role: "user", content: [{ type: "text", text }] }).catch(() => {});
-    }
-  } catch (error) {
-    message(error.message, true);
-  } finally {
-    busy = false;
+function applyTheme({ theme, styles } = {}) {
+  hostTheme = theme ?? hostTheme;
+  const dark = hostTheme ? hostTheme === "dark" : systemColor.matches;
+  const root = document.documentElement;
+  if (dark !== appliedDark) {
+    for (const key of hostColors) root.style.removeProperty(key);
+    hostColors.clear();
+    appliedDark = dark;
   }
-}
-
-async function appTool(name, args) {
-  const result = await app.callServerTool({ name, arguments: { ...args, handle: state.handle } });
-  if (result.isError) throw new Error(result.content?.[0]?.text || labels.unavailable);
-  return result.structuredContent;
-}
-
-function applyTheme(theme) {
-  const dark = theme ? theme === "dark" : systemColor.matches;
-  document.documentElement.classList.toggle("wa-dark", dark);
-  document.documentElement.classList.toggle("wa-light", !dark);
+  root.classList.toggle("wa-dark", dark);
+  root.classList.toggle("wa-light", !dark);
+  if (styles?.variables) {
+    applyHostStyleVariables(styles.variables, root);
+    for (const key of Object.keys(styles.variables)) {
+      if (key.startsWith("--color-")) hostColors.add(key);
+    }
+  }
 }
 
 async function openApp() {
-  app.ontoolresult = ({ structuredContent }) => {
-    if (structuredContent?.view) render(structuredContent);
+  app.ontoolresult = ({ structuredContent, isError, content }) => {
+    if (isError || structuredContent?.view !== "qa-results") {
+      showError(content?.find((block) => block.type === "text")?.text);
+      return;
+    }
+    render(structuredContent);
   };
-  app.onhostcontextchanged = (context) => applyTheme(context.theme ?? app.getHostContext()?.theme);
-  app.onteardown = async () => ({});
+  app.onhostcontextchanged = applyTheme;
+  app.onteardown = async () => {
+    closePreviews();
+    main.replaceChildren();
+    return {};
+  };
   await app.connect();
-  applyTheme(app.getHostContext()?.theme);
+  applyTheme(app.getHostContext());
 }
 
 document.documentElement.lang = navigator.language.startsWith("uk") ? "uk" : "en";
 applyTheme();
-systemColor.addEventListener("change", () => applyTheme(app?.getHostContext()?.theme));
+systemColor.addEventListener("change", () => applyTheme());
 main.append(element("p", labels.loading, "status"));
-(inApp ? openApp() : request("/state").then(render)).catch((error) => {
-  main.replaceChildren(element("p", error.message || labels.unavailable, "status error"));
-  main.setAttribute("aria-busy", "false");
-});
+(inApp ? openApp() : openLocal()).catch((error) => showError(error.message));

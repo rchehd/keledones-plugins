@@ -1,134 +1,89 @@
-# Ready Check interactive views
+# Ready Check QA evidence viewer
 
-Use the view when the user chooses the interactive path. Offer the chat path whenever the view is unavailable
-or the user prefers it. Save the report first. View actions are dated by the report round and tied to the
-prepared content revision. They do not publish comments, run QA, change a verdict, or edit code by themselves.
+## QA results
 
-## Prepare and open
+Record the current `Round: <number>` in the report first. Open the viewer when that round has screenshots or recordings
+worth showing. Describe scenario outcomes in chat and include the report path. Use the viewer for evidence
+and the chat for decisions about the result.
 
-Write a UTF-8 JSON input beside the existing report in its task directory. Run the portable entry point:
-
-```text
-<python> <plugin>/scripts/ready-check.py ui prepare --project <repo> --task <task-id> --view <view> --input <report-relative.json>
-```
-
-Call the packaged `ready-ui` server's `show_view` with the repository path, task ID and view. It renders the
-same bundle as an MCP App when supported and otherwise returns a local URL. If the MCP tool is unavailable,
-run the local server in a background command and use its printed URL:
-
-```text
-<python> <plugin>/scripts/ready-check.py ui serve --project <repo> --task <task-id> --view <view>
-```
-
-Give the URL to the user and ask them to return to the chat when finished. An MCP App may send a short
-notification after saving. When notified or the user returns, read the saved decision once:
-
-```text
-<python> <plugin>/scripts/ready-check.py ui decision --project <repo> --task <task-id> --view <view>
-```
-
-`PENDING` means no decision has been saved. A timeout, opening the page, or a chat notification is not approval. The plan
-and review views store one submission per prepared state. Compare task, round, and applicable revision with
-the current report before acting. Apply a plan or review decision only while it is pending. Prepare again
-whenever the underlying plan, findings or results change.
-
-## QA plan
-
-Use `qa-plan`. Include each scenario in the approved-plan format, even when some are optional. Use
-`recording` for an approved-plan proposal and `recording_required` for a scenario that needs video to pass.
-The user's selected recordings are returned separately from selected scenarios.
-Before opening or replacing the view, update the report's `QA plan revision: <number>` and
-`Requirements revision: <number>` lines. Both values must match the input and remain current when
-the decision is submitted or read. Restore missing keys in older reports using their recorded revisions.
-Include `environment`, `preconditions`, `execution`, `test_data`, `cleanup`, and `recording_scope` when
-applicable. Each accepts a short string or a list of strings. State the actual environment, data actions and
-recording retention in the plan before asking for approval.
+Write a UTF-8 JSON input beside the existing report:
 
 ```json
 {
   "locale": "en",
-  "title": "Account settings",
   "round": 1,
-  "qa_plan_revision": 1,
-  "requirements_revision": 1,
   "scenarios": [{
     "id": "QA-001",
-    "title": "Change display name",
-    "required": true,
-    "required_reason": "Covers RC-001",
-    "requirements": ["RC-001"],
-    "risk": "High",
-    "role": "Member",
-    "environment": "Local test site",
-    "preconditions": "The temporary member fixture is available.",
-    "test_data": "Create a temporary display name.",
-    "cleanup": "Restore the fixture's original display name.",
-    "steps": ["Edit the name and save.", "Reload the page."],
-    "expected": "The updated name persists.",
-    "evidence": "Screenshot after reload"
+    "title": "Save the display name",
+    "status": "PASS",
+    "expected": "The saved name remains after reloading.",
+    "actual": "The name remained after reloading.",
+    "artifacts": [
+      {"path": "evidence/round-1-saved.png", "title": "Saved state"},
+      {"path": "evidence/round-1-save.webm", "title": "Save and reload",
+       "chapters": [{"title": "Reload", "start": 2.5}]}
+    ]
   }]
 }
 ```
 
-Map `approve` to the existing approval fields, including only the returned recording IDs.
-`revise` supplies scenario notes or edits to the exploratory charter. Update the plan, increment its
-revision and seek approval again. `cancel` stops QA for the current run and records the user decision.
+List only approved evidence files under `evidence/`. Select screenshots, clips or both according to the
+[evidence plan](evidence.md). Keep distinct paths per round and attempt. The optional chapter positions
+are measured in seconds from the start of the retained clip. Redact sensitive data before showing evidence.
+Link trace files, replay HTML and logs from the local task report.
 
-## QA results
+For a before/after comparison, list both screenshots, both clips, or both pairs under the same scenario.
+Label each item `Before` or `After` in the user's language, adding the original round or attempt if it differs.
+With two screenshots in a scenario, **Compare screenshots** shows both together in the widget. If only one
+can load there, it stays visible beside a button for the local HTML, which shows the full pair when both files
+are available. Each image can be enlarged independently.
+For a retest, select the original failed evidence explicitly in the current round's view and pair it with the
+fresh evidence. Keep the original files in their original attempt directories. Each clip has its own playback
+controls and chapters.
 
-Use `qa-results` with `round`, optional `status` and `coverage`, and `scenarios` containing current results.
-Use the plan's titles, roles and RCs, actual versus expected and, for a confirmed failure, the minimal
-observed steps. Add `artifacts` only for evidence intended to be shown. Each item has `path` relative to the
-report directory under `evidence/`, optional `title`, and, for video, optional
-`chapters: [{"title": "Save", "start": 2.5}]` with seconds from the retained clip. Serve screenshots and
-video files from the report. Use distinct paths per round and attempt to preserve earlier evidence.
-Add text excerpts only after redacting client sessions, secrets and credentials.
-Use either medium or both according to the approved evidence plan and observed outcome.
+Prepare and open the view:
 
-Map `retest` to a new QA round according to the existing recheck rules. `draft` prepares a draft using the
-`draft` skill and leaves publication to its own authorization. Record a `false-positive` decision and reason,
-then investigate the affected result before changing its classification.
-The command returns the current `decision` and `previous_decisions` for earlier view revisions. Check both
-even when the current decision is null. Each decision names its original round and revision. Its `actions`
-contain `id`, `action`, `scenario` and `reason`. Check the report's Decisions for the revision and action ID
-before processing, and record the outcome to avoid repeats. Use the original round's evidence for drafts
-and false-positive investigations. Before running a retest from an earlier revision, check that the
-scenario is still in the current approved plan. If its scope changed or a later run already covers it,
-record the outcome and seek fresh approval if more QA is needed.
+```text
+<python> <plugin>/scripts/ready-check.py ui prepare --project <repo> --task <task-id> --view qa-results --input <report-relative.json>
+```
+
+Call the packaged `ready-ui` server's `show_view` with the repository path, task ID and `view: qa-results`.
+A compatible host shows the result card, screenshot enlargement and on-demand playback of supported clips
+up to 4 MB. The opening response includes the local report URL when the server can bind a local port.
+The card uses that link for **Open local report**, unsupported or larger media, and hosts that cannot proxy
+tool calls from widgets. If the host declines to open the URL, the widget shows it for copying.
+
+If the card is unavailable and `show_view` returned a URL, give it. If the tool is unavailable or could not
+start the local server, start the same HTML view in a background command and give the printed URL:
+
+```text
+<python> <plugin>/scripts/ready-check.py ui serve --project <repo> --task <task-id> --view qa-results
+```
+
+The URL is local and time limited. Include the task report path so the user can find the evidence after it
+expires. Keep the status and decisive evidence reference in the chat summary even when the viewer opens.
+When the task report moves to the next round, prepare the current evidence before opening a fresh viewer.
+
+Handle retest, false-positive investigation and comment drafts in chat. Retest starts a new QA round under
+the existing recheck rules. Investigate the original round before reclassifying a result. Prepare a comment
+through the draft skill and use its separate publication authorization.
 
 ## Review and static findings
 
-Before inspecting code or running the static analysis that supplies the findings, capture the source:
+Capture the source before inspecting code or running the static analysis that supplies the findings:
 
 ```text
 <python> <plugin>/scripts/ready-check.py ui snapshot --project <repo> --view review
 ```
 
-Keep the returned `reviewed_source` and the reviewed requirements revision with the corresponding findings
-in the report. Use `review` with `round`, `findings`, that same `reviewed_source` and
-`requirements_revision`. The report's `Requirements revision: <positive integer>` line must match.
-Add the line to older reports if the recorded revision is known. If findings came from different
-snapshots or requirements revisions, refresh them before combining them. If the original snapshot is unavailable, use the
-chat path or inspect the code again. Include `id`, `title`, `description`, `severity`, `source`,
-`file`, `line`, `requirements`, and a concise optional `snippet` for each finding. Use only the current scope.
-Record the returned row decisions and reasons in the report. Send `fix` IDs to the normal `check` fix
-workflow in the current conversation. Immediately before any edit, read `ui decision` again to confirm
-that the saved decision still matches the reviewed branch, working-tree fingerprint, and requirements revision.
-Refresh the findings and ask for a new decision if any of those changed. A user's recorded risk acceptance or false-positive choice requires
-re-evaluating the evidence and applicable requirements before any change to the gate.
+Record the returned `reviewed_source` and the reviewed requirements revision with the findings in the
+report. Collect decisions in chat by finding ID. Before a fix, recapture the source and compare the branch
+and fingerprint with the reviewed snapshot. Compare the current requirements revision too. If either
+changed, refresh the findings and ask for a new decision.
 
-## Settings
+## Saved decisions from earlier versions
 
-Use `settings` with the repository path and no task or input. The widget reads and saves the same project
-preferences as `config`; it includes browser mode, check reminders, task capture, and PhpStorm MCP.
-For a settings-only request, the rendered widget is the response. If the tool returns a local URL, give the
-URL. If the tool is unavailable, use `ui serve --project <repo> --view settings` and give its local URL.
-Pass `ide_status` (or `--ide-status` for the local server) as `available` after a successful inspection
-or `unavailable` when the requested connection cannot be inspected. Leave it unverified otherwise.
-After a PhpStorm connect action or its MCP App notification, read
-`ui decision --project <repo> --view settings`. Continue the [PhpStorm setup flow](../../setup/references/phpstorm.md)
-only for a pending `connect-phpstorm` decision. If the notification includes an ID, require it to match
-the pending `request_id`. Pass that ID to `setup --component phpstorm --phpstorm-request <request_id>`
-to apply the widget request. In Cursor, add `--client cursor` to register the MCP server for the project.
-Stop if the decision is missing or the command reports cancellation or
-replacement. Report the IDE connection as verified after an inspection succeeds.
+Earlier plan, review and gallery decisions stay in their reports. Use `ui decision --project <repo> --task
+<task-id> --view <qa-plan|review|qa-results>` to read decisions when resuming an older run. For QA results,
+check `previous_decisions` too. Match the original round, revision and action ID with the report's Decisions
+before applying a pending choice. Recheck the current scope and required approvals before any new action.
