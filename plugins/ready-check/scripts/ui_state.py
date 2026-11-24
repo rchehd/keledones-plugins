@@ -277,7 +277,7 @@ class View:
                     raise ValueError("Settings changed. Refresh the view.")
                 if not current["data"]["phpstormMcp"] and not current["data"]["phpstormPending"]:
                     write_json(self.phpstorm_request, dict(view="settings", action="connect-phpstorm",
-                                                          request_id=secrets.token_urlsafe(24)), self.root)
+                                                          request_id=secrets.token_hex(16)), self.root)
             return self.current()
         current = self.current()
         if request.get("revision") != current["revision"]:

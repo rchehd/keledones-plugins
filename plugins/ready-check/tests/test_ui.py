@@ -247,7 +247,8 @@ class InteractiveViewTest(unittest.TestCase):
         command = [sys.executable, str(ENTRY), "setup", "--project", str(self.project), "--component", "phpstorm"]
         subprocess.run([*command, "--dry-run"], capture_output=True, check=True)
         self.assertFalse(view.current()["data"]["phpstormMcp"])
-        requested = view.submit(dict(revision=view.current()["revision"], action="connect-phpstorm"))
+        with patch("ui_state.secrets.token_hex", return_value="-" + "a" * 31):
+            requested = view.submit(dict(revision=view.current()["revision"], action="connect-phpstorm"))
         self.assertTrue(requested["data"]["phpstormPending"])
         self.assertFalse(requested["data"]["phpstormMcp"])
         with self.assertRaisesRegex(ValueError, "Use a connection request"):
@@ -257,7 +258,7 @@ class InteractiveViewTest(unittest.TestCase):
         pending = json.loads(decision.stdout)["decision"]
         self.assertEqual(pending["action"], "connect-phpstorm")
         self.assertEqual(pending["request_id"], requested["data"]["phpstormRequestId"])
-        result = subprocess.run([*command, "--phpstorm-request", pending["request_id"]],
+        result = subprocess.run([*command, f"--phpstorm-request={pending['request_id']}"],
                                 capture_output=True, check=True)
         self.assertEqual(json.loads(result.stdout)["components"][0]["connection"], "UNVERIFIED")
         current = view.current()
@@ -266,6 +267,7 @@ class InteractiveViewTest(unittest.TestCase):
         updated = view.submit(dict(revision=current["revision"], action="set", key="phpstormMcp", value=False))
         self.assertFalse(updated["data"]["phpstormMcp"])
         requested = view.submit(dict(revision=updated["revision"], action="connect-phpstorm"))
+        self.assertRegex(requested["data"]["phpstormRequestId"], r"^[0-9a-f]{32}$")
         view.submit(dict(revision=requested["revision"], action="set", key="phpstormMcp", value=False))
         self.assertIsNone(view.decision())
         old_setup = [*command, "--phpstorm-request", requested["data"]["phpstormRequestId"]]
