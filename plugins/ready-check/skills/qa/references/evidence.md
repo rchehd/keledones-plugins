@@ -62,7 +62,8 @@ capture. Use a session that contains only tabs and test data approved for this c
 
 - **Ready Check Playwright CLI.** Open the named session from the task report directory. Start after login
   and use the same session for recording and UI actions. Use the `evidence` path returned by the preparation
-  command. The managed wrapper accepts these arguments even if the application has no Playwright tests.
+  command. For the live Dashboard, keep the same `--qa-live-dir` option on recording and screenshot commands.
+  The managed wrapper accepts these arguments even if the application has no Playwright tests.
 
   ```sh
   playwright-cli -s=<session> video-start evidence/round-1/QA-001-attempt-1.webm.capture/QA-001-attempt-1.webm

@@ -1,7 +1,8 @@
 # Ready Check report template
 
-Write the report in the Ready Check file language from the session context (English unless the user chose another),
-with the commit message and PR/MR text in English. Replace bracketed fields with known facts or an explicit unknown;
+Write the report in the language requested for this task, the configured artifact language if set to a fixed
+language, or the current chat language by default. Translate headings and prose. Keep the machine-readable lines
+marked below and commit and PR/MR text in English. Replace bracketed fields with known facts or an explicit unknown;
 keep unresolved preparation items open. Maintain the same report as answers arrive.
 
 ```markdown

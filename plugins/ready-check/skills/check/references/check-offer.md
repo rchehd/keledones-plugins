@@ -3,13 +3,15 @@ paths and behaviors, and the applicable profiles already known. If needed, inspe
 read-only profile discovery (`scripts/ready-check.py profiles --project <repo>`). A stack elsewhere in the
 repository does not determine checks for this task. Do not run validation or install tools while making the offer.
 
-Ask one question in the user's language. Name the actual scope in short labels or descriptions. A yes/no
-question alone does not meet this offer.
+Post the actual scope and use the [current client's question tool](decision-questions.md). Ask one question
+in the user's language and name the scope in short labels or descriptions. A yes/no question alone does not
+meet this offer.
 
 - Claude Code: use a single-select `AskUserQuestion` with four options: **All checks** (static, review and
   QA), **Static + review**, **QA only** and **Turn off for this session**. The question UI adds its own Other
   (free text) and Skip; say that Other takes anything else, such as "static only" or "review only".
-- Codex: use `request_user_input` or `request_user_input_async` when available. Cursor: use its native
+- Codex: use `request_user_input` or `request_user_input_async` when exposed (Plan mode only for the former unless
+  the default-mode feature is enabled). Cursor: use its native
   question tool. List **All checks**, **Static + review**, **Static only**, **Review only**, **QA only**,
   **Skip** and **Turn off for this session**; take other combinations as free text.
 - With no question tool, list the Codex choices in chat and wait.

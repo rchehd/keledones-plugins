@@ -13,7 +13,7 @@ import { renderDashboard } from "./dashboard.js";
 const main = document.getElementById("ready-check");
 const token = location.hash.slice(1);
 const inApp = window.parent !== window;
-const app = inApp ? new App({ name: "Ready Check", version: "1.0.0" }) : null;
+const app = inApp ? new App({ name: "Ready Check", version: "1.0.0" }, { availableDisplayModes: ["inline", "fullscreen"] }) : null;
 const systemColor = matchMedia("(prefers-color-scheme: dark)");
 const strings = {
   en: {
@@ -25,8 +25,7 @@ const strings = {
     },
     loading: "Opening Ready Check…", unavailable: "The view could not be loaded.",
     artifact: "View evidence", play: "Play", localReport: "Open local report", noMedia: "No media evidence.",
-    openInBrowser: "View in browser", browserRequested: "Asked the client to open the QA report.",
-    openReportRequest: "Open this Ready Check QA report in a visible tab using the current client's browser tool. If it cannot open the local page, give me the link.",
+    openInBrowser: "View in browser",
     compareScreenshots: "Compare screenshots", screenshot: "Screenshot",
     copyEvidenceUrl: "Copy this local address to open the evidence in your browser.",
     requestLocalReport: "Ask the agent for the local QA report link.",
@@ -50,8 +49,7 @@ const strings = {
     },
     loading: "Відкриваємо Ready Check…", unavailable: "Не вдалося відкрити звіт.",
     artifact: "Переглянути доказ", play: "Відтворити", localReport: "Відкрити локальний звіт",
-    openInBrowser: "Переглянути у браузері", browserRequested: "Запит на відкриття звіту надіслано.",
-    openReportRequest: "Відкрий цей QA-звіт Ready Check у видимій вкладці через браузер поточного клієнта. Якщо він не може відкрити локальну сторінку, дай мені посилання.",
+    openInBrowser: "Переглянути у браузері",
     compareScreenshots: "Порівняти скріншоти", screenshot: "Скріншот",
     noMedia: "Медіадоказів немає.",
     copyEvidenceUrl: "Скопіюй цю локальну адресу, щоб відкрити докази у браузері.",
@@ -76,8 +74,7 @@ const strings = {
     },
     loading: "Открываем Ready Check…", unavailable: "Не удалось открыть отчёт.",
     artifact: "Посмотреть материалы", play: "Воспроизвести", localReport: "Открыть локальный отчёт",
-    openInBrowser: "Открыть в браузере", browserRequested: "Запрос на открытие отчёта отправлен.",
-    openReportRequest: "Открой этот QA-отчёт Ready Check на видимой вкладке браузера текущего клиента. Если клиент не может открыть локальную страницу, дай мне ссылку.",
+    openInBrowser: "Открыть в браузере",
     compareScreenshots: "Сравнить скриншоты", screenshot: "Скриншот",
     noMedia: "Скриншотов и видео нет.",
     copyEvidenceUrl: "Скопируй этот локальный адрес, чтобы посмотреть материалы в браузере.",
@@ -97,7 +94,9 @@ let state;
 let status;
 let hostTheme;
 let appliedDark;
+let expandedForPreview = false;
 const hostColors = new Set();
+const objectUrls = new Set();
 
 function element(tag, text, className) {
   const item = document.createElement(tag);
@@ -137,6 +136,22 @@ function facts(card, caption, value, className = "qa-fact") {
   card.append(line);
 }
 
+function syncDisplayMode(mode) {
+  if (!mode) return;
+
+  if (mode !== "fullscreen") expandedForPreview = false;
+  document.querySelectorAll("wa-dialog.preview").forEach((dialog) => {
+    dialog.classList.toggle("preview-expanded", mode === "fullscreen");
+  });
+}
+
+function restoreInline() {
+  if (!expandedForPreview || document.querySelector("wa-dialog.preview")) return;
+
+  expandedForPreview = false;
+  app.requestDisplayMode({ mode: "inline" }, { timeout: 3000 }).catch(() => null);
+}
+
 function openImage(src, title) {
   const dialog = element("wa-dialog");
   dialog.label = title;
@@ -145,13 +160,29 @@ function openImage(src, title) {
   image.src = src;
   image.alt = title;
   dialog.append(image);
-  dialog.addEventListener("wa-after-hide", () => dialog.remove(), { once: true });
+  dialog.addEventListener("wa-after-hide", () => {
+    dialog.remove();
+    restoreInline();
+  }, { once: true });
   document.body.append(dialog);
   dialog.open = true;
+  const context = app?.getHostContext();
+
+  if (context?.displayMode === "fullscreen") {
+    dialog.classList.add("preview-expanded");
+  } else if (context?.availableDisplayModes?.includes("fullscreen")) {
+    app.requestDisplayMode({ mode: "fullscreen" }, { timeout: 3000 }).then((result) => {
+      if (result?.mode !== "fullscreen") return;
+
+      expandedForPreview = true;
+      if (dialog.isConnected) dialog.classList.add("preview-expanded");
+      else restoreInline();
+    }).catch(() => null);
+  }
 }
 
-async function appTool(name, args = {}) {
-  const result = await app.callServerTool({ name, arguments: { ...args, handle: state.handle } });
+async function appTool(name, args = {}, options) {
+  const result = await app.callServerTool({ name, arguments: { ...args, handle: state.handle } }, options);
   if (result.isError) throw new Error(result.content?.[0]?.text || labels.unavailable);
   return result.structuredContent;
 }
@@ -159,44 +190,39 @@ async function appTool(name, args = {}) {
 async function openLocalReport(address) {
   const snapshot = state;
   address.hidden = true;
+  message("");
   try {
     const capabilities = app.getHostCapabilities();
-    const { url } = capabilities?.serverTools ? await appTool("local_view") : snapshot;
+    let { url } = snapshot;
+
+    if (!url && capabilities?.serverTools) {
+      url = (await appTool("local_view", {}, { timeout: 5000 }))?.url;
+    }
+
     if (state !== snapshot) return;
     if (typeof url !== "string" || !/^http:\/\/127\.0\.0\.1:\d+\/#[-\w]+$/.test(url)) {
       message(labels.requestLocalReport, true);
       return;
     }
-    address.textContent = url;
-    address.hidden = false;
-    if (capabilities?.message) {
-      const sent = await app.sendMessage({
-        role: "user",
-        content: [{ type: "text", text: labels.openReportRequest + "\n" + url }],
-      }).catch(() => null);
-      if (state !== snapshot) return;
-      if (sent && !sent.isError) {
-        message(labels.browserRequested);
-        return;
-      }
-    }
     if (capabilities?.openLinks) {
-      const opened = await app.openLink({ url }).catch(() => null);
+      const opened = await app.openLink({ url }, { timeout: 5000 }).catch(() => null);
       if (state !== snapshot || (opened && !opened.isError)) return;
     }
+    address.textContent = url;
+    address.hidden = false;
     message(labels.copyEvidenceUrl);
   } catch (error) {
     if (state === snapshot) message(error.message, true);
   }
 }
 
-function addVideo(row, asset, src, title, errorMessage) {
+function addVideo(row, asset, src, title, onError) {
   const player = element("video");
   player.controls = true;
   player.playsInline = true;
   player.preload = "metadata";
   player.setAttribute("aria-label", title);
-  player.addEventListener("error", () => message(errorMessage, true));
+  player.addEventListener("error", onError, { once: true });
   player.src = src;
   row.replaceChildren(element("strong", title), player);
   const chapters = Array.isArray(asset.chapters) ? asset.chapters : [];
@@ -225,19 +251,68 @@ function cachedPreviewUrl(asset) {
   return preview ? "data:" + preview.mimeType + ";base64," + preview.data : null;
 }
 
-async function previewUrl(asset) {
-  const cached = cachedPreviewUrl(asset);
-  if (cached || !app.getHostCapabilities()?.serverTools) return cached;
-  const preview = await appTool("preview_media", { path: asset.path });
-  if (preview.open_local || (isRecording(asset) && !document.createElement("video").canPlayType(preview.mimeType))) {
+function recordingType(asset) {
+  return /\.mp4$/i.test(asset.path) ? "video/mp4" : "video/webm";
+}
+
+function videoBlobUrl(mimeType, data) {
+  if (!["video/mp4", "video/webm"].includes(mimeType) || typeof data !== "string" || !data) return null;
+
+  try {
+    const binary = atob(data);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let index = 0; index < binary.length; index++) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+
+    const url = URL.createObjectURL(new Blob([bytes], { type: mimeType }));
+    objectUrls.add(url);
+    return url;
+  } catch {
     return null;
   }
-  return "data:" + preview.mimeType + ";base64," + preview.data;
+}
+
+function revokeObjectUrls() {
+  objectUrls.forEach((url) => URL.revokeObjectURL(url));
+  objectUrls.clear();
+}
+
+async function previewVideoUrl(asset) {
+  const snapshot = state;
+  const capabilities = app.getHostCapabilities();
+
+  if (!document.createElement("video").canPlayType(recordingType(asset))) return null;
+
+  if (capabilities?.serverResources) {
+    const uri = "ready-check-video://evidence/" + encodeURIComponent(snapshot.handle) + "/" + encodeURIComponent(asset.path);
+    const resource = await app.readServerResource({ uri }, { timeout: 10000 }).catch(() => null);
+    const clip = resource?.contents?.find((item) => item.uri === uri);
+
+    if (snapshot !== state) return null;
+    if (clip) return videoBlobUrl(clip.mimeType, clip.blob);
+  }
+
+  if (!capabilities?.serverTools) return null;
+
+  const clip = await appTool("preview_media", { path: asset.path }, { timeout: 10000 }).catch(() => null);
+  return snapshot === state ? videoBlobUrl(clip?.mimeType, clip?.data) : null;
+}
+
+async function previewUrl(asset) {
+  if (isRecording(asset)) return previewVideoUrl(asset);
+  const cached = cachedPreviewUrl(asset);
+  if (cached || !app.getHostCapabilities()?.serverTools) return cached;
+  const preview = await appTool("preview_media", { path: asset.path }, { timeout: 5000 }).catch(() => null);
+  return !preview || preview.open_local ? null : "data:" + preview.mimeType + ";base64," + preview.data;
 }
 
 function mediaButton(text, assets, address, show) {
   const snapshot = state;
-  const canPreview = app.getHostCapabilities()?.serverTools || assets.some((asset) => state.previews[asset.path]);
+  const capabilities = app.getHostCapabilities();
+  const canPreview = capabilities?.serverTools || assets.some((asset) =>
+    state.previews[asset.path] || (capabilities?.serverResources && isRecording(asset)));
   const caption = assets.length === 1 ? assets[0].title || labels.artifact : text;
   const control = button(canPreview ? text : labels.openInBrowser + " · " + caption, async () => {
     control.disabled = true;
@@ -350,13 +425,19 @@ function artifact(card, asset, thumbnail) {
           openImage(url, title);
           return;
         }
-        const player = addVideo(row, asset, url, title, labels.videoFallback);
+        const player = addVideo(row, asset, url, title, () => {
+          if (!row.isConnected) return;
+          const fallback = button(labels.openInBrowser, () => openLocalReport(address));
+          row.replaceChildren(element("strong", title), fallback, address);
+          message(labels.videoFallback, true);
+          fallback.focus();
+        });
         player.focus();
         player.play().catch(() => {});
       });
     row.append(view, address);
   } else if (isVideo) {
-    addVideo(row, asset, localAssetUrl(asset), title, labels.staleEvidence);
+    addVideo(row, asset, localAssetUrl(asset), title, () => message(labels.staleEvidence, true));
   } else if (isImage) {
     row.append(screenshotButton(localAssetUrl(asset), title));
   } else {
@@ -416,10 +497,12 @@ function qaResults(header, rows, data) {
 
 function closePreviews() {
   document.querySelectorAll("wa-dialog.preview").forEach((dialog) => dialog.remove());
+  restoreInline();
 }
 
 function showError(text) {
   closePreviews();
+  revokeObjectUrls();
   state = undefined;
   main.replaceChildren(element("p", text || labels.unavailable, "status error"));
   main.setAttribute("aria-busy", "false");
@@ -427,7 +510,8 @@ function showError(text) {
 
 function render(value, previews = {}) {
   closePreviews();
-  state = { ...value, previews: previews ?? {} };
+  revokeObjectUrls();
+  state ={ ...value, previews: previews ?? {} };
   const locale = displayLocale(value.data.locale || navigator.language);
   document.documentElement.lang = locale;
   labels = strings[locale];
@@ -488,9 +572,14 @@ async function openApp() {
     }
     render(structuredContent, _meta?.readyCheckPreviews);
   };
-  app.onhostcontextchanged = applyTheme;
+  app.onhostcontextchanged = (context) => {
+    applyTheme(context);
+    syncDisplayMode(context?.displayMode);
+  };
   app.onteardown = async () => {
+    expandedForPreview = false;
     closePreviews();
+    revokeObjectUrls();
     main.replaceChildren();
     return {};
   };

@@ -5,13 +5,29 @@ This applies to test-only changes too. Read the existing project's scripts, conf
 discover the runner, suite type, spec selection, environment and version. Use the project's command and
 already provisioned tools and fixtures. Plan the exact selection before executing it.
 
+For Visible Playwright with an existing spec, use the project's Playwright Test command and keep its
+selected tests, projects and setup dependencies. If the project's version supports
+[`PLAYWRIGHT_DASHBOARD=1`](https://playwright.dev/docs/release-notes), set it for the invocation and
+set `PWTEST_SERVER_REGISTRY` to `<dir>/registered-browsers`, using the same private directory as
+`ready-check.py playwright --qa-live-dir <dir> show`. For CLI debugging or attach, also scope
+`PWTEST_SOCKETS_DIR` and `PWTEST_DAEMON_SESSION_DIR` to `<dir>`. Open the Dashboard in the client's
+browser and verify that the running spec's tab appears. Follow the
+[Dashboard setup and cleanup](playwright.md#visible-playwright-in-the-browser) for that directory.
+For manual authentication, the test needs a checkpoint that waits for the signed-in state or a supported
+[debug pause](https://playwright.dev/agent-cli/commands/test-debugging) at login. Apply the capture checks
+below before launching the runner. Then use the Dashboard handoff in the same test session and let the
+project runner finish its assertions. If the test cannot pause safely, use a project-approved authentication
+fixture. When live streaming
+is unavailable, offer the normal test run with its allowed evidence, or
+[UI Mode](https://playwright.dev/docs/test-ui-mode) on loopback if supported and approved.
+
 - For browser end-to-end or component tests, use browser cases with the **project test runner** as the
   execution method. Playwright Test runs its project config and selected spec files (and `--project` if
   relevant). Cypress runs the selected specs with its configured mode and browser, for example
   `cypress run --e2e --spec <file>` or `cypress run --component --spec <file>` through the project command.
   Set application URL, credentials and browser/project selection using the project's test configuration.
-  Use a test environment with approved data. The separate Playwright MCP/CLI session is needed only for
-  separately planned interactive browser cases.
+  Use a test environment with approved data. Start a separate Playwright MCP/CLI browser session only
+  for separately planned interactive browser cases.
 - Before running, inspect effective recording settings in the config, selected project, environment and
   command. Disclose automatic recording in the QA plan and get approval for the affected scenarios.
   Verify the recording starts after authentication. Check the tests, setup projects, fixtures, hooks and
@@ -24,6 +40,13 @@ already provisioned tools and fixtures. Plan the exact selection before executin
   and use the journal and other allowed evidence. A required case without an authorized execution method
   or required evidence is `INCOMPLETE`. Uploads require separate authorization, including Cypress Cloud's
   `--record` mode.
+- For Playwright Test, check the effective `use.trace`, command-line flags and any custom tracing in tests,
+  fixtures or hooks before approving the plan. Trace archives can contain submitted credentials in request
+  bodies even when video is off. For runs that enter credentials, including manual Dashboard login and
+  login on retries, disable Playwright Test tracing with `--trace off` or a verified run-local equivalent,
+  and verify that no custom trace covers authentication. Preserve the selected tests, their setup and
+  environment. If tracing cannot exclude credential entry, use a project-approved preauthenticated fixture
+  with no later sign-in during capture, or mark the affected required case `INCOMPLETE`.
 - Before launching a runner that clears or overwrites its artifacts, give each invocation a fresh, empty
   output location outside the worktree or in a Git-ignored directory. Keep runner output separate from the
   task report and stored evidence. Playwright Test clears `outputDir` at startup. Use `--output <run-dir>`
@@ -43,7 +66,7 @@ already provisioned tools and fixtures. Plan the exact selection before executin
   job and tested revision.
 - Confirm that the intended test names and project(s) actually ran. Record outcomes, skipped or
   filtered cases, retries and any flaky results. A zero exit code with zero matching tests leaves the
-  planned case unverified. Capture a redacted runner summary and relevant traces, screenshots or logs.
+  planned case unverified. Capture a redacted runner summary and eligible traces, screenshots or logs.
   Associate each retained clip with the test and attempt it shows, even if the final run passed. Copy the
   clips selected by the [retention policy](evidence.md#create-a-replay-and-hand-off-from-qa) into their prepared
   evidence directories before a separate rerun, cleanup, or chat handoff. Link only those copies or their

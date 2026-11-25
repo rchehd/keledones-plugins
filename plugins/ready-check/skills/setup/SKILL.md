@@ -23,7 +23,7 @@ For a request specifically to connect PhpStorm MCP, go directly to the [connecti
 For a request to show Ready Check settings, run `ready-check.py config get --project <repo>` and show the
 requested values in chat. For a change, use `config set <key> <value> --project <repo>` and confirm the saved
 value. Use the [PhpStorm connection flow](references/phpstorm.md) to connect the IDE. A settings-only request
-ends after the settings response. Defer profile detection, installation and the report-language question.
+ends after the settings response. Defer profile detection and installation.
 
 Run `ready-check.py profiles --project <repo>` to get the detected or configured profiles, application roots
 relative to the repository, runners and detection evidence. Keep independent matches, including several

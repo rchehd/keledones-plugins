@@ -21,6 +21,8 @@ class SettingsTest(RepoTest):
         settings.store("browser", "background", self.repo)
         self.assertEqual(settings.load(None)["browser"], "visible")
         self.assertEqual(settings.load(self.repo)["browser"], "background")
+        settings.store("browser", "visible", self.repo)
+        self.assertEqual(settings.load(self.repo)["browser"], "visible")
         self.assertEqual(self.git("status", "--short").strip(), "")
 
     def test_corrupt_settings_fall_back_to_defaults(self):

@@ -178,12 +178,12 @@ def first_run(top, client, values, status):
 
 
 def language_note(values, client):
-    if "artifactLanguage" in settings.read(settings.user_path()):
+    if values["artifactLanguage"] != "chat":
         return ""
 
     config = shell_command([sys.executable, PLUGIN / "scripts/ready-check.py", "config", "set", "artifactLanguage"], client)
-    return (f"In the same question add one line: Ready Check writes its reports and other files in {values['artifactLanguage']}; "
-            f"another language can be chosen. If the user names one, run `{config} \"<language in English>\"`.\n\n")
+    return ("Mention that Ready Check reports follow the chat language by default. "
+            f"If the user asks to save a fixed language, run `{config} \"<language in English>\"`.\n\n")
 
 
 def session_context(client, payload, top, include_setup=True):
@@ -200,9 +200,12 @@ def session_context(client, payload, top, include_setup=True):
     comment_option = (" " + quote("--client-template=" + comment_template, client)
                       if settings.valid("taskCommentTemplate", comment_template) else "")
     offers_off = shell_command([*entry, "offers", "off", "--client", client, "--session", session_id(payload)], client)
+    language = values["artifactLanguage"]
+    if language == "chat":
+        language = "the language of the current chat"
     rule = template("session-rule.md", check=CHECK[client], rules=shell_command([*entry, "rules", "add"], client),
                     template_command=shell_command([*entry, "template"], client), comment_option=comment_option,
-                    language=values["artifactLanguage"], offer=OFFER.as_posix(), offers_off=offers_off)
+                    language=language, offer=OFFER.as_posix(), offers_off=offers_off)
     tasks.prune(top)
 
     if "start" not in hook_state.load(client, session_id(payload)):

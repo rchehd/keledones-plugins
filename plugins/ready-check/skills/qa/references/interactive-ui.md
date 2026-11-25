@@ -14,7 +14,7 @@ file paths as recorded.
 Copy each scenario's `kind` and [`category`](test-design.md#coverage-categories) from its approved plan by ID.
 The viewer translates these labels and shows them beside the title, for example `[Browser; User flow]`.
 If a recorded plan lacks either field, omit that field.
-The report keeps its configured file language. When reopening an existing round, refresh the viewer input
+The report uses its effective artifact language. When reopening an existing round, refresh the viewer input
 if its displayed text uses mixed languages or a different language from the current viewer locale.
 
 This example uses English:
@@ -51,6 +51,8 @@ Available screenshot previews appear as clickable thumbnails in the widget, up t
 appears together with its captions. Each thumbnail opens a larger view. **Compare screenshots** remains
 available on demand when neither preview was included. A missing preview can load on demand when the host
 supports it. Otherwise the widget offers the local HTML, which shows the full pair when both files are available.
+The screenshot viewer requests full-screen display when the host offers it and returns to the inline view
+on close. Hosts that stay inline show the enlargement in the card's dialog.
 For a retest, select the original failed evidence explicitly in the current round's view and pair it with the
 fresh evidence. Keep the original files in their original attempt directories. Each clip has its own playback
 controls and chapters.
@@ -63,15 +65,17 @@ Prepare and open the view:
 
 Call the packaged `ready-ui` server's `show_view` with the repository path, task ID and `view: qa-results`.
 A compatible host shows the result card, screenshot enlargement and a play button for on-demand playback of
-supported clips up to 4 MB. The opening response includes the local report URL when the server can bind a local port.
+supported clips up to 4 MB. The player tries an MCP resource when the host advertises `serverResources`.
+It can also use the media tool through `serverTools`, or open the full local report when the clip cannot
+play in the widget. The opening response includes the local report URL when the server can bind a local port.
 Small screenshots are also sent in bounded app metadata, so compatible cards can show previews when the
-host cannot proxy tool calls. The card uses its local link for **Open local report** and for media it cannot
-load inline. On click, it requests a visible tab in the client's browser when the host supports sending
-requests from the widget. It can also ask the host to open the URL and keeps it available beside the action.
+host cannot proxy tool calls. **Open local report** and the media fallback use the address from the opening
+response when available and request navigation through the host's `ui/open-link` capability. When direct
+navigation is unavailable or declined, the widget shows the address next to the clicked action.
 
-When the card or a user action asks to open the local QA report, use the current client's browser tool to
-open the printed URL in a visible tab that can reach Ready Check's loopback server. This navigation opens
-the saved report without rerunning QA. If the client cannot reach the local URL, give it for opening in the
+When the user explicitly asks in chat to open the local QA report, use the current client's built-in browser
+tool when available and open the printed URL in a visible tab. This navigation opens the saved report
+without rerunning QA. If the client cannot reach the local URL, give it for opening in the
 browser on the machine where Ready Check is running. If `show_view` is unavailable or could not start the
 local server, start the HTML view in a background command and use the printed URL:
 
@@ -82,6 +86,10 @@ local server, start the HTML view in a background command and use the printed UR
 The URL is local and time limited. Include the task report path so the user can find the evidence after it
 expires. Keep the status and decisive evidence reference in the chat summary even when the viewer opens.
 When the task report moves to the next round, prepare the current evidence before opening a fresh viewer.
+
+When verifying changes to the viewer, open the local report in the client's built-in browser. Confirm that
+screenshots are visible and enlarge when clicked, and that an approved video plays and can seek in the page.
+Verify that widget navigation uses a direct link or presents the copyable address when the host declines.
 
 Handle retest, false-positive investigation and comment drafts in chat. Retest starts a new QA round under
 the existing recheck rules. Investigate the original round before reclassifying a result. Prepare a comment

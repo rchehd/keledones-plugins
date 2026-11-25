@@ -4,12 +4,14 @@ import secrets
 import sys
 from pathlib import Path
 from time import monotonic
+from urllib.parse import unquote
 
 from ui import TTL, emit, html, start
 from ui_state import ASSET_TYPES, View
 
 
 URI = "ui://ready-check/view.html"
+VIDEO_RESOURCE_PREFIX = "ready-check-video://evidence/"
 MIME = "text/html;profile=mcp-app"
 EXTENSION = "io.modelcontextprotocol/ui"
 INLINE_MEDIA_LIMIT = 4_000_000
@@ -38,6 +40,15 @@ def read_bounded(path, limit):
 
 def inline_media(mime, data):
     return dict(mimeType=mime, data=base64.b64encode(data).decode("ascii"))
+
+
+def media_preview(session, name, mime_prefix):
+    path, mime = session["view"].artifact(name, session["revision"])
+    if mime.startswith(mime_prefix):
+        data = read_bounded(path, INLINE_MEDIA_LIMIT)
+        if data is not None:
+            return inline_media(mime, data)
+    return None
 
 
 def screenshot_previews(view, current):
@@ -115,24 +126,37 @@ class ReadyUI:
             session["url"], _, session["close"] = start(session["view"], revision=session["revision"])
         return session["url"]
 
+    def view_session(self, handle):
+        session = self.views.get(handle)
+        if not self.supports_ui or not session or session["expires"] <= monotonic():
+            raise ValueError("Open the current Ready Check view to continue")
+        return session
+
+    def resource(self, uri):
+        if uri == URI:
+            return dict(contents=[dict(uri=URI, mimeType=MIME, text=html())])
+        if not isinstance(uri, str) or not uri.startswith(VIDEO_RESOURCE_PREFIX):
+            raise ValueError("Unsupported MCP resource")
+        handle, separator, name = uri[len(VIDEO_RESOURCE_PREFIX):].partition("/")
+        if not separator or not name:
+            raise ValueError("A Ready Check recording URI is required")
+        preview = media_preview(self.view_session(handle), unquote(name, errors="strict"), "video/")
+        if preview is None:
+            raise ValueError("Open the local report to view this evidence.")
+        return dict(contents=[dict(uri=uri, mimeType=preview["mimeType"], blob=preview["data"])])
+
     def call(self, name, args):
         if name == "show_view":
             return self.show(args)
-        session = self.views.get(args.get("handle"))
-        if not self.supports_ui or not session or session["expires"] <= monotonic():
-            raise ValueError("Open the current Ready Check view to continue")
-        view = session["view"]
+        session = self.view_session(args.get("handle"))
         if name == "local_view":
-            view.current(session["revision"], require_current_round=True)
+            session["view"].current(session["revision"], require_current_round=True)
             return result({"url": self.local_url(session)})
         if name == "preview_media":
-            path, mime = view.artifact(args["path"], session["revision"])
-            if not mime.startswith(("image/", "video/")):
+            preview = media_preview(session, args["path"], ("image/", "video/"))
+            if preview is None:
                 return result({"open_local": True}, "Open the local report to view this evidence.")
-            data = read_bounded(path, INLINE_MEDIA_LIMIT)
-            if data is None:
-                return result({"open_local": True}, "Open the local report to view this evidence.")
-            return result(inline_media(mime, data))
+            return result(preview)
         raise ValueError("Unknown Ready Check UI tool")
 
     def handle(self, method, params):
@@ -153,8 +177,11 @@ class ReadyUI:
                 return dict(isError=True, content=[dict(type="text", text=str(error))])
         if method == "resources/list":
             return dict(resources=[dict(uri=URI, name="Ready Check", mimeType=MIME)] if self.supports_ui else [])
-        if method == "resources/read" and self.supports_ui and params.get("uri") == URI:
-            return dict(contents=[dict(uri=URI, mimeType=MIME, text=html())])
+        if method == "resources/templates/list":
+            template = dict(uriTemplate=VIDEO_RESOURCE_PREFIX + "{handle}/{path}", name="Ready Check recording")
+            return dict(resourceTemplates=[template] if self.supports_ui else [])
+        if method == "resources/read" and self.supports_ui:
+            return self.resource(params.get("uri"))
         raise ValueError("Unsupported MCP request")
 
 

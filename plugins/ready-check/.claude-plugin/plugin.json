@@ -1,7 +1,7 @@
 {
   "name": "ready",
   "displayName": "Ready Check · Review & QA",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Check task readiness against requirements, static checks, and browser QA.",
   "icon": "./assets/logo.png",
   "author": {

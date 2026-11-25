@@ -5,9 +5,10 @@ description: Check whether a task is ready to push through profile-based static 
 
 # Ready Check
 
-Verify a task in the current harness. Respond in the user's language; write the report in the Ready Check file
-language from the session context (English unless the user chose another); write the commit message and
-PR/MR title and body in English. One invocation continues through preparation, statics, review, QA, and the final result, pausing
+Verify a task in the current harness. Respond in the user's language. Use the language requested for this
+task, otherwise the configured `artifactLanguage` for the report. The default `chat` follows the current
+conversation. Write the commit message and PR/MR title and body in English. One invocation continues through
+preparation, statics, review, QA, and the final result, pausing
 for missing answers, QA-plan approval or fixes when needed. Never edit, copy or patch the Ready Check plugin,
 its scripts or its installed copy, not even in a temporary folder, to work around an error. When a Ready Check
 command fails, show the command and its error, mark the affected stage INCOMPLETE and offer to report the bug
@@ -34,6 +35,8 @@ behavior by itself. A ticket ID without accessible requirements is insufficient.
 or another service unless the user asks for that integration.
 
 Before pausing for any answer, save the partial report as described in step 9, leaving unknown facts unresolved.
+Follow [decisions during Ready Check](references/decision-questions.md) to show the context and use the
+current client's native question tool.
 
 For a known task, reuse the provided requirements and continue without asking for the same information again.
 Ask concrete questions whenever missing information changes a criterion or the planned verification. Offer
@@ -193,14 +196,14 @@ When QA is selected and all selected preceding gates pass, follow the packaged [
 Pass the report, current requirements revision, complete RC list, any selected review matrix, affected
 profile and application pairs, and their static JSON or partial scope evidence. Build requirements and scenarios from the session's
 task history and human answers, distinguishing feature acceptance from bug reproduction and regression
-coverage. Follow the QA skill and show the plan in standalone Markdown before the
-short chat approval prompt. Wait for explicit approval or clarification. General validation consent does not
-approve an unseen QA plan. Persist plan revision,
+coverage. Follow the QA skill and show the plan in standalone Markdown before opening the
+[native approval question](references/decision-questions.md). Wait for explicit approval or clarification.
+General validation consent does not approve an unseen QA plan. Persist plan revision,
 approved scenario IDs and the human decision; a material plan change needs renewed approval before its cases run.
 The skill reads applicable QA guidance per scenario and checks the relevant runtime. When tests are a
 deliverable, include the affected cases in the plan and run them in the
-[project test runner](../qa/references/project-tests.md). For Playwright browser cases, use visible MCP or
-background CLI mode from the `browser` setting or the user's answer. The QA plan can also specify another
+[project test runner](../qa/references/project-tests.md). For interactive web scenarios, use the
+[browser mode](../qa/references/playwright.md#choose-the-mode) from the setting or the user's answer. The QA plan can also specify another
 available UI tool or a user-guided procedure for browser, mobile or desktop cases. API, CLI and CI scenarios use the
 project's tools, test environment and current provider evidence. Include recording scope and retention in QA
 plan approval. Follow the [QA evidence handoff](../qa/references/evidence.md#create-a-replay-and-hand-off-from-qa)
@@ -238,7 +241,8 @@ make the fix offer below.
 
 ## Fix offer
 
-Show the current findings with IDs, file and line. In chat, let the user select fixes or give a reason for a
+Post the findings covered by the offer in a standalone chat message with their IDs and evidence, following
+[decisions during Ready Check](references/decision-questions.md). Then let the user select fixes or give a reason for a
 false positive, accepted risk or out-of-scope finding. Record those choices in Decisions and re-evaluate the
 evidence before changing any gate. Save confirmed decisions for Reflect
 using [the decision command below](#record-a-round-and-its-decisions). Immediately before editing, verify that the
@@ -246,7 +250,8 @@ using [the decision command below](#record-a-round-and-its-decisions). Immediate
 still current. Refresh findings and seek a new decision if either changed.
 
 When a stage ends with confirmed blocking findings (static `FAIL`, review `FAIL`, or QA `FAIL`), save the
-report, list the finding IDs with a one-line cause each, and ask once in the user's language how to fix them:
+report and post those findings before making the offer. In the next step, call the native question tool
+with the finding IDs and ask once in the user's language how to proceed:
 
 1. **Fix in this session:** the agent fixes them here.
 2. **Fix with a subagent:** offered only when the client can start subagents (for example Claude Code's agent
