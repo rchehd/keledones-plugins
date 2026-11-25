@@ -40,7 +40,8 @@ needed by a selected verification still do. QA also checks current running code/
 
 When required statics are `INCOMPLETE` and the cause remains after any applicable recovery, show the reason
 and evidence. Offer to rerun statics after fixing the prerequisite, continue with the remaining selected
-stages as a partial check, or stop. Continuing requires the user's explicit choice and applies to incomplete
+stages as a partial check, or stop, using the [native question flow](decision-questions.md). Continuing
+requires the user's explicit choice and applies to incomplete
 statics. A confirmed blocking finding still counts toward `BLOCKED`.
 
 Keep the initial selection and static attempt (`INCOMPLETE`, JSON and log) in the same report. Record the

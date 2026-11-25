@@ -8,6 +8,7 @@ from http.client import HTTPConnection
 from pathlib import Path
 from threading import Thread
 from unittest.mock import patch
+from urllib.parse import quote
 
 
 PLUGIN = Path(__file__).resolve().parent.parent
@@ -402,14 +403,15 @@ class InteractiveViewTest(unittest.TestCase):
         self.addCleanup(child.wait, 5)
         self.addCleanup(child.terminate)
 
-        def call(method, params=None):
+        def call(method, params=None, *, error=False):
             child.stdin.write(json.dumps(dict(jsonrpc="2.0", id=1, method=method, params=params or {})) + "\n")
             child.stdin.flush()
-            return json.loads(child.stdout.readline())["result"]
+            return json.loads(child.stdout.readline())["error" if error else "result"]
 
         capabilities = {"extensions": {"io.modelcontextprotocol/ui": {"mimeTypes": ["text/html;profile=mcp-app"]}}}
         call("initialize", dict(protocolVersion="2025-11-25", capabilities={}))
         self.assertNotIn("_meta", call("tools/list")["tools"][0])
+        self.assertEqual(call("resources/templates/list")["resourceTemplates"], [])
         call("initialize", dict(protocolVersion="2025-11-25", capabilities=capabilities))
         show, media, fallback_tool = call("tools/list")["tools"]
         self.assertEqual([show["name"], media["name"], fallback_tool["name"]], ["show_view", "preview_media", "local_view"])
@@ -467,6 +469,20 @@ class InteractiveViewTest(unittest.TestCase):
         video = call("tools/call", clip)["structuredContent"]
         self.assertEqual(video["mimeType"], "video/webm")
         self.assertEqual(base64.b64decode(video["data"]), b"WEBM")
+        template, = call("resources/templates/list")["resourceTemplates"]
+
+        def read_video(path, view_handle=handle, *, error=False):
+            resource_uri = template["uriTemplate"].format(handle=view_handle, path=quote(path, safe=""))
+            return call("resources/read", dict(uri=resource_uri), error=error)
+
+        resource, = read_video("evidence/clip.webm")["contents"]
+        self.assertEqual(resource["mimeType"], "video/webm")
+        self.assertEqual(base64.b64decode(resource["blob"]), b"WEBM")
+        self.assertNotIn(handle, json.dumps(call("resources/list")))
+        self.assertEqual(read_video("evidence/clip.webm", "unknown", error=True)["code"], -32602)
+        for name in ("evidence/hidden.webm", "../clip.webm", "evidence/image.png"):
+            with self.subTest(resource=name):
+                self.assertEqual(read_video(name, error=True)["code"], -32602)
         for name, expected in (("after.png", b"AFTER PNG"), ("after.webm", b"AFTER WEBM")):
             asset = call("tools/call", dict(name="preview_media", arguments=dict(handle=handle, path=f"evidence/{name}")))
             self.assertEqual(base64.b64decode(asset["structuredContent"]["data"]), expected)
@@ -475,11 +491,13 @@ class InteractiveViewTest(unittest.TestCase):
         with (evidence / "clip.webm").open("ab") as recording:
             recording.truncate(4_000_001)
         self.assertEqual(call("tools/call", clip)["structuredContent"], dict(open_local=True))
+        self.assertIn("local report", read_video("evidence/clip.webm", error=True)["message"])
         fallback = dict(name="local_view", arguments=dict(handle=handle))
         if gallery["url"] is not None:
             self.assertRegex(gallery["url"], r"^http://127\.0\.0\.1:\d+/#")
             self.assertEqual(call("tools/call", fallback)["structuredContent"]["url"], gallery["url"])
         self.report_revisions(round_number=2)
+        self.assertIn("Round changed", read_video("evidence/after.webm", error=True)["message"])
         for request in (dict(name="show_view", arguments=args), preview, fallback):
             stale = call("tools/call", request)
             self.assertTrue(stale["isError"])
@@ -488,6 +506,9 @@ class InteractiveViewTest(unittest.TestCase):
         fresh = call("tools/call", dict(name="show_view", arguments=args))["structuredContent"]
         self.assertEqual(fresh["data"]["round"], 2)
         self.assertEqual(fresh["data"]["scenarios"][0]["artifacts"], paths)
+        self.assertIn("out of date", read_video("evidence/after.webm", error=True)["message"])
+        current_clip, = read_video("evidence/after.webm", fresh["handle"])["contents"]
+        self.assertEqual(base64.b64decode(current_clip["blob"]), b"AFTER WEBM")
         with self.assertRaisesRegex(ValueError, "Round changed"):
             self.prepare("qa-results", dict(round=1, scenarios=[dict(id="QA-002")]))
         current_preview = dict(name="preview_media", arguments=dict(handle=fresh["handle"], path="evidence/after.png"))
@@ -500,8 +521,9 @@ class InteractiveViewTest(unittest.TestCase):
     def test_loopback_requires_token_identity_and_serves_a_media_range(self):
         evidence = self.directory / "evidence"
         evidence.mkdir()
+        (evidence / "screen.png").write_bytes(b"PNG")
         (evidence / "play.webm").write_bytes(b"0123456789")
-        rows = [dict(id="QA-001", artifacts=[dict(path="evidence/play.webm")])]
+        rows = [dict(id="QA-001", artifacts=[dict(path="evidence/screen.png"), dict(path="evidence/play.webm")])]
         view, snapshot = self.prepare("qa-results", dict(round=1, scenarios=rows))
         try:
             server = LocalView(view)
@@ -521,12 +543,24 @@ class InteractiveViewTest(unittest.TestCase):
         self.assertEqual(get("/state", {"Host": "unexpected.test"})[0], 403)
         self.assertEqual(get("/state")[0], 404)
         self.assertEqual(get("/state", {"Authorization": "Bearer " + server.token})[0], 200)
+        connection.request("GET", "/")
+        response = connection.getresponse()
+        self.assertEqual(response.status, 200)
+        self.assertIn("media-src 'self'", response.getheader("Content-Security-Policy"))
+        self.assertIn(b'id="ready-check"', response.read())
         connection.request("POST", "/decision", body=b"{}", headers={"Authorization": "Bearer " + server.token})
         response = connection.getresponse()
         self.assertEqual(response.status, 501)
         response.read()
-        url = f"/asset?name=evidence/play.webm&access={server.token}&revision={snapshot['revision']}"
-        self.assertEqual(get(url, {"Range": "bytes=2-5"}), (206, b"2345"))
+        access = f"&access={server.token}&revision={snapshot['revision']}"
+        self.assertEqual(get("/asset?name=evidence/screen.png" + access), (200, b"PNG"))
+        url = "/asset?name=evidence/play.webm" + access
+        connection.request("GET", url, headers={"Range": "bytes=2-5"})
+        response = connection.getresponse()
+        self.assertEqual(response.status, 206)
+        self.assertEqual(response.getheader("Content-Type"), "video/webm")
+        self.assertEqual(response.getheader("Content-Range"), "bytes 2-5/10")
+        self.assertEqual(response.read(), b"2345")
         self.report_revisions(round_number=2)
         for route, headers in (("/state", {"Authorization": "Bearer " + server.token}), (url, {})):
             status, body = get(route, headers)

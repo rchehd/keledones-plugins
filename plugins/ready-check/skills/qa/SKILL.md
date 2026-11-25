@@ -7,7 +7,9 @@ description: Plan risk-based QA for browser, native mobile, desktop, API, CLI an
 
 Continue `check` in the current chat with its report, complete RC list, any selected review matrix,
 applicable profile and application pairs, selected checks, and their static JSON or partial scope evidence. Talk in the user's
-language; write the plan and results into the report in the Ready Check file language. Verify behavior through
+language; write the plan and results into the report in its effective language. For a new report, use the
+language requested for the task, a fixed `artifactLanguage` if configured, or the chat language by default.
+Verify behavior through
 the applicable entry points and compare the observed behavior with the expected result. Techniques, oracles
 and investigation steps are in [test design](references/test-design.md).
 Never edit, copy or patch the Ready Check plugin, its scripts or its installed copy, not even in a temporary
@@ -16,7 +18,9 @@ affected stage INCOMPLETE and offer to report the bug from the plugin's `templat
 
 ## Talking to the user
 
-Stop and wait for the user only at these five points; otherwise report briefly and continue:
+Before asking a question, show the relevant context and follow the
+[native question flow](../check/references/decision-questions.md). Stop and wait for the user only at these
+five points; otherwise report briefly and continue:
 
 1. **Unclear task:** before the plan, ask what changes the expected result, one question at a time, with options.
 2. **Plan approval:** show the plan and wait for approval or corrections.
@@ -91,7 +95,7 @@ Record the scenario's primary `category` when one of the [coverage categories](r
 describes its expected outcome. Carry it forward by scenario ID when recording results.
 Order by risk. Include test-data actions and identify the command, request or provider evidence needed for
 technical scenarios. For browser scenarios add the execution method, browser and applicable accessibility
-checks. For a Playwright interactive case add the visible or background mode and an optional exploratory
+checks. For an interactive browser case record its execution mode and any optional exploratory
 charter with its action budget. When the target can be exercised with another browser or device tool already
 available in this client, or a user-guided session, name that method or an allowed fallback in the plan.
 For desktop cases identify the application build, OS, window and available interaction method.
@@ -100,8 +104,20 @@ Name the evidence that will confirm each expected result. Propose video for elig
 or interaction matters, for a failure that is hard to reproduce, or for a requested demo. Specify the IDs,
 capture method, and whether to keep video on failure only, as planned evidence on any outcome, or as required
 proof. Approved capture starts on the first attempt. Record only with explicit approval for those IDs.
-Check automatic capture and uploads in the runner settings before launching tests. Use
+Check automatic capture, including Playwright Test tracing, and uploads in the runner settings before
+presenting the plan. Use
 [QA evidence](references/evidence.md) for retention and the local chat handoff.
+
+Resolve required blockers and choices that change the plan before asking for approval.
+For interactive web scenarios, when the browser mode is `ask` and no prior choice applies, use the
+native question tool to offer **Background Playwright** and **Visible Playwright**. Explain the difference
+and any recording limitation before finalizing the plan.
+For changed pages and components, identify the [axe execution method](references/playwright.md#accessibility-axe)
+before asking for plan approval; axe runs in the selected Playwright mode. Record required
+accessibility coverage as `INCOMPLETE` when no authorized execution method is available.
+For an existing web Playwright Test spec, reuse an explicit Visible Playwright choice for live viewing.
+When the mode is `ask` and only project specs are planned, offer a normal run or live viewing if the
+project's Playwright version supports it. In either case run the project spec with its own runner.
 
 Save the current values as `QA plan revision: <number>` and `Requirements revision: <number>` in the
 report, along with scenario IDs and `approval: PENDING`. Keep both revision keys in English. Send a
@@ -110,29 +126,24 @@ its own list item with the action, expected result, and planned evidence. Includ
 recording scope where applicable. For a later round, mark each case to rerun or cite the prior round whose
 evidence carries over.
 
-After the message, open a short native question asking “Approve the QA plan for round N, revision R?” Offer “Approve”
-and “Suggest changes.” If a form is unavailable, ask the same question in chat. When video is proposed, get
-an explicit yes or no for the listed recordings in the same approval step. Approving the plan alone approves
-execution. Wait for approval of every required scenario. If the plan changes, update affected RCs, increment
+After posting the plan, call the [native question tool](../check/references/decision-questions.md) in a
+separate step. Ask “Approve the QA plan for round N, revision R?” with “Approve” and “Suggest changes.”
+When video is proposed, get an explicit yes or no for the listed recordings in the same approval step.
+Approving the plan alone approves execution. Wait for approval of every required scenario. If the plan changes, update affected RCs, increment
 the revision, show the revised plan in Markdown and obtain approval before running it. A code-only fix can
 reuse approval of an unchanged plan. Read-only environment discovery may precede approval. For whole-stage
 `N/A`, document why no scenario applies and cite current evidence covering every acceptance condition.
 
 ## 5. Browser preparation
 
-Run this step only when the selected plan has interactive browser scenarios that use Ready Check's
-Playwright tools. For project test runner cases, use the project's configured browser, fixtures and
+Run this step only for interactive web scenarios. For project test runner cases, use the project's configured browser, fixtures and
 environment as described in the [project test runner guidance](references/project-tests.md).
 
-Follow the [Playwright guidance](references/playwright.md). **Visible** mode uses the bundled `ready-playwright`
-MCP server (headed; the user can watch and log in); **background** uses Playwright CLI headless; where the MCP is
-unavailable, visible mode runs the CLI headed. Read `scripts/ready-check.py config get browser --project <app>`:
-`visible` or `background` is used as is; `ask` means ask with the plan and reuse the answer for this check. Save a
-lasting preference the user states with `config set browser ...`. Never switch mode silently to hide a launch
-failure. Without a graphical session, say so and offer background. Confirm an actual launch and navigation to the
-site; a version or tool list is not readiness. If the selected mode is unusable, continue with an already
-approved fallback that can observe the required results. Otherwise report `INCOMPLETE` and return to `check`,
-which handles installation.
+Follow the [browser execution guide](references/playwright.md). Read
+`scripts/ready-check.py config get browser --project <app>` and reuse the mode approved in section 4.
+Save a lasting preference the user states with `config set browser ...`. Verify actual navigation and
+the agreed evidence tools. If the selected mode is unusable, show the specific constraint and ask for
+a fallback when none was approved. Record `INCOMPLETE` if the required result cannot be observed.
 
 ## 6. Execute
 
@@ -153,10 +164,12 @@ or a read-only backend view; a confirmation message alone does not prove a write
 `<b>x</b>` and `"><img src=x>` and confirm they are shown as text, not rendered. Keep mocks explicit; they prove
 only the simulated case.
 
-Log in, in this order: the tested application's profile's passwordless method; in visible mode, the user logging in in the open
-window; test accounts listed in `.ai/ready-check/qa-accounts.json` for the local site. Never ask for or type real
-or production credentials. Use isolated sessions per role and confirm the actor between cases. Start any
-approved recording after login and end it before cleanup or changing roles.
+Log in using the tested application's profile's passwordless method, then manual user sign-in when the
+selected browser supports it, then the local site's approved test accounts in `.ai/ready-check/qa-accounts.json`.
+For manual sign-in, pause automation and let the user authenticate directly in the same browser session.
+Never ask the user to share real or production credentials and never enter them on their behalf.
+Resume after control is returned and verify the actor. Use isolated sessions per role. Start approved recording
+after login and end it before cleanup or changing roles. Keep credentials and login footage out of the evidence.
 
 For every executed scenario, append meaningful actions and observations as they happen using
 [`qa-record`](references/evidence.md). Save the relevant scripts, screenshots, snapshots, log excerpts and
@@ -172,7 +185,7 @@ specific affected risk.
 After the required scenarios, run the approved charter within its action budget, varying along SFDPOT where it
 fits the change. Record what was covered, bugs, issues and questions.
 
-Run axe on each changed page or component (recipes in the Playwright guidance) and check keyboard access, focus
+Run axe on each changed page or component using the agreed method from the plan and check keyboard access, focus
 order and visible focus, labels and readable errors by hand. A serious or critical axe violation in a changed
 element, or any violation that breaks an RC, is a finding; others are recommendations. Automated checks find only
 part of accessibility problems; say so in the report.

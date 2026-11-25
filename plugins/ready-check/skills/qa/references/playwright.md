@@ -1,4 +1,4 @@
-# Playwright modes
+# Interactive web browser modes
 
 Use these recipes only after the Ready Check gates and local environment are resolved. Commands below
 are examples; replace paths, URL, session name, and element references with observed values. Follow the
@@ -6,16 +6,48 @@ current harness's command permissions and any required shell wrapper. No separat
 
 ## Choose the mode
 
-`visible` uses the bundled `ready-playwright` MCP server (headed); `background` uses the CLI (headless). Read the
-choice from the conversation or `scripts/ready-check.py config get browser --project <app>`; with `ask`, offer
-both when approving the QA plan. Where MCP is unavailable, visible mode runs the CLI headed (`headless: false`).
-Headed mode needs a graphical session on the machine running the browser; a remote server's window is not
-visible on the user's computer. Confirm a real launch before claiming visibility.
+Apply the setting by scenario kind. A Drupal, TypeScript or other application can need browser and API
+checks in one round. The two browser modes apply to interactive browser cases, including web apps
+with mobile viewports. An existing Playwright Test spec can use Visible Playwright for live viewing
+while its project runner executes it. Use the case's own runner for native apps, API, CLI and CI.
 
-The plugin ships the MCP server; the client starts it when the plugin is enabled. Its command runs
-`node <plugin>/scripts/mcp.mjs`, which starts `scripts/ready-check.py mcp` with the managed browser, an isolated
-context and artifacts under `.ai/ready-check/tmp/playwright-mcp/`. If the tools are not installed yet, the server
-exits with a message naming the install command. QA never edits client configuration.
+| Setting | Execution |
+| --- | --- |
+| `background` | Playwright CLI headless. Collect evidence in the named session. |
+| `visible` | Playwright CLI headless with the [live Dashboard](#visible-playwright-in-the-browser). When the Dashboard is unreachable, offer a separate headed Playwright window as a fallback. |
+
+Read the choice from the conversation or `scripts/ready-check.py config get browser --project <app>`.
+For `ask`, resolve the mode with the native question tool before presenting the plan. Confirm a real launch
+before claiming visibility. A separate headed Playwright window requires a graphical session on the browser host.
+
+## Visible Playwright in the browser
+
+Use the managed CLI and its local Dashboard. Create an empty private temporary session directory with a
+short absolute path for this run, for example with `mktemp -d`. On macOS and Linux the wrapper rejects a
+directory that other users can access. Pass it as the first option to every managed Playwright command, including
+recording and cleanup. Start the test session headless. Example commands from the task report directory:
+
+```sh
+python3 <plugin>/scripts/ready-check.py playwright --qa-live-dir <dir> -s=<session> open <url> --config=<config>
+python3 <plugin>/scripts/ready-check.py playwright --qa-live-dir <dir> show
+python3 <plugin>/scripts/ready-check.py playwright --qa-live-dir <dir> -s=<session> snapshot
+```
+
+Run `show` in a separate background terminal process. Open its printed loopback URL in a visible built-in
+browser tab on the same host, when available. Select the named session's browser tab in the Dashboard and
+confirm the user can see it. Keep the Dashboard local and use the private registry to limit it to this run's sessions.
+
+For login, pause Playwright actions and ask the user in chat to sign in through the Dashboard. Have them select
+**Enable interactive mode** in the Dashboard toolbar, then enter credentials directly in the viewport.
+The login happens in the actual Playwright tab.
+The user selects **Disable interactive mode** and confirms when ready. Verify the signed-in role, then start
+any approved recording and continue in the same session. If control is unavailable, offer a separate headed
+window or an approved test login.
+
+Use the named CLI session for screenshots, checks and recordings. At the end close this run's named sessions,
+run `playwright --qa-live-dir <dir> show --kill` to stop its Dashboard, and remove the temporary directory.
+
+For an existing Playwright Test suite, use the [project test runner guidance](project-tests.md).
 
 ## Locators and waiting
 
@@ -56,8 +88,8 @@ on every command for that role. Use temporary browser profiles rather than attac
 
 Create a run-local JSON config such as the following, with a real absolute evidence path and a browser
 already installed for this CLI. Select the browser according to project requirements and availability;
-Firefox, a persistent profile, and ignoring TLS errors are not universal defaults. Set `headless: false`
-when the agreed CLI run should be visible; the example below uses background mode.
+Firefox, a persistent profile, and ignoring TLS errors are not universal defaults. Keep `headless: true`
+for the Dashboard or background mode. Set `headless: false` for a separately approved headed window.
 
 ```json
 {
@@ -105,7 +137,11 @@ CLI reference: [Microsoft Playwright CLI](https://github.com/microsoft/playwrigh
 
 ## Official Playwright MCP
 
-When MCP is selected (or an authorized fallback), discover the official Microsoft Playwright MCP tools
+The client starts the bundled server when the plugin is enabled. It runs
+`node <plugin>/scripts/mcp.mjs`, which starts `scripts/ready-check.py mcp` with the managed browser,
+an isolated context and artifacts under `.ai/ready-check/tmp/playwright-mcp/`.
+
+When a separate headed MCP window is selected as the fallback, discover the official Microsoft Playwright MCP tools
 connected to the current harness, normally the bundled `ready-playwright`. Record the
 connection identity, browser mode and any fallback reason. If the connection's origin or configuration is
 unclear, resolve it before use. Do not substitute an unrelated browser integration, start another harness,

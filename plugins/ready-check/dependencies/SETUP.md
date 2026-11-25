@@ -62,11 +62,11 @@ User settings live in `<data root>/settings.json`, project overrides in `.ai/rea
 
 | Key | Values | Scope |
 | --- | --- | --- |
-| `browser` | `ask` (default), `visible`, `background` | user, project |
+| `browser` | `ask` (default), `visible` (Playwright Dashboard), `background` (headless Playwright) | user, project |
 | `install` | `ask` (default), `auto`, `never` | user |
 | `captureTasks` | `true` (default), `false` | user, project |
 | `remind` | `true` (default), `false` | user, project |
-| `artifactLanguage` | `English` (default) or another language name, for example `Ukrainian`; language of reports, QA plans and handoffs (PR drafts and the report's key lines stay English) | user, project |
+| `artifactLanguage` | `chat` (default) or a fixed language name such as `English` or `Ukrainian`. Applies to reports, QA plans and handoffs. PR drafts and machine-readable report keys stay English. | user, project |
 | `commitTemplate` | Path to a UTF-8 commit message template | user, project |
 | `pullRequestTemplate` | Path to a UTF-8 PR body template | user, project |
 | `taskCommentTemplate` | Path to a UTF-8 Markdown template for task-comment drafts | user, project |
@@ -232,7 +232,8 @@ python3 /path/to/ready-check/scripts/ready-check.py playwright -s=ready-check-ru
 The wrapper selects the matching installed bundle and browser cache. It does not install anything and
 does not change the working directory, so QA artifacts can stay beside the report. Supply the QA run's
 explicit config for a browser/viewport different from the CLI defaults. Existing CLI installations remain
-usable for background mode. Visible mode uses the official MCP that ships with the plugin.
+usable for background mode. Visible mode uses the managed CLI's Dashboard. A separate headed window
+can use the official MCP that ships with the plugin.
 The locked versions share one Playwright/browser revision; package validation rejects mismatched revisions.
 
 The plugin declares the MCP server `ready-playwright` for every client (`.mcp.json` for Claude Code,

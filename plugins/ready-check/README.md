@@ -148,11 +148,10 @@ after opt-in. With the right project open in the IDE and the inspection tools av
 warnings and errors as evidence candidates. See the
 [connection guide](skills/setup/references/phpstorm.md).
 
-**Browser.** Browser scenarios run in a **visible** browser (bundled Playwright MCP; you watch and can log in yourself) or in
-the **background** (Playwright CLI). The agent asks for a mode unless you set a default:
-`config set browser visible|background`. In Drupal the agent logs in through `drush uli`, in Symfony through `login_link` when configured, elsewhere
-with a local test user it creates and keeps in `.ai/ready-check/qa-accounts.json`; it never asks for or types
-real credentials. A visible browser needs a graphical session.
+**Browser.** For interactive web scenarios, choose **Background Playwright** (headless) or
+**Visible Playwright** (headless with a live Dashboard and manual sign-in). To save a default, use
+`config set browser background|visible`. Compatible Playwright Test specs can stream
+to the Dashboard while running through the project's command. See the [browser modes guide](skills/qa/references/playwright.md).
 
 **QA evidence.** The agent journals the actions and observed results of executed cases. During QA plan approval,
 choose which browser or mobile cases to record. Recording starts on the first attempt. A routine `PASS` gives
@@ -164,9 +163,9 @@ The bundled Chromium supports captions, a pointer and target highlighting, and t
 local player can seek to steps in the journal.
 [QA action journal and video](skills/qa/references/evidence.md).
 
-**Language.** The agent talks in your language; reports, QA plans and handoffs are written in English unless you
-choose another language at first run or with `config set artifactLanguage Ukrainian`. Commit messages and
-PR/MR text stay in English.
+**Language.** Reports, QA plans and handoffs follow the chat language by default. Choose a language for one
+task in chat or save a preference with `config set artifactLanguage Ukrainian`. Use `chat` to restore the default.
+Commit messages, PR/MR text and machine-readable report keys stay in English.
 
 **Delivery.** If selected checks pass, choose to see the English commit message and PR/MR text in chat or
 open a PR/MR. A partial run also offers the outstanding checks and keeps its partial verdict if you proceed

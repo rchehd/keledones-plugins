@@ -1,6 +1,6 @@
 Ready Check setup for this project. Use this once when handling installation, verification, or work that needs
 Ready Check's project setup. For a request only to view or change settings, handle it in chat and defer this
-setup, including the profile, installation and report-language questions.
+setup, including the profile and installation questions.
 
 {question}
 

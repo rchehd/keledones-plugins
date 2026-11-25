@@ -11,7 +11,7 @@ from dependency_support import PLUGIN, data_root
 from phpstorm_mcp import register_cursor
 from project import BASE, LEGACY_BASE, ensure_excluded, migrate, migration_lock, project_file, redirected, toplevel, write_json
 
-DEFAULTS = {"browser": "ask", "install": "ask", "captureTasks": True, "remind": True, "artifactLanguage": "English",
+DEFAULTS = {"browser": "ask", "install": "ask", "captureTasks": True, "remind": True, "artifactLanguage": "chat",
             "phpstormMcp": False}
 CHOICES = {"browser": {"ask", "visible", "background"}, "install": {"ask", "auto", "never"},
            "runner": {"local", "ddev", "compose"}}

@@ -1,7 +1,7 @@
 import json
 import re
 
-# Question tools: Claude Code AskUserQuestion, Codex request_user_input, Cursor ask_question.
+# Question tools: Claude Code AskUserQuestion, Codex request_user_input, Cursor AskQuestion.
 QUESTION_TOOL = re.compile(r"ask.?user.?question|request.?user.?input|ask.?question", re.I)
 ANSWERED_TEXT = re.compile(r'"((?:[^"\\]|\\.)+)"\s*=\s*"((?:[^"\\]|\\.)*)"')
 

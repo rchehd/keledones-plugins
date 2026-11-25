@@ -129,6 +129,8 @@ header { margin-bottom: .9rem; }
 .screenshot-thumbnail { inline-size: min(100%, 10rem); overflow: hidden; border: 1px solid var(--wa-color-surface-border); background: var(--wa-color-surface-lowered); }
 .evidence .screenshot-thumbnail img { inline-size: 100%; block-size: 5.625rem; }
 .qa-evidence .preview { --spacing: .75rem; }
+.qa-evidence .preview-expanded { --width: min(1400px, 96vw); }
+.preview-expanded img { max-height: 85vh; }
 .qa-evidence .preview::part(title) { font-size: .875rem; font-weight: 600; }
 .qa-evidence .status { margin: .4rem 0 0; min-height: 0; font-size: .75rem; }
 .qa-evidence .status:empty { margin: 0; }
