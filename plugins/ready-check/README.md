@@ -4,16 +4,22 @@
 
 # Ready Check · Review & QA
 
-A plugin for Cursor, Claude Code and Codex that checks whether a task is ready to push: the code meets the task's
-requirements, passes the project's checkers, follows the framework's practices, is safe, and works in a browser.
-It runs inside the chat you already use, with the agent you already have. The checks are not invented here: each
-stage packages established engineering and testing practice into an agent skill (see [Foundations](#foundations)).
+A plugin for Cursor, Claude Code and Codex that checks whether a task is ready to push. It traces the task's
+requirements through static checks, code and security review, and behavioral QA in your current chat.
+The skills apply the engineering and testing practices described in [Foundations](#foundations).
 
 ## How it works
 
-![Ready Check workflow: task, requirements, static checks, review, QA plan approval, browser QA, verdict and PR draft, with fix rounds and learning from returned tasks](assets/workflow.png)
+```mermaid
+flowchart LR
+    Task["Task and acceptance criteria"] --> Scope["Choose full or partial scope"]
+    Scope --> Checks["Run selected checks in order<br/>Static checks, review, QA with an approved plan"]
+    Checks --> Report["Record evidence, findings and verdict"]
+    Report -->|"Fix or retest"| Checks
+    Report -->|"When eligible and requested"| Delivery["Draft or open a PR/MR"]
+```
 
-The diagram source is [assets/workflow.drawio](assets/workflow.drawio); edit it in draw.io and export the PNG again.
+Choose all applicable stages or a partial scope. The report records which stages ran.
 
 1. **Task and requirements.** The agent takes the task from the chat, a file or the prompts Ready Check recorded
    for the branch, asks only what changes the expected result, and writes requirements `RC-001`, `RC-002`, … with
@@ -24,8 +30,8 @@ The diagram source is [assets/workflow.drawio](assets/workflow.drawio); edit it 
    comments, errors, dead code), reviews tests when the change has them, confirms a bug fix removes the cause,
    and applies your own coding rules. Findings are labelled `issue (blocking)`, `suggestion`, `nitpick` or
    `question`; only issues block.
-4. **QA** ranks changed areas by risk and shows the plan for approval. It verifies browser, API, CLI or
-   CI and native mobile outcomes as applicable, with accessibility and exploration for browser cases.
+4. **QA** ranks changed areas by risk and shows the plan for approval. It tests browser, native mobile,
+   desktop, API, CLI and CI outcomes as applicable, with accessibility and exploration for browser cases.
 5. **Verdict.** `READY TO PUSH` requires complete current validation and opens the delivery choice.
    Other runs report `BLOCKED`, `INCOMPLETE` or `PARTIAL CHECK COMPLETE`. Findings come with a fix offer.
    After a fix or "retest", the next round reruns only what the change can affect.
@@ -53,6 +59,9 @@ Checks live in framework profiles. See [supported profiles](#supported-profiles)
 
 ## Foundations
 
+Ready Check defines the workflow for selecting checks, approving a QA plan, collecting evidence, making
+fix decisions and issuing a verdict. The sources below inform the checks within that workflow.
+
 | Stage | Built on |
 | --- | --- |
 | Requirements | Acceptance conditions per requirement and traceability from requirement to evidence, as in requirement-based testing |
@@ -60,10 +69,11 @@ Checks live in framework profiles. See [supported profiles](#supported-profiles)
 | TypeScript and YAML | [TypeScript Compiler API](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API) and [project references](https://www.typescriptlang.org/docs/handbook/project-references.html) for type checking, [typescript-eslint](https://typescript-eslint.io/getting-started/) for linting, and [yamllint](https://yamllint.readthedocs.io/en/stable/configuration.html) for plain YAML |
 | Infrastructure checks | [actionlint](https://github.com/rhysd/actionlint/blob/main/docs/usage.md) for GitHub Actions, [Compose config](https://docs.docker.com/reference/cli/docker/compose/config/), [DDEV utilities](https://docs.ddev.com/en/stable/users/usage/commands/) and [Nginx configuration testing](https://nginx.org/en/docs/switches.html). [GitLab CI Lint](https://docs.gitlab.com/ci/yaml/lint/) validates the effective pipeline and its includes on GitLab. |
 | Flutter checks | [Flutter CLI](https://docs.flutter.dev/reference/flutter-cli) for analysis and project tests, and [Dart format](https://dart.dev/tools/dart-format) for formatting checks |
-| Review | [Google code review guide](https://google.github.io/eng-practices/review/reviewer/looking-for.html) (functionality, design, complexity, tests, naming, comments), [Conventional Comments](https://conventionalcomments.org/) (finding labels), [ub-mode](https://github.com/unclebob/ub-mode) (fix the root cause, tests that test behavior, one source of truth), [OWASP Code Review Guide](https://owasp.org/www-project-code-review-guide/) (trace input to access, validation, storage and output), framework security guides ([OWASP Laravel](https://cheatsheetseries.owasp.org/cheatsheets/Laravel_Cheat_Sheet.html), [OWASP Symfony](https://cheatsheetseries.owasp.org/cheatsheets/Symfony_Cheat_Sheet.html), [OWASP Django](https://cheatsheetseries.owasp.org/cheatsheets/Django_Security_Cheat_Sheet.html), [Django deployment checklist](https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/), [Go security best practices](https://go.dev/doc/security/best-practices)), version-matched Drupal documentation ([updating configuration](https://www.drupal.org/docs/drupal-apis/update-api/updating-configuration), [render cacheability](https://www.drupal.org/docs/drupal-apis/render-api/cacheability-of-render-arrays), [writing secure code](https://www.drupal.org/docs/administering-a-drupal-site/security-in-drupal/writing-secure-code-for-drupal)); deterministic checks run before the model, and every blocking finding needs file, line and cause |
+| Review | [Google code review guide](https://google.github.io/eng-practices/review/reviewer/looking-for.html) for functionality, design, complexity and tests, [Conventional Comments](https://conventionalcomments.org/) for finding labels, [ub-mode](https://github.com/unclebob/ub-mode) for root causes and tests that verify behavior, and the [OWASP Code Review Guide](https://owasp.org/www-project-code-review-guide/) for security. Profile checklists add version-specific framework guidance. Selected static checks run before review. Every blocking finding cites a file, line and cause. |
+| Framework review | Security guidance for [Laravel](https://cheatsheetseries.owasp.org/cheatsheets/Laravel_Cheat_Sheet.html), [Symfony](https://cheatsheetseries.owasp.org/cheatsheets/Symfony_Cheat_Sheet.html), [Django](https://cheatsheetseries.owasp.org/cheatsheets/Django_Security_Cheat_Sheet.html) and [Go](https://go.dev/doc/security/best-practices). See also the [Django deployment checklist](https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/) and Drupal guidance on [configuration updates](https://www.drupal.org/docs/drupal-apis/update-api/updating-configuration), [render cacheability](https://www.drupal.org/docs/drupal-apis/render-api/cacheability-of-render-arrays) and [secure code](https://www.drupal.org/docs/administering-a-drupal-site/security-in-drupal/writing-secure-code-for-drupal). |
 | Shared review checklists | [OWASP ASVS](https://asvs.owasp.org/) for web and API security, [Parallel Change](https://martinfowler.com/bliki/ParallelChange.html) for staged migrations, and [AWS Builders' Library](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/) for idempotent retries |
-| QA design | ISTQB / ISO/IEC/IEEE 29119-4 techniques: equivalence partitioning, boundary values, state transitions, decision tables, error guessing; risk-based testing (likelihood × impact) |
-| QA oracles and exploration | HICCUPPS consistency oracles ([Bolton](https://developsense.com/resource/Oracles.pdf)), SFDPOT and session-based exploratory testing with charters |
+| QA design | Risk-based testing prioritizes by likelihood and impact. [ISTQB CTFL](https://istqb.org/wp-content/uploads/2024/11/ISTQB_CTFL_Syllabus_v4.0.1.pdf) and [ISO/IEC/IEEE 29119-4](https://www.iso.org/standard/79430.html) inform the test design. Use equivalence partitioning, boundary values, state transitions and decision tables for specified behavior, and use error guessing as an experience-based technique. |
+| QA oracles and exploration | Use [HICCUPPS consistency oracles](https://developsense.com/resource/Oracles.pdf) where the requirement leaves an outcome unclear. Use SFDPOT, adapted from the [Heuristic Test Strategy Model](https://www.satisfice.com/download/heuristic-test-strategy-model), and charters from [Session-Based Test Management](https://www.satisfice.com/download/session-based-test-management) for focused exploration. |
 | Bug reports | RIMGEA (Kaner's bug advocacy): replicate, isolate, maximize, generalize, externalize; steps, expected and actual result, severity, evidence |
 | Browser automation | [Playwright best practices](https://playwright.dev/docs/best-practices): user-facing locators, web-first waits, isolated sessions; official Playwright CLI and MCP |
 | Automated test changes | [ISTQB CTFL v4.0.1](https://istqb.org/?sdm_process_download=1&download_id=3345) (§1.4.4 and §4.2) for reviewing requirements coverage against existing assertions. [Playwright Test](https://playwright.dev/docs/test-cli) and [Cypress best practices](https://docs.cypress.io/app/core-concepts/best-practices) for browser test review and targeted runs. |
@@ -121,39 +131,38 @@ which cases executed. Use the project's configured environment and its installed
 [test review checklist](skills/review/references/automated-tests.md) and
 [project test runner guidance](skills/qa/references/project-tests.md).
 
-Ready Check works through plugin hooks and does not write `AGENTS.md`, `CLAUDE.md` or project MCP configs. In
-Codex, trust the plugin's hooks once in `/hooks`. Cursor gets the rule at session start and again with the first
-message of each chat, because its session-start context can arrive after that message; Cursor has no end-of-turn
-reminder.
+Ready Check loads its instructions through plugin hooks. In Codex, trust the plugin's hooks in `/hooks`.
+Cursor gets the rule at session start and again with the first message of each chat, because its session-start
+context can arrive after that message. Cursor has no end-of-turn reminder.
 
 **QA.** The agent ranks changed areas by risk, designs cases with standard techniques (equivalence classes,
 boundary values, state transitions, decision tables), shows the plan for approval, then runs it. Browser cases
 use Playwright, axe-core and manual keyboard and focus checks. API and CLI cases use project tools or direct
 tests, and CI cases inspect the matching run, job and artifact. Native mobile cases use existing device tests
 or Maestro on the provisioned target. When a task has an agreed Figma reference, QA compares the matching
-viewport, variant and state against that reference. All results go into the same report. It stops for
-you only when the task is unclear, for plan approval, for a login, when it is unsure whether something is a bug,
-and when it finds one. For bugs it offers: fix in this session, fix with a subagent (where the client supports
-it), or you fix it. After a fix, or when you say "retest", the next round reruns only what the change can
-affect: static checks, review of changed code and its callers, failed and related QA cases and each RC's main
-flow; shared-code changes or "full recheck" run everything.
+viewport, variant and state against that reference. All results go into the same report. The agent posts the
+plan or the relevant findings before asking you to approve the plan or choose how to fix an issue. It uses the
+client's native question tool when available. You can fix the issue yourself, ask the agent to fix it here,
+or delegate the fix to a subagent where supported. After a fix or a "retest", Ready Check reruns affected
+static checks, reviews changed code and its callers, and reruns failed or related QA cases and each RC's main
+flow. Shared-code changes or a request for a full recheck rerun the whole plan.
 
-**QA evidence.** Ready Check opens screenshots and supported short clips next to their scenario results
-in compatible clients and provides a local HTML report for other clients or larger recordings. Ask about
-settings, QA plans, or review decisions in chat. See the [QA evidence viewer](skills/qa/references/interactive-ui.md).
+**QA evidence.** In compatible clients, open screenshots beside the scenario result and view them fullscreen
+when the client supports it. Short supported clips play in the widget. The local HTML report lets you view
+larger clips or open evidence if the widget cannot display it. If the client declines to open the report,
+the widget shows the local address for copying. [QA evidence viewer](skills/qa/references/interactive-ui.md)
 
 **PhpStorm.** After a full setup, choose whether to connect its optional MCP inspections. You can also
-say "Connect PhpStorm MCP" later. In Cursor, Ready Check registers the running PhpStorm MCP for the project
-after opt-in. With the right project open in the IDE and the inspection tools available, review can use IDE
-warnings and errors as evidence candidates. See the
-[connection guide](skills/setup/references/phpstorm.md).
+say "Connect PhpStorm MCP" later. In Cursor, after opt-in, Ready Check registers the running PhpStorm MCP
+in the project's `.cursor/mcp.json`. With the right project open in the IDE and the inspection tools available,
+review can use IDE warnings and errors as evidence candidates. [Connection guide](skills/setup/references/phpstorm.md)
 
 **Browser.** For interactive web scenarios, choose **Background Playwright** (headless) or
 **Visible Playwright** (headless with a live Dashboard and manual sign-in). To save a default, use
 `config set browser background|visible`. Compatible Playwright Test specs can stream
 to the Dashboard while running through the project's command. See the [browser modes guide](skills/qa/references/playwright.md).
 
-**QA evidence.** The agent journals the actions and observed results of executed cases. During QA plan approval,
+**Recording.** The agent journals the actions and observed results of executed cases. During QA plan approval,
 choose which browser or mobile cases to record. Recording starts on the first attempt. A routine `PASS` gives
 you the result and journal, and its temporary video is discarded. A `FAIL` gives you the failed attempt's video
 when available, including failures on the first attempt. If a retry passes, you still get the failed attempt's
@@ -242,9 +251,9 @@ The agent asks when something is unclear and pauses for your approval of the QA 
 problem, it asks whether to fix it or leave it to you, then rechecks after the fix. Commit and push are part
 of delivery only when you select creation with those operations.
 
-**Report:** `.ai/ready-check/reports/<branch>/report.md` at the repository root. It is git-excluded.
-A later chat on the same branch continues from it. The directory name combines a readable branch slug
-and a hash of its full name, so similarly named branches keep separate reports.
+The Git-excluded report lives at `.ai/ready-check/reports/<branch-slug>/<task-id>/report.md`. The branch
+directory combines a readable slug and a hash of its full name. A later chat can resume the same task by
+using its task ID or report path.
 
 ## Verdicts
 
@@ -353,6 +362,8 @@ Project tools and configs (`vendor/bin`, `phpcs.xml`, `phpstan.neon`, `pint.json
 ## Documentation
 
 - [Setup details](dependencies/SETUP.md)
+- [Review skill](skills/review/SKILL.md) and [shared review checklist](skills/review/references/change-types.md)
+- [QA test design](skills/qa/references/test-design.md) and [what evidence to keep and show](skills/qa/references/evidence.md#create-a-replay-and-hand-off-from-qa)
 - Static checks: [Drupal](profiles/drupal/static.md), [Laravel](profiles/laravel/static.md),
   [Symfony](profiles/symfony/static.md), [Python](profiles/python/static.md), [Go](profiles/go/static.md),
   [TypeScript](profiles/typescript/static.md), [Flutter](profiles/flutter/static.md)
