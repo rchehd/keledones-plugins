@@ -195,7 +195,7 @@ async function openLocalReport(address) {
     const capabilities = app.getHostCapabilities();
     let { url } = snapshot;
 
-    if (capabilities?.serverTools) {
+    if (!url && capabilities?.serverTools) {
       url = (await appTool("local_view", {}, { timeout: 5000 }))?.url;
     }
 

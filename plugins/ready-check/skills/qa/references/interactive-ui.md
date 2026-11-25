@@ -69,9 +69,9 @@ supported clips up to 4 MB. The player tries an MCP resource when the host adver
 It can also use the media tool through `serverTools`, or open the full local report when the clip cannot
 play in the widget. The opening response includes the local report URL when the server can bind a local port.
 Small screenshots are also sent in bounded app metadata, so compatible cards can show previews when the
-host cannot proxy tool calls. **Open local report** and the media fallback request direct browser navigation
-through the host's `ui/open-link` capability. When direct navigation is unavailable or declined, the widget
-shows the local address next to the clicked action.
+host cannot proxy tool calls. **Open local report** and the media fallback use the address from the opening
+response when available and request navigation through the host's `ui/open-link` capability. When direct
+navigation is unavailable or declined, the widget shows the address next to the clicked action.
 
 When the user explicitly asks in chat to open the local QA report, use the current client's built-in browser
 tool when available and open the printed URL in a visible tab. This navigation opens the saved report
