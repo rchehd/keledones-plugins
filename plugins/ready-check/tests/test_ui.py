@@ -45,7 +45,8 @@ class InteractiveViewTest(unittest.TestCase):
 
     def plan(self, revision=1):
         return dict(round=1, qa_plan_revision=revision, requirements_revision=1,
-                    scenarios=[dict(id="QA-001", required=True, recording="Retain the clip", recording_required=True,
+                    scenarios=[dict(id="QA-001", kind="browser", category="user-flow", required=True,
+                                    recording="Retain the clip", recording_required=True,
                                     environment="Local test tenant", preconditions=["Load a disposable fixture"],
                                     execution="Background Chromium", test_data=["Create a record"],
                                     cleanup="Remove the fixture", recording_scope="Keep only the changed interaction"),
@@ -428,13 +429,33 @@ class InteractiveViewTest(unittest.TestCase):
         (evidence / "after.png").write_bytes(b"AFTER PNG")
         (evidence / "after.webm").write_bytes(b"AFTER WEBM")
         (evidence / "hidden.webm").write_bytes(b"HIDDEN")
+        (evidence / "hidden.png").write_bytes(b"HIDDEN PNG")
+        (evidence / "large.png").write_bytes(b"x" * 128_001)
+        carried = []
+        for number in range(3):
+            name = f"image-{number}.png"
+            (evidence / name).write_bytes(b"y" * 128_000)
+            carried.append(f"evidence/{name}")
         paths = [dict(path="evidence/image.png", title="Before screenshot"),
                  dict(path="evidence/after.png", title="After screenshot"),
                  dict(path="evidence/clip.webm", title="Before clip"),
-                 dict(path="evidence/after.webm", title="After clip")]
-        self.prepare("qa-results", dict(round=1, scenarios=[dict(id="QA-001", artifacts=paths), dict(id="QA-002")]))
-        gallery = call("tools/call", dict(name="show_view", arguments=args))["structuredContent"]
+                 dict(path="evidence/after.webm", title="After clip"),
+                 dict(path="evidence/large.png", title="Large screenshot"),
+                 *(dict(path=name) for name in carried)]
+        scenarios = [dict(id="QA-001", kind="browser", category="accessibility", artifacts=paths), dict(id="QA-002")]
+        self.prepare("qa-results", dict(round=1, scenarios=scenarios))
+        opened = call("tools/call", dict(name="show_view", arguments=args))
+        gallery = opened["structuredContent"]
+        previews = opened["_meta"]["readyCheckPreviews"]
+        self.assertEqual(set(previews), {"evidence/image.png", "evidence/after.png", *carried[:2]})
+        self.assertEqual(base64.b64decode(previews["evidence/image.png"]["data"]), b"PNG")
+        self.assertNotIn("readyCheckPreviews", gallery)
+        self.assertNotIn(previews["evidence/image.png"]["data"], opened["content"][0]["text"])
         self.assertEqual(gallery["data"]["scenarios"][0]["artifacts"], paths)
+        self.assertEqual(gallery["data"]["scenarios"][0]["kind"], "browser")
+        self.assertEqual(gallery["data"]["scenarios"][0]["category"], "accessibility")
+        self.assertNotIn("kind", gallery["data"]["scenarios"][1])
+        self.assertNotIn("category", gallery["data"]["scenarios"][1])
         self.assertEqual(gallery["data"]["scenarios"][1]["artifacts"], [])
         self.assertNotIn("decision", gallery)
         handle = gallery["handle"]

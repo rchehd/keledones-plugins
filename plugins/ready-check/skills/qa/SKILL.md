@@ -87,6 +87,8 @@ for affected pages or components, even when the plan also runs automated browser
 Give each scenario a stable `QA-001` ID with: kind (browser, mobile, desktop, API, CLI or CI), RC IDs (or a regression label), required or optional, risk,
 technique, role, preconditions, steps, expected result, oracle, and the profile/root pairs and files or components
 it depends on (used by later rounds). For a shared scenario, list all covered pairs and record one result.
+Record the scenario's primary `category` when one of the [coverage categories](references/test-design.md#coverage-categories)
+describes its expected outcome. Carry it forward by scenario ID when recording results.
 Order by risk. Include test-data actions and identify the command, request or provider evidence needed for
 technical scenarios. For browser scenarios add the execution method, browser and applicable accessibility
 checks. For a Playwright interactive case add the visible or background mode and an optional exploratory
@@ -194,8 +196,9 @@ Record each scenario as `PASS`, `FAIL`, `INCOMPLETE`, `NOT_RUN` or reasoned `N/A
 result, time, role and evidence. Summarize every RC's coverage. List limitations (for example "Chromium only"),
 untested areas, test data created and cleanup still needed.
 Use the [evidence handoff rules](references/evidence.md#create-a-replay-and-hand-off-from-qa) for each case.
-Open the [QA evidence view](references/interactive-ui.md#qa-results) after recording a round with screenshots
-or recordings. Use the same report and show text results in chat for cases without visual evidence.
+Open the [QA evidence view](references/interactive-ui.md#qa-results) with display text in the chat language
+after recording a round with screenshots or recordings. Use the same report and show text results in chat
+for cases without visual evidence.
 Show the evidence that demonstrates the result beside its `QA-ID` in chat. Record why expected evidence
 is unavailable. If an approved retry passes, reference the failed attempt and its retained evidence separately.
 Handle retest, false-positive decisions and comment drafts in chat, using the original scenario ID and round.

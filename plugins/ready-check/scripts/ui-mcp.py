@@ -2,16 +2,19 @@ import base64
 import json
 import secrets
 import sys
+from pathlib import Path
 from time import monotonic
 
 from ui import TTL, emit, html, start
-from ui_state import View
+from ui_state import ASSET_TYPES, View
 
 
 URI = "ui://ready-check/view.html"
 MIME = "text/html;profile=mcp-app"
 EXTENSION = "io.modelcontextprotocol/ui"
 INLINE_MEDIA_LIMIT = 4_000_000
+PREVIEW_IMAGE_LIMIT = 128_000
+PREVIEW_TOTAL_LIMIT = 384_000
 VERSIONS = {"2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}
 
 
@@ -27,6 +30,39 @@ def result(data, text=None):
     return dict(content=[dict(type="text", text=text or "Ready Check view response.")], structuredContent=data)
 
 
+def read_bounded(path, limit):
+    with path.open("rb") as source:
+        data = source.read(limit + 1)
+    return data if 0 < len(data) <= limit else None
+
+
+def inline_media(mime, data):
+    return dict(mimeType=mime, data=base64.b64encode(data).decode("ascii"))
+
+
+def screenshot_previews(view, current):
+    previews = {}
+    remaining = PREVIEW_TOTAL_LIMIT
+    for case in current["data"]["scenarios"]:
+        for asset in case.get("artifacts", []):
+            name = asset["path"]
+            mime = ASSET_TYPES.get(Path(name).suffix.lower(), "")
+            if name in previews or not mime.startswith("image/"):
+                continue
+            try:
+                path = view.artifact_path(name)
+                data = read_bounded(path, min(PREVIEW_IMAGE_LIMIT, remaining))
+            except (OSError, ValueError):
+                continue
+            if data is None:
+                continue
+            previews[name] = inline_media(mime, data)
+            remaining -= len(data)
+            if not remaining:
+                return previews
+    return previews
+
+
 class ReadyUI:
     def __init__(self):
         self.supports_ui = False
@@ -35,7 +71,7 @@ class ReadyUI:
     def tools(self):
         string = {"type": "string"}
         private = {"resourceUri": URI, "visibility": ["app"]}
-        show = tool("show_view", "Open the screenshots and recordings in a prepared Ready Check QA round.",
+        show = tool("show_view", "Show the prepared QA round. Prepare its display text in the chat language before opening it.",
                     {"project": string, "task": string, "view": {"type": "string", "enum": ["qa-results"]}},
                     ["project", "task", "view"], {"resourceUri": URI} if self.supports_ui else None)
         if not self.supports_ui:
@@ -67,8 +103,12 @@ class ReadyUI:
             url = None
         self.views[handle] = session
         if not self.supports_ui:
-            return result(dict(url=url, view=view.kind), f"Open Ready Check in a local browser: {url}")
-        return result(dict(current, handle=handle, url=url), "Ready Check opened the QA evidence.")
+            return result(dict(url=url, view=view.kind), f"Open this local Ready Check report in the client's browser: {url}")
+        response = result(dict(current, handle=handle, url=url), "Ready Check opened the QA evidence.")
+        previews = screenshot_previews(view, current)
+        if previews:
+            response["_meta"] = {"readyCheckPreviews": previews}
+        return response
 
     def local_url(self, session):
         if "url" not in session:
@@ -89,11 +129,10 @@ class ReadyUI:
             path, mime = view.artifact(args["path"], session["revision"])
             if not mime.startswith(("image/", "video/")):
                 return result({"open_local": True}, "Open the local report to view this evidence.")
-            with path.open("rb") as source:
-                data = source.read(INLINE_MEDIA_LIMIT + 1)
-            if len(data) > INLINE_MEDIA_LIMIT:
+            data = read_bounded(path, INLINE_MEDIA_LIMIT)
+            if data is None:
                 return result({"open_local": True}, "Open the local report to view this evidence.")
-            return result(dict(mimeType=mime, data=base64.b64encode(data).decode("ascii")))
+            return result(inline_media(mime, data))
         raise ValueError("Unknown Ready Check UI tool")
 
     def handle(self, method, params):

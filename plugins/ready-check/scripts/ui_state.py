@@ -26,8 +26,9 @@ VIEW_FIELDS = {
 }
 ROW_FIELDS = {
     "qa-plan": ("required", "required_reason", "recording", "recording_required", "evidence",
-                "environment", "preconditions", "execution", "test_data", "cleanup", "recording_scope"),
-    "qa-results": ("status", "actual", "artifacts", "elapsed", "classification"),
+                "environment", "preconditions", "execution", "test_data", "cleanup", "recording_scope",
+                "kind", "category"),
+    "qa-results": ("kind", "category", "status", "actual", "artifacts", "elapsed", "classification"),
     "review": ("description", "severity", "source", "file", "line", "snippet", "blocking"),
 }
 

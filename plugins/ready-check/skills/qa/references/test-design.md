@@ -21,6 +21,20 @@ a stated reason. Pick regression scenarios from callers and shared paths of the 
 
 Name the technique in each scenario so the plan shows why that value or path was chosen.
 
+## Coverage categories
+
+Use the expected outcome to select the primary category for a scenario.
+
+| Category | What the scenario verifies |
+| --- | --- |
+| `accessibility` | A person can use the interface with a keyboard, assistive technology or other applicable accessibility criteria. |
+| `user-flow` | A user completes a task and reaches the expected screen, data or state. |
+| `access-control` | A role, permission or ownership rule allows or denies the action as intended. An expected denial can pass. |
+| `error-handling` | Invalid input or a failure triggers the expected feedback, recovery or fallback. |
+
+Keep the execution kind (such as `browser` or `api`) and the test technique in their own fields.
+Omit the category if none of these describes the primary outcome.
+
 ## Oracles: how to decide that something is a bug
 
 The RC's expected result comes first. Where the RC is silent, compare with (HICCUPPS):
