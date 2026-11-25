@@ -222,7 +222,8 @@ Playwright browser revision into the managed browser cache, then launches it hea
 test page. A CLI version check alone does not produce `PASS`. Missing OS libraries or sandbox permissions
 remain explicit setup failures; the script does not invoke `sudo`, install OS packages, or weaken launch settings.
 
-Use the managed CLI from the reports directory (`<repo>/.ai/ready-check/reports/<branch-slug>/`):
+Run the managed CLI from the task report directory at
+`<repo>/.ai/ready-check/reports/<branch-slug>/<task-id>/`.
 
 ```sh
 python3 /path/to/ready-check/scripts/ready-check.py playwright --version
