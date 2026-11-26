@@ -23,7 +23,7 @@ def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description="Ready Check native entry point for Linux, macOS, Windows and WSL.")
-    parser.add_argument("action", choices=("setup", "profiles", "doctor", "static", "playwright", "qa-gate", "qa-record", "qa-replay", "mcp", "ui", "ui-mcp", "validate-package", "reports", "config", "template", "tasks", "hook", "mark-checked", "offers", "consent", "uninstall", "rules", "a11y", "customize", "summary", "feedback", "reflect-collect", "publication"))
+    parser.add_argument("action", choices=("setup", "profiles", "doctor", "static", "playwright", "qa-gate", "qa-record", "qa-replay", "mcp", "ui", "validate-package", "reports", "config", "template", "tasks", "hook", "mark-checked", "offers", "consent", "uninstall", "rules", "a11y", "customize", "summary", "feedback", "reflect-collect", "publication"))
     args = parser.parse_args(sys.argv[1:2])
     remaining = sys.argv[2:]
     root = Path(__file__).resolve().parent

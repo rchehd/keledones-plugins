@@ -1,6 +1,6 @@
 {
   "name": "ready",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Check task readiness against requirements, static checks, and browser QA.",
   "author": {
     "name": "Roman Chekhaniuk"
@@ -23,10 +23,6 @@
   },
   "hooks": "./hooks/codex-hooks.json",
   "mcpServers": {
-    "ready-ui": {
-      "command": "node",
-      "args": ["${PLUGIN_ROOT}/scripts/mcp.mjs", "--ui"]
-    },
     "ready-playwright": {
       "command": "node",
       "args": [

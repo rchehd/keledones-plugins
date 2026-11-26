@@ -115,16 +115,14 @@ and any recording limitation before finalizing the plan.
 For changed pages and components, identify the [axe execution method](references/playwright.md#accessibility-axe)
 before asking for plan approval; axe runs in the selected Playwright mode. Record required
 accessibility coverage as `INCOMPLETE` when no authorized execution method is available.
-For an existing web Playwright Test spec, reuse an explicit Visible Playwright choice for live viewing.
-When the mode is `ask` and only project specs are planned, offer a normal run or live viewing if the
-project's Playwright version supports it. In either case run the project spec with its own runner.
 
 Save the current values as `QA plan revision: <number>` and `Requirements revision: <number>` in the
-report, along with scenario IDs and `approval: PENDING`. Keep both revision keys in English. Send a
-standalone Markdown message headed “QA plan — round N, revision R” in the user's language. Give each `QA-ID`
-its own list item with the action, expected result, and planned evidence. Include the role, test data and
-recording scope where applicable. For a later round, mark each case to rerun or cite the prior round whose
-evidence carries over.
+report, along with scenario IDs and `approval: PENDING`. Keep both revision keys in English. Post the
+[QA plan template](../../templates/qa-plan.md) as a standalone Markdown message in the chat language.
+Fill it from the saved plan. Keep its section order and repeat the test case block for every `QA-ID` in risk order. Include the effective
+browser mode for interactive web cases and show which cases will be recorded, with capture method and
+retention. Say when no recording is proposed. In later rounds mark cases to rerun and cite the prior
+round for carried-over evidence. Mark empty sections explicitly.
 
 After posting the plan, call the [native question tool](../check/references/decision-questions.md) in a
 separate step. Ask “Approve the QA plan for round N, revision R?” with “Approve” and “Suggest changes.”
@@ -209,9 +207,6 @@ Record each scenario as `PASS`, `FAIL`, `INCOMPLETE`, `NOT_RUN` or reasoned `N/A
 result, time, role and evidence. Summarize every RC's coverage. List limitations (for example "Chromium only"),
 untested areas, test data created and cleanup still needed.
 Use the [evidence handoff rules](references/evidence.md#create-a-replay-and-hand-off-from-qa) for each case.
-Open the [QA evidence view](references/interactive-ui.md#qa-results) with display text in the chat language
-after recording a round with screenshots or recordings. Use the same report and show text results in chat
-for cases without visual evidence.
 Show the evidence that demonstrates the result beside its `QA-ID` in chat. Record why expected evidence
 is unavailable. If an approved retry passes, reference the failed attempt and its retained evidence separately.
 Handle retest, false-positive decisions and comment drafts in chat, using the original scenario ID and round.
@@ -219,9 +214,9 @@ Save a confirmed user's false-positive decision with `summary --disposition` usi
 round, source `QA` and the user's reason. Follow [the decision command](../check/SKILL.md#record-a-round-and-its-decisions).
 
 After QA, verify fresh scope evidence for each applicable pair using the same rules as before QA.
-Changed code, scope, runner, profile,
-requirements or runtime preparation make affected results stale. Mark the run `INCOMPLETE` and return to the
-earliest affected stage.
+Changed code, scope, runner, profile, requirements or runtime preparation make affected results stale.
+Mark the run `INCOMPLETE`. Close run-owned sessions and post the QA results template with the affected
+cases and reason before returning to the earliest affected stage. Identify stale evidence as historical.
 
 For an approved plan, use the [QA gate command](references/gate.md) to check the recorded scenario outcomes
 and requirement coverage. Read the reported stage status and save the output with the round. Exit `1` with
@@ -234,6 +229,8 @@ a valid `FAIL` result records a failed required case.
   round with evidence, every RC is covered, and nothing blocking or unresolved remains.
 - `N/A`, `can_proceed: true`: no QA scenario applies and other current verification covers every acceptance condition.
 
-Close only sessions this run opened, keep evidence, and remove test data only within the agreed cleanup. Return
-to `check` for the verdict. Do not fix code here: `check` offers the fix. Do not install dependencies, change Git
+Close only sessions this run opened, keep evidence, and remove test data only within the agreed cleanup.
+Post the [Markdown QA results and local HTML report](references/interactive-ui.md#qa-results) in the user's
+language with the recorded QA stage status. Use the same round for the HTML and include the task report path.
+Return to `check` for the verdict. Do not fix code here: `check` offers the fix. Do not install dependencies, change Git
 state, publish anything, or start another AI harness.

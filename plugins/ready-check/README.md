@@ -73,6 +73,9 @@ fix decisions and issuing a verdict. The sources below inform the checks within 
 | Framework review | Security guidance for [Laravel](https://cheatsheetseries.owasp.org/cheatsheets/Laravel_Cheat_Sheet.html), [Symfony](https://cheatsheetseries.owasp.org/cheatsheets/Symfony_Cheat_Sheet.html), [Django](https://cheatsheetseries.owasp.org/cheatsheets/Django_Security_Cheat_Sheet.html) and [Go](https://go.dev/doc/security/best-practices). See also the [Django deployment checklist](https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/) and Drupal guidance on [configuration updates](https://www.drupal.org/docs/drupal-apis/update-api/updating-configuration), [render cacheability](https://www.drupal.org/docs/drupal-apis/render-api/cacheability-of-render-arrays) and [secure code](https://www.drupal.org/docs/administering-a-drupal-site/security-in-drupal/writing-secure-code-for-drupal). |
 | Shared review checklists | [OWASP ASVS](https://asvs.owasp.org/) for web and API security, [Parallel Change](https://martinfowler.com/bliki/ParallelChange.html) for staged migrations, and [AWS Builders' Library](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/) for idempotent retries |
 | QA design | Risk-based testing prioritizes by likelihood and impact. [ISTQB CTFL](https://istqb.org/wp-content/uploads/2024/11/ISTQB_CTFL_Syllabus_v4.0.1.pdf) and [ISO/IEC/IEEE 29119-4](https://www.iso.org/standard/79430.html) inform the test design. Use equivalence partitioning, boundary values, state transitions and decision tables for specified behavior, and use error guessing as an experience-based technique. |
+| [Review results template](templates/review-results.md) | Adapted from the Review Report in Annex A.4 of ISO/IEC 20246. Finding labels follow Conventional Comments. [ISO/IEC 20246:2017](https://www.iso.org/standard/67407.html) · [Conventional Comments](https://conventionalcomments.org/) |
+| [QA plan template](templates/qa-plan.md) | Adapted from the Test Plan (§7.2) and Test Case Specification (§8.3), with planning guidance from ISTQB CTFL §5.1.1. [ISO/IEC/IEEE 29119-3:2021](https://www.iso.org/standard/79429.html) · [ISTQB CTFL](https://istqb.org/wp-content/uploads/2024/11/ISTQB_CTFL_Syllabus_v4.0.1.pdf) |
+| [QA results template](templates/qa-results.md) | Adapted from the Test Completion Report (§7.4) and ISTQB CTFL §5.3.2. [ISO/IEC/IEEE 29119-3:2021](https://www.iso.org/standard/79429.html) · [ISTQB CTFL](https://istqb.org/wp-content/uploads/2024/11/ISTQB_CTFL_Syllabus_v4.0.1.pdf) |
 | QA oracles and exploration | Use [HICCUPPS consistency oracles](https://developsense.com/resource/Oracles.pdf) where the requirement leaves an outcome unclear. Use SFDPOT, adapted from the [Heuristic Test Strategy Model](https://www.satisfice.com/download/heuristic-test-strategy-model), and charters from [Session-Based Test Management](https://www.satisfice.com/download/session-based-test-management) for focused exploration. |
 | Bug reports | RIMGEA (Kaner's bug advocacy): replicate, isolate, maximize, generalize, externalize; steps, expected and actual result, severity, evidence |
 | Browser automation | [Playwright best practices](https://playwright.dev/docs/best-practices): user-facing locators, web-first waits, isolated sessions; official Playwright CLI and MCP |
@@ -147,10 +150,10 @@ or delegate the fix to a subagent where supported. After a fix or a "retest", Re
 static checks, reviews changed code and its callers, and reruns failed or related QA cases and each RC's main
 flow. Shared-code changes or a request for a full recheck rerun the whole plan.
 
-**QA evidence.** In compatible clients, open screenshots beside the scenario result and view them fullscreen
-when the client supports it. Short supported clips play in the widget. The local HTML report lets you view
-larger clips or open evidence if the widget cannot display it. If the client declines to open the report,
-the widget shows the local address for copying. [QA evidence viewer](skills/qa/references/interactive-ui.md)
+**QA evidence.** The agent posts a Markdown summary with failures first and links to the screenshots and
+recordings that support each result. Clients with media previews can display selected evidence inline.
+The local HTML report keeps the color-coded cards, full-size screenshot comparisons and video players
+with chapter controls. [QA evidence and HTML report](skills/qa/references/interactive-ui.md)
 
 **PhpStorm.** After a full setup, choose whether to connect its optional MCP inspections. You can also
 say "Connect PhpStorm MCP" later. In Cursor, after opt-in, Ready Check registers the running PhpStorm MCP
@@ -158,9 +161,9 @@ in the project's `.cursor/mcp.json`. With the right project open in the IDE and 
 review can use IDE warnings and errors as evidence candidates. [Connection guide](skills/setup/references/phpstorm.md)
 
 **Browser.** For interactive web scenarios, choose **Background Playwright** (headless) or
-**Visible Playwright** (headless with a live Dashboard and manual sign-in). To save a default, use
-`config set browser background|visible`. Compatible Playwright Test specs can stream
-to the Dashboard while running through the project's command. See the [browser modes guide](skills/qa/references/playwright.md).
+**Visible Playwright** (an open browser window for watching and manual sign-in). To save a default, use
+`config set browser background|visible`. Use the project's runner for its existing specs.
+[Browser modes guide](skills/qa/references/playwright.md)
 
 **Recording.** The agent journals the actions and observed results of executed cases. During QA plan approval,
 choose which browser or mobile cases to record. Recording starts on the first attempt. A routine `PASS` gives

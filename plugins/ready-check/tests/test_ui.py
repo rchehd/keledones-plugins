@@ -8,7 +8,6 @@ from http.client import HTTPConnection
 from pathlib import Path
 from threading import Thread
 from unittest.mock import patch
-from urllib.parse import quote
 
 
 PLUGIN = Path(__file__).resolve().parent.parent
@@ -394,129 +393,6 @@ class InteractiveViewTest(unittest.TestCase):
                 self.assertEqual(registration["status"], "REGISTERED")
                 config = json.loads((project / ".cursor/mcp.json").read_text(encoding="utf-8"))
                 self.assertEqual(config["mcpServers"][registration["server"]], {"url": endpoint})
-
-    def test_mcp_exposes_only_the_read_only_qa_view_and_listed_media(self):
-        child = subprocess.Popen([sys.executable, str(ENTRY), "ui-mcp"],
-                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, encoding="utf-8")
-        self.addCleanup(child.stdout.close)
-        self.addCleanup(child.stdin.close)
-        self.addCleanup(child.wait, 5)
-        self.addCleanup(child.terminate)
-
-        def call(method, params=None, *, error=False):
-            child.stdin.write(json.dumps(dict(jsonrpc="2.0", id=1, method=method, params=params or {})) + "\n")
-            child.stdin.flush()
-            return json.loads(child.stdout.readline())["error" if error else "result"]
-
-        capabilities = {"extensions": {"io.modelcontextprotocol/ui": {"mimeTypes": ["text/html;profile=mcp-app"]}}}
-        call("initialize", dict(protocolVersion="2025-11-25", capabilities={}))
-        self.assertNotIn("_meta", call("tools/list")["tools"][0])
-        self.assertEqual(call("resources/templates/list")["resourceTemplates"], [])
-        call("initialize", dict(protocolVersion="2025-11-25", capabilities=capabilities))
-        show, media, fallback_tool = call("tools/list")["tools"]
-        self.assertEqual([show["name"], media["name"], fallback_tool["name"]], ["show_view", "preview_media", "local_view"])
-        self.assertEqual(show["inputSchema"]["properties"]["view"]["enum"], ["qa-results"])
-        self.assertEqual(media["_meta"]["ui"]["visibility"], ["app"])
-        uri = show["_meta"]["ui"]["resourceUri"]
-        self.assertEqual(call("resources/read", {"uri": uri})["contents"][0]["text"], html())
-        args = dict(project=str(self.project), task=self.task, view="qa-results")
-        for kind in ("qa-plan", "review", "settings", "reflect"):
-            with self.subTest(kind=kind):
-                rejected = call("tools/call", dict(name="show_view", arguments=dict(args, view=kind)))
-                self.assertTrue(rejected["isError"])
-        evidence = self.directory / "evidence"
-        evidence.mkdir()
-        (evidence / "image.png").write_bytes(b"PNG")
-        (evidence / "clip.webm").write_bytes(b"WEBM")
-        (evidence / "after.png").write_bytes(b"AFTER PNG")
-        (evidence / "after.webm").write_bytes(b"AFTER WEBM")
-        (evidence / "hidden.webm").write_bytes(b"HIDDEN")
-        (evidence / "hidden.png").write_bytes(b"HIDDEN PNG")
-        (evidence / "large.png").write_bytes(b"x" * 128_001)
-        carried = []
-        for number in range(3):
-            name = f"image-{number}.png"
-            (evidence / name).write_bytes(b"y" * 128_000)
-            carried.append(f"evidence/{name}")
-        paths = [dict(path="evidence/image.png", title="Before screenshot"),
-                 dict(path="evidence/after.png", title="After screenshot"),
-                 dict(path="evidence/clip.webm", title="Before clip"),
-                 dict(path="evidence/after.webm", title="After clip"),
-                 dict(path="evidence/large.png", title="Large screenshot"),
-                 *(dict(path=name) for name in carried)]
-        scenarios = [dict(id="QA-001", kind="browser", category="accessibility", artifacts=paths), dict(id="QA-002")]
-        self.prepare("qa-results", dict(round=1, scenarios=scenarios))
-        opened = call("tools/call", dict(name="show_view", arguments=args))
-        gallery = opened["structuredContent"]
-        previews = opened["_meta"]["readyCheckPreviews"]
-        self.assertEqual(set(previews), {"evidence/image.png", "evidence/after.png", *carried[:2]})
-        self.assertEqual(base64.b64decode(previews["evidence/image.png"]["data"]), b"PNG")
-        self.assertNotIn("readyCheckPreviews", gallery)
-        self.assertNotIn(previews["evidence/image.png"]["data"], opened["content"][0]["text"])
-        self.assertEqual(gallery["data"]["scenarios"][0]["artifacts"], paths)
-        self.assertEqual(gallery["data"]["scenarios"][0]["kind"], "browser")
-        self.assertEqual(gallery["data"]["scenarios"][0]["category"], "accessibility")
-        self.assertNotIn("kind", gallery["data"]["scenarios"][1])
-        self.assertNotIn("category", gallery["data"]["scenarios"][1])
-        self.assertEqual(gallery["data"]["scenarios"][1]["artifacts"], [])
-        self.assertNotIn("decision", gallery)
-        handle = gallery["handle"]
-        rejected = call("tools/call", dict(name="submit_decision", arguments=dict(handle=handle)))
-        self.assertTrue(rejected["isError"])
-        preview = dict(name="preview_media", arguments=dict(handle=handle, path="evidence/image.png"))
-        self.assertEqual(call("tools/call", preview)["structuredContent"]["mimeType"], "image/png")
-        clip = dict(name="preview_media", arguments=dict(handle=handle, path="evidence/clip.webm"))
-        video = call("tools/call", clip)["structuredContent"]
-        self.assertEqual(video["mimeType"], "video/webm")
-        self.assertEqual(base64.b64decode(video["data"]), b"WEBM")
-        template, = call("resources/templates/list")["resourceTemplates"]
-
-        def read_video(path, view_handle=handle, *, error=False):
-            resource_uri = template["uriTemplate"].format(handle=view_handle, path=quote(path, safe=""))
-            return call("resources/read", dict(uri=resource_uri), error=error)
-
-        resource, = read_video("evidence/clip.webm")["contents"]
-        self.assertEqual(resource["mimeType"], "video/webm")
-        self.assertEqual(base64.b64decode(resource["blob"]), b"WEBM")
-        self.assertNotIn(handle, json.dumps(call("resources/list")))
-        self.assertEqual(read_video("evidence/clip.webm", "unknown", error=True)["code"], -32602)
-        for name in ("evidence/hidden.webm", "../clip.webm", "evidence/image.png"):
-            with self.subTest(resource=name):
-                self.assertEqual(read_video(name, error=True)["code"], -32602)
-        for name, expected in (("after.png", b"AFTER PNG"), ("after.webm", b"AFTER WEBM")):
-            asset = call("tools/call", dict(name="preview_media", arguments=dict(handle=handle, path=f"evidence/{name}")))
-            self.assertEqual(base64.b64decode(asset["structuredContent"]["data"]), expected)
-        hidden = dict(name="preview_media", arguments=dict(handle=handle, path="evidence/hidden.webm"))
-        self.assertTrue(call("tools/call", hidden)["isError"])
-        with (evidence / "clip.webm").open("ab") as recording:
-            recording.truncate(4_000_001)
-        self.assertEqual(call("tools/call", clip)["structuredContent"], dict(open_local=True))
-        self.assertIn("local report", read_video("evidence/clip.webm", error=True)["message"])
-        fallback = dict(name="local_view", arguments=dict(handle=handle))
-        if gallery["url"] is not None:
-            self.assertRegex(gallery["url"], r"^http://127\.0\.0\.1:\d+/#")
-            self.assertEqual(call("tools/call", fallback)["structuredContent"]["url"], gallery["url"])
-        self.report_revisions(round_number=2)
-        self.assertIn("Round changed", read_video("evidence/after.webm", error=True)["message"])
-        for request in (dict(name="show_view", arguments=args), preview, fallback):
-            stale = call("tools/call", request)
-            self.assertTrue(stale["isError"])
-            self.assertIn("Round changed", stale["content"][0]["text"])
-        self.prepare("qa-results", dict(round=2, scenarios=[dict(id="QA-001", artifacts=paths)]))
-        fresh = call("tools/call", dict(name="show_view", arguments=args))["structuredContent"]
-        self.assertEqual(fresh["data"]["round"], 2)
-        self.assertEqual(fresh["data"]["scenarios"][0]["artifacts"], paths)
-        self.assertIn("out of date", read_video("evidence/after.webm", error=True)["message"])
-        current_clip, = read_video("evidence/after.webm", fresh["handle"])["contents"]
-        self.assertEqual(base64.b64decode(current_clip["blob"]), b"AFTER WEBM")
-        with self.assertRaisesRegex(ValueError, "Round changed"):
-            self.prepare("qa-results", dict(round=1, scenarios=[dict(id="QA-002")]))
-        current_preview = dict(name="preview_media", arguments=dict(handle=fresh["handle"], path="evidence/after.png"))
-        self.assertEqual(base64.b64decode(call("tools/call", current_preview)["structuredContent"]["data"]), b"AFTER PNG")
-        for request in (preview, fallback):
-            result = call("tools/call", request)
-            self.assertTrue(result["isError"])
-            self.assertIn("out of date", result["content"][0]["text"])
 
     def test_loopback_requires_token_identity_and_serves_a_media_range(self):
         evidence = self.directory / "evidence"

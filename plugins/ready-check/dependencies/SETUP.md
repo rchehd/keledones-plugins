@@ -62,7 +62,7 @@ User settings live in `<data root>/settings.json`, project overrides in `.ai/rea
 
 | Key | Values | Scope |
 | --- | --- | --- |
-| `browser` | `ask` (default), `visible` (Playwright Dashboard), `background` (headless Playwright) | user, project |
+| `browser` | `ask` (default), `visible` (headed Playwright), `background` (headless Playwright) | user, project |
 | `install` | `ask` (default), `auto`, `never` | user |
 | `captureTasks` | `true` (default), `false` | user, project |
 | `remind` | `true` (default), `false` | user, project |
@@ -232,9 +232,8 @@ python3 /path/to/ready-check/scripts/ready-check.py playwright -s=ready-check-ru
 
 The wrapper selects the matching installed bundle and browser cache. It does not install anything and
 does not change the working directory, so QA artifacts can stay beside the report. Supply the QA run's
-explicit config for a browser/viewport different from the CLI defaults. Existing CLI installations remain
-usable for background mode. Visible mode uses the managed CLI's Dashboard. A separate headed window
-can use the official MCP that ships with the plugin.
+explicit config for a browser or viewport that differs from the CLI defaults. Use headless Playwright in
+background mode and a headed window in visible mode. The bundled Playwright MCP also supports visible mode.
 The locked versions share one Playwright/browser revision; package validation rejects mismatched revisions.
 
 The plugin declares the MCP server `ready-playwright` for every client (`.mcp.json` for Claude Code,

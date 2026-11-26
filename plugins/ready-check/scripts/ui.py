@@ -155,7 +155,7 @@ def emit(data):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Prepare, open, or read a Ready Check interactive view.")
+    parser = argparse.ArgumentParser(description="Prepare or serve a Ready Check HTML report, read a saved decision, or capture a review snapshot.")
     parser.add_argument("operation", choices=("snapshot", "prepare", "serve", "decision"))
     parser.add_argument("--project", required=True, type=Path)
     parser.add_argument("--task")
