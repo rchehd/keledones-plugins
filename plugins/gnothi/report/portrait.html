@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="$language"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="$csp">
+<title>$label_title</title><style>$css</style></head><body>
+<header class="site-header" id="top"><div class="container header-inner">
+<div class="brand"><span class="brand-mark" aria-hidden="true"></span><strong>Gnothi</strong>
+<span class="brand-description">· $label_brand_description</span></div><span class="pill generated">$generated</span>
+</div></header>
+<main class="container">
+<section class="hero">
+<p class="eyebrow">$period_name · $period_dates</p>
+<h1>$label_your_portrait</h1><p class="lead">$summary</p>
+<div class="pills">$chips</div>
+<div class="tiles">$tiles</div>
+<nav class="section-nav" aria-label="$label_report_sections">$navigation</nav>
+</section>
+$banner
+$overview
+<section class="report-section" id="profile"><h2>$label_profile</h2>
+<p class="section-intro">$profile_notes</p>
+<div class="card profile-card">
+<div class="radar"><canvas id="profile-radar" role="img" aria-label="$label_profile"></canvas></div>
+$profile_legend</div>
+$axes
+</section>
+<section class="report-section" id="findings"><h2>$label_findings_title</h2><div class="grid findings-grid">
+$strengths
+$growth</div></section>
+$workflow
+$style_card
+<section class="report-section" id="stats"><h2>$label_detailed_statistics</h2>
+<div class="grid report-stats">
+<section class="card"><h3>$label_weekday_activity</h3><div class="chart"><canvas id="weekday" role="img" aria-label="$label_weekday_activity"></canvas></div></section>
+<section class="card"><h3>$label_hour_activity</h3><div class="chart"><canvas id="hour" role="img" aria-label="$label_hour_activity"></canvas></div></section>
+<section class="card" id="projects"><h3>$label_project_themes</h3>$projects</section>
+$edit_checks
+<section class="card"><h3>$label_friction</h3><div class="tiles">$friction</div></section>
+<section class="card"><h3>$label_spend</h3>$spend<p class="note">$label_cursor_tokens</p></section>
+$trend
+<section class="card"><h3>$label_tools</h3>$tools_table<p class="note">$action_counts</p></section>
+$sources
+$observations
+</div></section>
+<footer><span>$label_footer</span><a href="#top">$label_back_to_top <span aria-hidden="true">↑</span></a></footer>
+</main><script>$library</script><script>const DATA = $payload;
+$script</script></body></html>

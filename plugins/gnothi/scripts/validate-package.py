@@ -93,7 +93,7 @@ def check_report(root):
     problems = []
     library = root / "report/vendor/chart.umd.min.js"
 
-    for relative in ("report/style.css", "report/vendor/LICENSE.chart.js"):
+    for relative in ("report/portrait.html", "report/style.css", "report/vendor/LICENSE.chart.js", "templates/portrait.md"):
         if not (root / relative).is_file():
             problems.append(f"missing {relative}")
 
@@ -110,10 +110,10 @@ def check_report(root):
     try:
         page = (root / "report/widget/portrait.html").read_text(encoding="utf-8")
         if page.count('<script id="portrait-data" type="application/json">null</script>') != 1:
-            problems.append("Gnothi portrait widget requires one empty data placeholder")
+            problems.append("Gnothi metrics report requires one empty data placeholder")
         if re.search(r"""<script\b[^>]*\bsrc\s*=|<link\b[^>]*rel=['"]stylesheet|@import\s+(?:url\()?['"]?https?://""",
                      page, re.I):
-            problems.append("Gnothi portrait widget must bundle its JavaScript and CSS locally")
+            problems.append("Gnothi metrics report must bundle its JavaScript and CSS locally")
     except OSError:
         problems.append("missing report/widget/portrait.html")
 

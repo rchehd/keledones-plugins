@@ -26,6 +26,7 @@ class WidgetTest(unittest.TestCase):
             self.assertNotIn("Private session fixture", offline)
             self.assertIn('"label": "Сесії", "value": 5, "previous": 2', offline)
             self.assertNotIn("Confidential project fixture", offline)
+            self.assertNotIn("ui/initialize", offline)
 
     def test_no_plugin_manifest_registers_the_retired_mcp_view(self):
         self.assertFalse((PLUGIN / ".mcp.json").exists())

@@ -105,8 +105,11 @@ The full private report is at `html`.
 
 ## 5. Reply
 
-5–8 lines: the summary, the top strengths and growth areas, a comparable change when there is one, and the
-report path from `html` to open in a browser. Give the count for each source and mark exports and retrieved samples.
+Use the [Markdown portrait template](../../templates/portrait.md) in the current private chat. Fill it
+from the current digest and supported findings, keeping its section order and translating the display
+text. Pair each finding with a concise paraphrase or aggregate count. Suggest a concrete change and a
+way to check it in a later period. State when a comparison cannot be made. Give the report path from
+`html` to open in a browser. Give the count for each source and mark exports and retrieved samples.
 When the workflow evidence supports it, include one common interaction sequence or concrete point of friction.
 
 ## Privacy

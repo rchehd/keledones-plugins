@@ -74,6 +74,8 @@ unavailable, use the chat sources below.
 4. Apply the [workflow criteria](workflow-analysis.md) to supported evidence. If you used a local digest, take
    the interaction counts and common paths from it. State which steps were visible in chat-only sources.
 
-Keep this portrait in the current private chat. If the user wants an offline HTML report, show the local import
-path. For exports, use the [ChatGPT export guide](https://help.openai.com/en/articles/7260999-exporting-your-chatgpt-history-and-data)
+Use the [Markdown portrait template](../../../templates/portrait.md) for the chat result, including a
+no-save collection. Keep the section order and mark evidence or comparisons that are unavailable.
+Include the HTML link when a local report was generated. If the user asks for an offline report from
+chat-only sources, show the local import path. For exports, use the [ChatGPT export guide](https://help.openai.com/en/articles/7260999-exporting-your-chatgpt-history-and-data)
 or the [Claude export guide](https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data).

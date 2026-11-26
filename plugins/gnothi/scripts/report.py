@@ -5,6 +5,7 @@ import json
 import re
 from datetime import date, timedelta
 from pathlib import Path
+from string import Template
 
 import profiles
 import storage
@@ -599,54 +600,25 @@ def render_html(digest, portrait, profile, previous):
     library = (PACKAGE / "report/vendor/chart.umd.min.js").read_text(encoding="utf-8")
     payload = json.dumps(data).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
 
-    return f"""<!doctype html>
-<html lang="{escape(portrait.get('language') or 'en')}"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="{CSP}">
-<title>{label['title']}</title><style>{css}</style></head><body>
-<header class="site-header" id="top"><div class="container header-inner">
-<div class="brand"><span class="brand-mark" aria-hidden="true"></span><strong>Gnothi</strong>
-<span class="brand-description">· {label['brand_description']}</span></div><span class="pill generated">{generated}</span>
-</div></header>
-<main class="container">
-<section class="hero">
-<p class="eyebrow">{label[period['name']]} · {escape(date_range(period, ui))}</p>
-<h1>{label['your_portrait']}</h1><p class="lead">{escape(portrait.get('summary'))}</p>
-<div class="pills">{chips}</div>
-<div class="tiles">{tiles}</div>
-<nav class="section-nav" aria-label="{label['report_sections']}">{navigation}</nav>
-</section>
-{banner}
-{overview}
-<section class="report-section" id="profile"><h2>{label['profile']}</h2>
-<p class="section-intro">{' '.join(profile_notes)}</p>
-<div class="card profile-card">
-<div class="radar"><canvas id="profile-radar" role="img" aria-label="{label['profile']}"></canvas></div>
-{render_profile_legend(radar, ui)}</div>
-{render_axes(rows, by_id, ui)}
-</section>
-<section class="report-section" id="findings"><h2>{label['findings_title']}</h2><div class="grid findings-grid">
-{render_findings("strengths", strengths, by_id, 1, ui)}
-{render_findings("growth", growth, by_id, len(strengths) + 1, ui)}</div></section>
-{workflow}
-{style_card}
-<section class="report-section" id="stats"><h2>{label['detailed_statistics']}</h2>
-<div class="grid report-stats">
-<section class="card"><h3>{label['weekday_activity']}</h3><div class="chart"><canvas id="weekday" role="img" aria-label="{label['weekday_activity']}"></canvas></div></section>
-<section class="card"><h3>{label['hour_activity']}</h3><div class="chart"><canvas id="hour" role="img" aria-label="{label['hour_activity']}"></canvas></div></section>
-<section class="card" id="projects"><h3>{label['project_themes']}</h3>{projects}</section>
-{render_edit_checks(summary, previous_block.get("summary", {}), ui)}
-<section class="card"><h3>{label['friction']}</h3><div class="tiles">{friction}</div></section>
-<section class="card"><h3>{label['spend']}</h3>{spend}<p class="note">{label['cursor_tokens']}</p></section>
-{trend}
-<section class="card"><h3>{label['tools']}</h3>{table([ui[key] for key in ("kind", "name", "uses")], tool_rows, numeric=(2,))}<p class="note">{action_counts}</p></section>
-{sources}
-{f'<section class="card"><h3>{label["observations"]}</h3><ul>{observations}</ul></section>' if observations else ''}
-</div></section>
-<footer><span>{label['footer']}</span><a href="#top">{label['back_to_top']} <span aria-hidden="true">↑</span></a></footer>
-</main><script>{library}</script><script>const DATA = {payload};
-{SCRIPT}</script></body></html>
-"""
+    template = Template((PACKAGE / "report/portrait.html").read_text(encoding="utf-8"))
+    return template.substitute(
+        {f"label_{key}": value for key, value in label.items()},
+        language=escape(portrait.get("language") or "en"), csp=CSP, css=css, generated=generated,
+        period_name=label[period["name"]], period_dates=escape(date_range(period, ui)),
+        summary=escape(portrait.get("summary")), chips=chips, tiles=tiles, navigation=navigation,
+        banner=banner, overview=overview, profile_notes=" ".join(profile_notes),
+        profile_legend=render_profile_legend(radar, ui), axes=render_axes(rows, by_id, ui),
+        strengths=render_findings("strengths", strengths, by_id, 1, ui),
+        growth=render_findings("growth", growth, by_id, len(strengths) + 1, ui),
+        workflow=workflow, style_card=style_card, projects=projects,
+        edit_checks=render_edit_checks(summary, previous_block.get("summary", {}), ui),
+        friction=friction, spend=spend, trend=trend,
+        tools_table=table([ui[key] for key in ("kind", "name", "uses")], tool_rows, numeric=(2,)),
+        action_counts=action_counts, sources=sources,
+        observations=(f'<section class="card"><h3>{label["observations"]}</h3>'
+                      f'<ul>{observations}</ul></section>' if observations else ""),
+        library=library, payload=payload, script=SCRIPT,
+    )
 
 
 SCRIPT = """const css = getComputedStyle(document.documentElement);
