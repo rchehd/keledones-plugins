@@ -166,8 +166,30 @@ ENGLISH = {
 }
 
 
+METRICS_ENGLISH = {
+    "metrics_title": "Gnothi work portrait",
+    "metrics_summary": "Aggregate metrics from the selected period.",
+    "metrics_previous": "Previous",
+    "metrics_compare": "Compare with the previous period",
+    "metrics_empty": "No data for this period.",
+    "metrics_all_through": "All history through {end}",
+    "metrics_edit_sessions": "Sessions with edits",
+    "metrics_checked_after_edit": "Checked after edits",
+    "metrics_count": "Count",
+}
+REPORT_LABELS = {**ENGLISH, **METRICS_ENGLISH}
+
+
+def missing_translations(portrait, aggregate):
+    if portrait.get("language", "en").split("-")[0].lower() == "en":
+        return []
+    required = REPORT_LABELS if aggregate else ENGLISH
+    missing = sorted(required.keys() - (portrait.get("ui") or {}).keys())
+    return ["translate all report labels via ui-strings. Missing: " + ", ".join(missing)] if missing else []
+
+
 def strings_for(portrait):
-    return {**ENGLISH, **(portrait.get("ui") or {})}
+    return {**REPORT_LABELS, **(portrait.get("ui") or {})}
 
 
 def placeholders(value):
@@ -190,13 +212,13 @@ def check_ui(overrides):
     problems = []
 
     for key, value in overrides.items():
-        if key not in ENGLISH:
+        if key not in REPORT_LABELS:
             problems.append(f"ui: unknown label {key}")
         elif not isinstance(value, str) or not value.strip() or len(value) > 1024:
             problems.append(f"ui: {key} must be a nonempty string of at most 1024 characters")
         else:
             try:
-                if placeholders(value) == placeholders(ENGLISH[key]):
+                if placeholders(value) == placeholders(REPORT_LABELS[key]):
                     continue
             except ValueError:
                 pass

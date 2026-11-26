@@ -1,26 +1,29 @@
 # Ready Check report template
 
-Write the report in the language requested for this task, the configured artifact language if set to a fixed
-language, or the current chat language by default. Translate headings and prose. Keep the machine-readable lines
-marked below and commit and PR/MR text in English. Replace bracketed fields with known facts or an explicit unknown;
-keep unresolved preparation items open. Maintain the same report as answers arrive.
+Follow the [report language rules](report-language.md). Translate all visible text, including table
+headers and displayed status values. Keep the metadata keys and values in the HTML comment below
+for scripts. Replace bracketed fields with known facts or an explicit unknown. Maintain the same
+report as answers arrive.
 
 ```markdown
 # Ready Check
 
-task_id: [Slug of the task title plus the date of the first run, from the reports command]
-Round: [1 for the first run; increment after each fix or retest]
-Verdict: [INCOMPLETE, BLOCKED, PARTIAL CHECK COMPLETE, or READY TO PUSH only for a full successful run]
+<!--
+task_id: [Task ID from the reports command]
+Round: [1 for the first run, increment after each fix or retest]
+Verdict: [INCOMPLETE, BLOCKED, PARTIAL CHECK COMPLETE, or READY TO PUSH]
+Requirements revision: [Positive integer, increment when criteria or exclusions change]
+QA plan revision: [Positive integer once planned, increment for a material plan change]
+-->
 
-<!-- Keep the three lines above and the Requirements revision and QA plan revision keys in English. -->
-
+**Result** [Translated verdict and round]
 Reason: [Open questions, confirmed findings, missing prerequisites, or current verified coverage]
 Report: [Absolute report path]
 
 ## Task
 
 [Requested outcome and source; state explicitly when the task is unknown]
-Requirements revision: [Positive integer, starting at 1. Increment when criteria or exclusions change]
+- **Requirements revision** [Show this label in the report language]
 
 ## Scope
 
@@ -119,7 +122,7 @@ reasons relevant checks did not apply. Keep code inspection separate from runtim
 Stage status: [NOT_SELECTED, NOT_RUN, PASS, FAIL, INCOMPLETE, or justified whole-stage N/A]
 Can proceed to final result: [false until current QA coverage is complete and no blockers remain]
 Checked static snapshots and requirements revision: [Identity by profile/application or not yet checked]
-QA plan revision: [Positive integer, starting at 1. Increment when scenarios, criteria, roles, data scope or planned recording change]
+- **QA plan revision** [Show this label in the report language]
 Plan approval: [PENDING / APPROVED / REJECTED; human response and approved revision/RC revision/scenario IDs; not needed for justified whole-stage N/A or NOT_SELECTED]
 Task type and source: [Feature acceptance or bug trigger/corrected expectation/regressions, from session/task/human]
 Time: [Execution start/end or not run]

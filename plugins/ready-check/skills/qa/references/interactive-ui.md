@@ -4,7 +4,7 @@
 
 Record the current `Round: <number>` in the task report. Post the result using the packaged
 [Markdown QA template](../../../templates/qa-results.md). Replace its placeholders with verified results
-and artifact links. Keep the section order, IDs and status codes. Repeat the scenario block by ID, with
+and artifact links. Keep the section order and IDs. Translate displayed status labels. Repeat the scenario block by ID, with
 failed cases first.
 Count every case once by recorded status. For a failed case, include its finding ID, impact, brief steps
 to reproduce and decisive evidence. For a case that did not run, say why in the actual result field.
@@ -18,9 +18,10 @@ same observed results to prepare the local HTML report when the round has screen
 
 ### Local HTML report
 
-Write a UTF-8 JSON input beside the existing report. Set `locale` to match the current chat language:
-`uk` for Ukrainian, `ru` for Russian and `en` for English or other chat languages. The viewer translates
-its built-in labels. Write every displayed title, expected and actual result, artifact caption, video
+Write a UTF-8 JSON input beside the existing report. Set `locale` to the chosen report language tag.
+The viewer supplies labels for English, Ukrainian and Russian. For another language, copy the
+`en` object from [the QA labels](../../../ui/qa-labels.json) into the input's `labels` property.
+Translate every value, preserving keys and nested objects. Write every displayed title, expected and actual result, artifact caption, video
 chapter, coverage note and limitation in the selected language. Keep scenario IDs, status codes and
 file paths as recorded.
 Copy each scenario's `kind` and [`category`](test-design.md#coverage-categories) from its approved plan by ID.

@@ -7,68 +7,12 @@ import "@awesome.me/webawesome/dist/components/dialog/dialog.js";
 import "@awesome.me/webawesome/dist/translations/ru.js";
 import "@awesome.me/webawesome/dist/translations/uk.js";
 import "./ui.css";
+import strings from "./qa-labels.json";
 import { renderDashboard } from "./dashboard.js";
 
 const main = document.getElementById("ready-check");
 const token = location.hash.slice(1);
 const systemColor = matchMedia("(prefers-color-scheme: dark)");
-const strings = {
-  en: {
-    qaResults: "QA results", round: "Round", expected: "Expected", actual: "Actual",
-    scenarioKinds: { browser: "Browser", mobile: "Mobile", desktop: "Desktop", api: "API", cli: "CLI", ci: "CI" },
-    scenarioCategories: {
-      accessibility: "Accessibility", "user-flow": "User flow", "access-control": "Access control",
-      "error-handling": "Error handling",
-    },
-    loading: "Opening Ready Check…", unavailable: "The view could not be loaded.",
-    artifact: "View evidence", noMedia: "No media evidence.",
-    screenshot: "Screenshot",
-    staleEvidence: "The evidence could not be loaded. Reopen the current QA round.",
-  },
-  uk: {
-    qaResults: "Результати QA", round: "Раунд", expected: "Очікувано", actual: "Фактично",
-    scenarioKinds: { browser: "Браузер", mobile: "Мобільний", desktop: "Десктоп", api: "API", cli: "CLI", ci: "CI" },
-    scenarioCategories: {
-      accessibility: "Доступність", "user-flow": "Користувацький сценарій", "access-control": "Права доступу",
-      "error-handling": "Обробка помилок",
-    },
-    statuses: {
-      PASS: "Пройдено",
-      FAIL: "Не пройдено",
-      BLOCKED: "Заблоковано",
-      INCOMPLETE: "Не завершено",
-      NOT_RUN: "Не запускали",
-      "N/A": "Не застосовується",
-    },
-    loading: "Відкриваємо Ready Check…", unavailable: "Не вдалося відкрити звіт.",
-    artifact: "Переглянути доказ",
-    screenshot: "Скріншот",
-    noMedia: "Медіадоказів немає.",
-    staleEvidence: "Не вдалося завантажити доказ. Відкрий поточний раунд QA ще раз.",
-  },
-  ru: {
-    qaResults: "Результаты QA", round: "Раунд", expected: "Ожидалось", actual: "Фактически",
-    scenarioKinds: { browser: "Браузер", mobile: "Мобильный", desktop: "Десктоп", api: "API", cli: "CLI", ci: "CI" },
-    scenarioCategories: {
-      accessibility: "Доступность", "user-flow": "Пользовательский сценарий", "access-control": "Права доступа",
-      "error-handling": "Обработка ошибок",
-    },
-    statuses: {
-      PASS: "Пройдено",
-      FAIL: "Не пройдено",
-      BLOCKED: "Заблокировано",
-      INCOMPLETE: "Не завершено",
-      NOT_RUN: "Не запускали",
-      "N/A": "Неприменимо",
-    },
-    loading: "Открываем Ready Check…", unavailable: "Не удалось открыть отчёт.",
-    artifact: "Посмотреть материалы",
-    screenshot: "Скриншот",
-    noMedia: "Скриншотов и видео нет.",
-    staleEvidence: "Не удалось загрузить материалы. Открой текущий раунд QA заново.",
-  },
-};
-
 function displayLocale(locale) {
   const language = typeof locale === "string" ? locale.toLowerCase().split("-")[0] : "";
   return Object.hasOwn(strings, language) ? language : "en";
@@ -250,11 +194,11 @@ function showError(text) {
 
 function render(value) {
   state = value;
-  const locale = displayLocale(value.data.locale || navigator.language);
-  document.documentElement.lang = locale;
-  labels = strings[locale];
-  const data = value.data;
+  const locale = value.data.locale || navigator.language;
   const reflect = value.view === "reflect";
+  document.documentElement.lang = locale;
+  labels = reflect ? strings[displayLocale(locale)] : value.data.labels || strings[displayLocale(locale)];
+  const data = value.data;
   document.documentElement.classList.toggle("qa-evidence", !reflect);
   const pane = element("section");
   const header = element("header", undefined, reflect ? undefined : "qa-toolbar");

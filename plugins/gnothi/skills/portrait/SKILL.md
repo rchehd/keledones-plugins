@@ -12,7 +12,10 @@ description: >-
 
 # Gnothi portrait
 
-Respond and write the portrait in the user's language. Use the [chat history instructions](references/chat-history.md)
+Write the chat portrait and local HTML in the language of the current conversation. If the user's
+messages leave it unclear, ask once before drafting. Use that language for headings, table and chart
+labels, statuses, captions and summaries. Keep client names, IDs, file paths and exact quotes intact.
+Check the completed portrait for untranslated template text before sharing. Use the [chat history instructions](references/chat-history.md)
 to discover accessible sources and choose the report format. If the client cannot run the bundled script against
 the user's local machine, follow **Portrait in chat** in that reference. A cloud shell does not grant access to a
 user's computer. On the local path, resolve the plugin root two directories above this file's directory and run

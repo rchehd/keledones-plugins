@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import digest  # noqa: E402
 import profiles  # noqa: E402
 import report  # noqa: E402
-from report_strings import ENGLISH  # noqa: E402
+from report_strings import REPORT_LABELS  # noqa: E402
 import storage  # noqa: E402
 from sessions import PERIODS  # noqa: E402
 from sources import ADAPTERS, chat_history  # noqa: E402
@@ -121,7 +121,7 @@ def parser():
                          help="Prepare aggregate metrics from the approved collect result")
     command.set_defaults(run=render)
     commands.add_parser("ui-strings", help="List report strings and placeholders for translation").set_defaults(
-        run=lambda _: {"strings": ENGLISH})
+        run=lambda _: {"strings": REPORT_LABELS})
     command = commands.add_parser("forget", help="Delete all Gnothi data")
     command.add_argument("--yes", action="store_true")
     command.set_defaults(run=forget)

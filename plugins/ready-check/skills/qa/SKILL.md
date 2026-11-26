@@ -6,9 +6,8 @@ description: Plan risk-based QA for browser, native mobile, desktop, API, CLI an
 # QA
 
 Continue `check` in the current chat with its report, complete RC list, any selected review matrix,
-applicable profile and application pairs, selected checks, and their static JSON or partial scope evidence. Talk in the user's
-language; write the plan and results into the report in its effective language. For a new report, use the
-language requested for the task, a fixed `artifactLanguage` if configured, or the chat language by default.
+applicable profile and application pairs, selected checks, and their static JSON or partial scope evidence.
+Follow the [report language rules](../check/references/report-language.md) for the plan, results and saved report.
 Verify behavior through
 the applicable entry points and compare the observed behavior with the expected result. Techniques, oracles
 and investigation steps are in [test design](references/test-design.md).
@@ -117,7 +116,7 @@ before asking for plan approval; axe runs in the selected Playwright mode. Recor
 accessibility coverage as `INCOMPLETE` when no authorized execution method is available.
 
 Save the current values as `QA plan revision: <number>` and `Requirements revision: <number>` in the
-report, along with scenario IDs and `approval: PENDING`. Keep both revision keys in English. Post the
+report's metadata comment. Record scenario IDs and the pending approval in the plan. Post the
 [QA plan template](../../templates/qa-plan.md) as a standalone Markdown message in the chat language.
 Fill it from the saved plan. Keep its section order and repeat the test case block for every `QA-ID` in risk order. Include the effective
 browser mode for interactive web cases and show which cases will be recorded, with capture method and

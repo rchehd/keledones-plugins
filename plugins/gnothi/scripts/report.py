@@ -10,7 +10,7 @@ from string import Template
 import profiles
 import storage
 from digest import fingerprint
-from report_strings import check_ui, strings_for
+from report_strings import check_ui, missing_translations, strings_for
 from sessions import CHAT_CLIENTS
 from signals import ARCHETYPES, AXES
 from workflows import STATUSES, STEP_ACTORS
@@ -693,6 +693,8 @@ def render(portrait_path=None, widget_metrics=None):
 
     profile = profiles.read()
     problems = validate(portrait, digest, profile)
+    if not problems:
+        problems = missing_translations(portrait, widget_metrics is not None)
 
     if problems:
         raise ValueError("Fix portrait.json: " + "; ".join(problems))
@@ -720,5 +722,5 @@ def render(portrait_path=None, widget_metrics=None):
     if widget_metrics is not None:
         import widget
 
-        result.update(widget.prepare(digest, portrait.get("language")))
+        result.update(widget.prepare(digest, portrait.get("language", "en"), strings_for(portrait)))
     return result

@@ -21,7 +21,7 @@ COMMON = ("locale", "title", "round", "status", "coverage", "limitations")
 DETAILS = ("id", "title", "role", "risk", "requirements", "steps", "expected")
 VIEW_FIELDS = {
     "qa-plan": ("scenarios", "qa_plan_revision", "requirements_revision", "charter"),
-    "qa-results": ("scenarios",),
+    "qa-results": ("scenarios", "labels"),
     "review": ("findings", "reviewed_source", "requirements_revision"),
 }
 ROW_FIELDS = {
@@ -60,6 +60,27 @@ def identity(data):
 
 def positive_number(value):
     return type(value) is int and value > 0
+
+
+def check_qa_labels(data):
+    locale = data.get("locale", "en")
+    if not isinstance(locale, str) or not re.fullmatch(r"[a-zA-Z]{2,8}(?:-[a-zA-Z0-9]{1,8})*", locale):
+        raise ValueError("QA results need a valid language tag")
+    path = Path(__file__).resolve().parent.parent / "ui/qa-labels.json"
+    available = json.loads(path.read_text(encoding="utf-8"))
+    if locale.lower().split("-")[0] not in available or "labels" in data:
+        validate_label_map(available["en"], data.get("labels"))
+
+
+def validate_label_map(expected, labels):
+    if not isinstance(labels, dict) or labels.keys() != expected.keys():
+        raise ValueError("Provide a complete translation of the report labels")
+    for key, template in expected.items():
+        label = labels[key]
+        if isinstance(template, dict):
+            validate_label_map(template, label)
+        elif not isinstance(label, str) or not label.strip() or len(label) > 1024:
+            raise ValueError(f"Invalid report label: {key}")
 
 
 def reviewed_source(root):
@@ -130,6 +151,7 @@ class View:
                 if row.get("recording_required") and not row.get("recording"):
                     raise ValueError("A mandatory recording requires a recording description")
         if self.kind == "qa-results":
+            check_qa_labels(data)
             for row in data["scenarios"]:
                 for asset in row.get("artifacts", []):
                     self.artifact_path(asset["path"])

@@ -173,17 +173,7 @@ def first_run(top, client, values, status):
 
     fallback = "; in Claude Code the user can run it by typing ! followed by the command" if client == "claude" else ""
     return template("first-run.md", question=question(selected, conflicts, values, status, confirmed), fallback=fallback,
-                    yes=command(top, "yes", selected, client), no=command(top, "no", selected, client),
-                    language=language_note(values, client))
-
-
-def language_note(values, client):
-    if values["artifactLanguage"] != "chat":
-        return ""
-
-    config = shell_command([sys.executable, PLUGIN / "scripts/ready-check.py", "config", "set", "artifactLanguage"], client)
-    return ("Mention that Ready Check reports follow the chat language by default. "
-            f"If the user asks to save a fixed language, run `{config} \"<language in English>\"`.\n\n")
+                    yes=command(top, "yes", selected, client), no=command(top, "no", selected, client))
 
 
 def session_context(client, payload, top, include_setup=True):
@@ -200,12 +190,9 @@ def session_context(client, payload, top, include_setup=True):
     comment_option = (" " + quote("--client-template=" + comment_template, client)
                       if settings.valid("taskCommentTemplate", comment_template) else "")
     offers_off = shell_command([*entry, "offers", "off", "--client", client, "--session", session_id(payload)], client)
-    language = values["artifactLanguage"]
-    if language == "chat":
-        language = "the language of the current chat"
     rule = template("session-rule.md", check=CHECK[client], rules=shell_command([*entry, "rules", "add"], client),
                     template_command=shell_command([*entry, "template"], client), comment_option=comment_option,
-                    language=language, offer=OFFER.as_posix(), offers_off=offers_off)
+                    offer=OFFER.as_posix(), offers_off=offers_off)
     tasks.prune(top)
 
     if "start" not in hook_state.load(client, session_id(payload)):

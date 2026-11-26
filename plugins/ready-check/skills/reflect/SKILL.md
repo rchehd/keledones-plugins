@@ -9,7 +9,7 @@ description: >-
 
 # Reflect on recent tasks
 
-Respond in the user's language. Counting is done by the script; you group free text and write proposals.
+Follow the [report language rules](../check/references/report-language.md). Counting is done by the script; you group free text and write proposals.
 Resolve the plugin root two directories above this file's directory; Python is `python3` (`py -3` on Windows).
 
 For an ambiguous request such as "what are my typical mistakes?" or "покажи мої типові помилки", ask whether the user means preparing
@@ -20,7 +20,10 @@ if available. Wait for the choice before reading data. An explicit request for `
 
 1. When a phrase triggered this skill rather than the explicit command, ask once: "Show the Ready Check overview of
    the last 10 tasks?" Ask how many tasks only if the user wants a different number.
-2. Run `ready-check.py reflect-collect --project <app> --tasks <N> --html` for the digest and offline report.
+2. Run `ready-check.py reflect-collect --project <app> --tasks <N> --html --locale <language-tag>`.
+   Use the chosen report language. For languages other than English and Ukrainian, copy the
+   `en` object from [the Reflect labels](../../ui/reflect-labels.json) and translate every value.
+   Save it as a JSON file in private report storage and pass `--labels <file>`.
 3. Give the collector's offline HTML path and a short summary in chat. For a localized local browser
    overview when requested, run `ready-check.py ui serve --project <app> --view reflect --snapshot
    <snapshot_id> --locale <en|uk>` in the background and give its URL. Use this format for the summary:

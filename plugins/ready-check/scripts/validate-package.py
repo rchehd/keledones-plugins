@@ -228,8 +228,9 @@ def entry_points(root):
     for manifest in (".mcp.json", ".cursor-plugin/plugin.json", ".codex-plugin/plugin.json"):
         servers = read_json(root / manifest).get("mcpServers", {})
         require("ready-playwright" in servers, f"{manifest} must bundle Playwright MCP")
+    resource(root, root, "ui/reflect-labels.json")
     digest = hashlib.sha256()
-    for name in ("index.html", "ui.js", "ui.css", "dashboard.js", "dashboard.css", "vite.config.mjs", "package.json", "package-lock.json"):
+    for name in ("index.html", "ui.js", "ui.css", "qa-labels.json", "dashboard.js", "dashboard.css", "vite.config.mjs", "package.json", "package-lock.json"):
         source = resource(root, root, "ui/" + name).read_text(encoding="utf-8")
         digest.update(name.encode() + b"\0" + source.encode() + b"\0")
     bundle = resource(root, root, "ui/dist/index.html").read_text(encoding="utf-8")
