@@ -215,18 +215,19 @@ def dependencies(root):
 def entry_points(root):
     for name in ("doctor.sh", "check-static.sh", "check-profile.py", "setup.sh", "setup.py", "dependency_support.py", "profile_selection.py",
                  "process_support.py", "profile_runtime.py", "managed_storage.py", "git_exclude.py", "reports.py", "mcp.py", "mcp.mjs",
-                 "ui.py", "ui_state.py", "ui-mcp.py", "phpstorm_mcp.py",
+                 "ui.py", "ui_state.py", "phpstorm_mcp.py",
                  "ready-check.py", "playwright.sh", "playwright.py", "project.py", "settings.py", "detect.py", "logs.py",
                  "tasks.py", "answers.py", "hook.py", "hook_state.py", "offers.py", "fingerprint.py", "consent.py", "uninstall.py", "rules.py", "a11y.py", "qa-gate.py", "qa-record.py", "qa_evidence.py", "customize.py", "draft_template.py", "summary.py", "feedback.py", "reflect_collect.py", "publication.py"):
         resource(root, root, "scripts/" + name)
     for name in ("session-rule.md", "first-run.md"):
         resource(root, root, "hooks/" + name)
     for name in ("CONTRIBUTING.md", "skills/check/references/check-offer.md", "templates/improvement.md", "templates/bug.md",
-                 "templates/commit-message.txt", "templates/pull-request.md", "templates/task-comment.md", "templates/qa-replay.html"):
+                 "templates/commit-message.txt", "templates/pull-request.md", "templates/task-comment.md",
+                 "templates/review-results.md", "templates/qa-plan.md", "templates/qa-results.md", "templates/qa-replay.html"):
         resource(root, root, name)
     for manifest in (".mcp.json", ".cursor-plugin/plugin.json", ".codex-plugin/plugin.json"):
         servers = read_json(root / manifest).get("mcpServers", {})
-        require({"ready-playwright", "ready-ui"} <= servers.keys(), f"{manifest} must bundle the Ready Check MCP servers")
+        require("ready-playwright" in servers, f"{manifest} must bundle Playwright MCP")
     digest = hashlib.sha256()
     for name in ("index.html", "ui.js", "ui.css", "dashboard.js", "dashboard.css", "vite.config.mjs", "package.json", "package-lock.json"):
         source = resource(root, root, "ui/" + name).read_text(encoding="utf-8")
@@ -234,9 +235,9 @@ def entry_points(root):
     bundle = resource(root, root, "ui/dist/index.html").read_text(encoding="utf-8")
     resource(root, root, "ui/dist/THIRD_PARTY_NOTICES.md")
     require(f'name="ready-check-ui-revision" content="{digest.hexdigest()}"' in bundle,
-            "The interactive UI bundle is stale. Run npm ci and npm run build in ui.")
+            "The HTML report bundle is stale. Run npm ci and npm run build in ui.")
     require(not re.search(r'<script\b[^>]*\bsrc\s*=|<link\b[^>]*rel=["\']stylesheet|@import\s+(?:url\()?["\']?https?://',
-                          bundle, re.I), "The interactive UI bundle must contain its JavaScript and CSS locally")
+                          bundle, re.I), "The HTML report bundle must contain its JavaScript and CSS locally")
     for name in ("core_runner.py", "core_scope.py", "core_toolchain.py", "core_checks.py", "core_main.py", "core_setup.py", "yaml_checks.py"):
         resource(root, root, "profiles/_shared/core/" + name)
     for name in ("php_runtime.py", "php_toolchain.py", "php_lint.py", "php_provider.py", "php_setup.py"):

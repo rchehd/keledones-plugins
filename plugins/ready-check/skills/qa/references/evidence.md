@@ -62,8 +62,7 @@ capture. Use a session that contains only tabs and test data approved for this c
 
 - **Ready Check Playwright CLI.** Open the named session from the task report directory. Start after login
   and use the same session for recording and UI actions. Use the `evidence` path returned by the preparation
-  command. For the live Dashboard, keep the same `--qa-live-dir` option on recording and screenshot commands.
-  The managed wrapper accepts these arguments even if the application has no Playwright tests.
+  command. The managed wrapper supports recording even if the application has no Playwright tests.
 
   ```sh
   playwright-cli -s=<session> video-start evidence/round-1/QA-001-attempt-1.webm.capture/QA-001-attempt-1.webm
@@ -121,11 +120,9 @@ that establishes the result for the case.
 | A sequence and a final visual state | Show both if each establishes something different. Label the moment shown in the clip and the state visible in the screenshot. |
 | API, persistence, accessibility scan or CI result | Show the decisive observed value or short diagnostic excerpt. Link the trace, journal or raw result. Use a screenshot or clip when a separate visual claim needs it. |
 
-Use the [QA evidence viewer](interactive-ui.md#qa-results) for selected screenshots and short clips. Put
-“Replay with steps” beside the result in the user's language when available. If the viewer cannot render,
-open the local HTML in the client's browser when available and provide its link. Use any verified image
-preview or file link supported by the client. For long
-recordings, give a replay link and the relevant timestamps.
+Use the [Markdown QA template and local HTML report](interactive-ui.md#qa-results). Put the decisive
+screenshots, recording links and available replays beside the scenario result. For long recordings, give
+the relevant steps or timestamps. Include the HTML link when available for full-size images and playback.
 Keep other evidence in the report. Never present a planned action, placeholder or inaccessible file as
 observed evidence. If no video was approved or the clip is unavailable, state the limitation when it affects
 what can be shown and link the evidence actually collected.
@@ -169,15 +166,17 @@ python3 <plugin>/scripts/ready-check.py qa-replay --project <app> --task <task-i
 Use the user's language. Put the evidence under the matching scenario ID and verdict, followed by links
 to the journal or replay. Use the path format supported by the current client:
 
-- **Codex Desktop:** Write `![Observed card layout]` immediately followed by `(/absolute/path/QA-001.png)`.
-  Use the same syntax with a WebM or MP4 path when the client supports inline playback.
-- **Cursor Agents Window:** Use a workspace-relative path in the Markdown image for a screenshot in the
-  workspace. Link the video file or replay for playback outside the chat.
-- **Claude Code Desktop:** In a local session, link the video or HTML replay so it opens in the Browser
-  pane. Link the screenshot file when the client cannot preview it inline.
+- **Codex Desktop:** For a file the session can access, write `![Saved state]` immediately followed by
+  `(/absolute/path/QA-001.png)` for an inline image. Use the same syntax for a WebM or MP4 when the session supports inline playback.
+  Include a regular link to the clip or replay for playback in the browser.
+- **Cursor:** When the agent can preview a screenshot from the workspace, use its preview or a
+  workspace-relative Markdown image. Include a regular link to each selected video or replay.
+- **Claude Code Desktop:** In a local session, link to the video or HTML replay for preview in the Browser
+  pane. Use a screenshot preview where supported and include a link to its file.
 
-For terminal and remote sessions, use a preview or link the active client can access. Keep report
-references relative to the task and media local.
+In terminal, remote and mobile sessions, use links or attachments the client can access. Give the
+persistent report path when the report host and the client do not share files. Keep evidence on
+the machine that ran QA unless the user approves another destination.
 
 [Playwright CLI video](https://github.com/microsoft/playwright-cli/blob/v0.1.23/skills/playwright-cli/references/video-recording.md) ·
 [Playwright MCP](https://github.com/microsoft/playwright-mcp/blob/v0.0.84/README.md) ·

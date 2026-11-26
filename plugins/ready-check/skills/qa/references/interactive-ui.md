@@ -1,10 +1,22 @@
-# Ready Check QA evidence viewer
+# Ready Check QA results and evidence
 
 ## QA results
 
-Record the current `Round: <number>` in the report first. Open the viewer when that round has screenshots or recordings
-worth showing. Describe scenario outcomes in chat and include the report path. Use the viewer for evidence
-and the chat for decisions about the result.
+Record the current `Round: <number>` in the task report. Post the result using the packaged
+[Markdown QA template](../../../templates/qa-results.md). Replace its placeholders with verified results
+and artifact links. Keep the section order, IDs and status codes. Repeat the scenario block by ID, with
+failed cases first.
+Count every case once by recorded status. For a failed case, include its finding ID, impact, brief steps
+to reproduce and decisive evidence. For a case that did not run, say why in the actual result field.
+Report gaps in RC coverage, deviations from the plan, unresolved defects and remaining risks. Mark
+empty sections explicitly. Localize titles, labels and evidence captions to the chat language.
+
+Use the [client's supported preview format](evidence.md#create-a-replay-and-hand-off-from-qa) for selected
+screenshots. Put a regular file or replay link beside each selected recording. Add an inline player when
+the active client supports it. Keep the task report link in the message even when a preview opens. Use the
+same observed results to prepare the local HTML report when the round has screenshots or recordings.
+
+### Local HTML report
 
 Write a UTF-8 JSON input beside the existing report. Set `locale` to match the current chat language:
 `uk` for Ukrainian, `ru` for Russian and `en` for English or other chat languages. The viewer translates
@@ -47,49 +59,25 @@ Link trace files, replay HTML and logs from the local task report.
 
 For a before/after comparison, list both screenshots, both clips, or both pairs under the same scenario.
 Label each item `Before` or `After` in the user's language, adding the original round or attempt if it differs.
-Available screenshot previews appear as clickable thumbnails in the widget, up to two per scenario. A pair
-appears together with its captions. Each thumbnail opens a larger view. **Compare screenshots** remains
-available on demand when neither preview was included. A missing preview can load on demand when the host
-supports it. Otherwise the widget offers the local HTML, which shows the full pair when both files are available.
-The screenshot viewer requests full-screen display when the host offers it and returns to the inline view
-on close. Hosts that stay inline show the enlargement in the card's dialog.
-For a retest, select the original failed evidence explicitly in the current round's view and pair it with the
-fresh evidence. Keep the original files in their original attempt directories. Each clip has its own playback
-controls and chapters.
+The HTML report shows screenshot pairs together and lets the user enlarge either image. Each clip has
+its own player and chapter controls. For a retest, select the original failed evidence explicitly in the
+current round and pair it with the fresh evidence. Keep the original files in their attempt directories.
 
-Prepare and open the view:
+Prepare the HTML report and start the loopback server in a background command:
 
 ```text
 <python> <plugin>/scripts/ready-check.py ui prepare --project <repo> --task <task-id> --view qa-results --input <report-relative.json>
-```
-
-Call the packaged `ready-ui` server's `show_view` with the repository path, task ID and `view: qa-results`.
-A compatible host shows the result card, screenshot enlargement and a play button for on-demand playback of
-supported clips up to 4 MB. The player tries an MCP resource when the host advertises `serverResources`.
-It can also use the media tool through `serverTools`, or open the full local report when the clip cannot
-play in the widget. The opening response includes the local report URL when the server can bind a local port.
-Small screenshots are also sent in bounded app metadata, so compatible cards can show previews when the
-host cannot proxy tool calls. **Open local report** and the media fallback use the address from the opening
-response when available and request navigation through the host's `ui/open-link` capability. When direct
-navigation is unavailable or declined, the widget shows the address next to the clicked action.
-
-When the user explicitly asks in chat to open the local QA report, use the current client's built-in browser
-tool when available and open the printed URL in a visible tab. This navigation opens the saved report
-without rerunning QA. If the client cannot reach the local URL, give it for opening in the
-browser on the machine where Ready Check is running. If `show_view` is unavailable or could not start the
-local server, start the HTML view in a background command and use the printed URL:
-
-```text
 <python> <plugin>/scripts/ready-check.py ui serve --project <repo> --task <task-id> --view qa-results
 ```
 
-The URL is local and time limited. Include the task report path so the user can find the evidence after it
-expires. Keep the status and decisive evidence reference in the chat summary even when the viewer opens.
-When the task report moves to the next round, prepare the current evidence before opening a fresh viewer.
+Add the printed URL as a regular Markdown link. The URL is local and time limited. Include the task report
+path so the evidence remains findable after expiry. For a user on another machine or a remote client,
+explain where the report is stored. When asked to open the report and the client's visible browser can
+reach it, open the printed URL there. This opens saved evidence without rerunning QA. Prepare the latest
+round before creating a new link and report any preparation or server error in chat.
 
-When verifying changes to the viewer, open the local report in the client's built-in browser. Confirm that
-screenshots are visible and enlarge when clicked, and that an approved video plays and can seek in the page.
-Verify that widget navigation uses a direct link or presents the copyable address when the host declines.
+When verifying changes to the HTML report, check the failed-first order, status colors, screenshot
+enlargement, and playback and seeking for an approved video.
 
 Handle retest, false-positive investigation and comment drafts in chat. Retest starts a new QA round under
 the existing recheck rules. Investigate the original round before reclassifying a result. Prepare a comment

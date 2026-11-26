@@ -1,4 +1,3 @@
-import { App, applyHostStyleVariables } from "@modelcontextprotocol/ext-apps";
 import "@awesome.me/webawesome/dist/styles/webawesome.css";
 import "@awesome.me/webawesome/dist/styles/themes/awesome.css";
 import "@awesome.me/webawesome/dist/components/badge/badge.js";
@@ -12,8 +11,6 @@ import { renderDashboard } from "./dashboard.js";
 
 const main = document.getElementById("ready-check");
 const token = location.hash.slice(1);
-const inApp = window.parent !== window;
-const app = inApp ? new App({ name: "Ready Check", version: "1.0.0" }, { availableDisplayModes: ["inline", "fullscreen"] }) : null;
 const systemColor = matchMedia("(prefers-color-scheme: dark)");
 const strings = {
   en: {
@@ -24,13 +21,9 @@ const strings = {
       "error-handling": "Error handling",
     },
     loading: "Opening Ready Check…", unavailable: "The view could not be loaded.",
-    artifact: "View evidence", play: "Play", localReport: "Open local report", noMedia: "No media evidence.",
-    openInBrowser: "View in browser",
-    compareScreenshots: "Compare screenshots", screenshot: "Screenshot",
-    copyEvidenceUrl: "Copy this local address to open the evidence in your browser.",
-    requestLocalReport: "Ask the agent for the local QA report link.",
+    artifact: "View evidence", noMedia: "No media evidence.",
+    screenshot: "Screenshot",
     staleEvidence: "The evidence could not be loaded. Reopen the current QA round.",
-    videoFallback: "This client could not play the video. Open the local report to watch it.",
   },
   uk: {
     qaResults: "Результати QA", round: "Раунд", expected: "Очікувано", actual: "Фактично",
@@ -48,14 +41,10 @@ const strings = {
       "N/A": "Не застосовується",
     },
     loading: "Відкриваємо Ready Check…", unavailable: "Не вдалося відкрити звіт.",
-    artifact: "Переглянути доказ", play: "Відтворити", localReport: "Відкрити локальний звіт",
-    openInBrowser: "Переглянути у браузері",
-    compareScreenshots: "Порівняти скріншоти", screenshot: "Скріншот",
+    artifact: "Переглянути доказ",
+    screenshot: "Скріншот",
     noMedia: "Медіадоказів немає.",
-    copyEvidenceUrl: "Скопіюй цю локальну адресу, щоб відкрити докази у браузері.",
-    requestLocalReport: "Попроси агента дати посилання на локальний звіт QA.",
     staleEvidence: "Не вдалося завантажити доказ. Відкрий поточний раунд QA ще раз.",
-    videoFallback: "Клієнт не зміг відтворити відео. Відкрий локальний звіт, щоб його переглянути.",
   },
   ru: {
     qaResults: "Результаты QA", round: "Раунд", expected: "Ожидалось", actual: "Фактически",
@@ -73,14 +62,10 @@ const strings = {
       "N/A": "Неприменимо",
     },
     loading: "Открываем Ready Check…", unavailable: "Не удалось открыть отчёт.",
-    artifact: "Посмотреть материалы", play: "Воспроизвести", localReport: "Открыть локальный отчёт",
-    openInBrowser: "Открыть в браузере",
-    compareScreenshots: "Сравнить скриншоты", screenshot: "Скриншот",
+    artifact: "Посмотреть материалы",
+    screenshot: "Скриншот",
     noMedia: "Скриншотов и видео нет.",
-    copyEvidenceUrl: "Скопируй этот локальный адрес, чтобы посмотреть материалы в браузере.",
-    requestLocalReport: "Попроси агента дать ссылку на локальный QA-отчёт.",
     staleEvidence: "Не удалось загрузить материалы. Открой текущий раунд QA заново.",
-    videoFallback: "Клиент не смог воспроизвести видео. Открой локальный отчёт, чтобы его посмотреть.",
   },
 };
 
@@ -92,11 +77,6 @@ function displayLocale(locale) {
 let labels = strings[displayLocale(navigator.language)];
 let state;
 let status;
-let hostTheme;
-let appliedDark;
-let expandedForPreview = false;
-const hostColors = new Set();
-const objectUrls = new Set();
 
 function element(tag, text, className) {
   const item = document.createElement(tag);
@@ -136,22 +116,6 @@ function facts(card, caption, value, className = "qa-fact") {
   card.append(line);
 }
 
-function syncDisplayMode(mode) {
-  if (!mode) return;
-
-  if (mode !== "fullscreen") expandedForPreview = false;
-  document.querySelectorAll("wa-dialog.preview").forEach((dialog) => {
-    dialog.classList.toggle("preview-expanded", mode === "fullscreen");
-  });
-}
-
-function restoreInline() {
-  if (!expandedForPreview || document.querySelector("wa-dialog.preview")) return;
-
-  expandedForPreview = false;
-  app.requestDisplayMode({ mode: "inline" }, { timeout: 3000 }).catch(() => null);
-}
-
 function openImage(src, title) {
   const dialog = element("wa-dialog");
   dialog.label = title;
@@ -160,60 +124,9 @@ function openImage(src, title) {
   image.src = src;
   image.alt = title;
   dialog.append(image);
-  dialog.addEventListener("wa-after-hide", () => {
-    dialog.remove();
-    restoreInline();
-  }, { once: true });
+  dialog.addEventListener("wa-after-hide", () => dialog.remove(), { once: true });
   document.body.append(dialog);
   dialog.open = true;
-  const context = app?.getHostContext();
-
-  if (context?.displayMode === "fullscreen") {
-    dialog.classList.add("preview-expanded");
-  } else if (context?.availableDisplayModes?.includes("fullscreen")) {
-    app.requestDisplayMode({ mode: "fullscreen" }, { timeout: 3000 }).then((result) => {
-      if (result?.mode !== "fullscreen") return;
-
-      expandedForPreview = true;
-      if (dialog.isConnected) dialog.classList.add("preview-expanded");
-      else restoreInline();
-    }).catch(() => null);
-  }
-}
-
-async function appTool(name, args = {}, options) {
-  const result = await app.callServerTool({ name, arguments: { ...args, handle: state.handle } }, options);
-  if (result.isError) throw new Error(result.content?.[0]?.text || labels.unavailable);
-  return result.structuredContent;
-}
-
-async function openLocalReport(address) {
-  const snapshot = state;
-  address.hidden = true;
-  message("");
-  try {
-    const capabilities = app.getHostCapabilities();
-    let { url } = snapshot;
-
-    if (!url && capabilities?.serverTools) {
-      url = (await appTool("local_view", {}, { timeout: 5000 }))?.url;
-    }
-
-    if (state !== snapshot) return;
-    if (typeof url !== "string" || !/^http:\/\/127\.0\.0\.1:\d+\/#[-\w]+$/.test(url)) {
-      message(labels.requestLocalReport, true);
-      return;
-    }
-    if (capabilities?.openLinks) {
-      const opened = await app.openLink({ url }, { timeout: 5000 }).catch(() => null);
-      if (state !== snapshot || (opened && !opened.isError)) return;
-    }
-    address.textContent = url;
-    address.hidden = false;
-    message(labels.copyEvidenceUrl);
-  } catch (error) {
-    if (state === snapshot) message(error.message, true);
-  }
 }
 
 function addVideo(row, asset, src, title, onError) {
@@ -231,7 +144,6 @@ function addVideo(row, asset, src, title, onError) {
       row.append(button(chapter.title, () => { player.currentTime = chapter.start; }));
     }
   }
-  return player;
 }
 
 function isScreenshot(asset) {
@@ -246,130 +158,17 @@ function localAssetUrl(asset) {
   return "/asset?" + new URLSearchParams({ name: asset.path, access: token, revision: state.revision });
 }
 
-function cachedPreviewUrl(asset) {
-  const preview = state.previews[asset.path];
-  return preview ? "data:" + preview.mimeType + ";base64," + preview.data : null;
-}
-
-function recordingType(asset) {
-  return /\.mp4$/i.test(asset.path) ? "video/mp4" : "video/webm";
-}
-
-function videoBlobUrl(mimeType, data) {
-  if (!["video/mp4", "video/webm"].includes(mimeType) || typeof data !== "string" || !data) return null;
-
-  try {
-    const binary = atob(data);
-    const bytes = new Uint8Array(binary.length);
-
-    for (let index = 0; index < binary.length; index++) {
-      bytes[index] = binary.charCodeAt(index);
-    }
-
-    const url = URL.createObjectURL(new Blob([bytes], { type: mimeType }));
-    objectUrls.add(url);
-    return url;
-  } catch {
-    return null;
-  }
-}
-
-function revokeObjectUrls() {
-  objectUrls.forEach((url) => URL.revokeObjectURL(url));
-  objectUrls.clear();
-}
-
-async function previewVideoUrl(asset) {
-  const snapshot = state;
-  const capabilities = app.getHostCapabilities();
-
-  if (!document.createElement("video").canPlayType(recordingType(asset))) return null;
-
-  if (capabilities?.serverResources) {
-    const uri = "ready-check-video://evidence/" + encodeURIComponent(snapshot.handle) + "/" + encodeURIComponent(asset.path);
-    const resource = await app.readServerResource({ uri }, { timeout: 10000 }).catch(() => null);
-    const clip = resource?.contents?.find((item) => item.uri === uri);
-
-    if (snapshot !== state) return null;
-    if (clip) return videoBlobUrl(clip.mimeType, clip.blob);
-  }
-
-  if (!capabilities?.serverTools) return null;
-
-  const clip = await appTool("preview_media", { path: asset.path }, { timeout: 10000 }).catch(() => null);
-  return snapshot === state ? videoBlobUrl(clip?.mimeType, clip?.data) : null;
-}
-
-async function previewUrl(asset) {
-  if (isRecording(asset)) return previewVideoUrl(asset);
-  const cached = cachedPreviewUrl(asset);
-  if (cached || !app.getHostCapabilities()?.serverTools) return cached;
-  const preview = await appTool("preview_media", { path: asset.path }, { timeout: 5000 }).catch(() => null);
-  return !preview || preview.open_local ? null : "data:" + preview.mimeType + ";base64," + preview.data;
-}
-
-function mediaButton(text, assets, address, show) {
-  const snapshot = state;
-  const capabilities = app.getHostCapabilities();
-  const canPreview = capabilities?.serverTools || assets.some((asset) =>
-    state.previews[asset.path] || (capabilities?.serverResources && isRecording(asset)));
-  const caption = assets.length === 1 ? assets[0].title || labels.artifact : text;
-  const control = button(canPreview ? text : labels.openInBrowser + " · " + caption, async () => {
-    control.disabled = true;
-    address.hidden = true;
-    message("");
-    try {
-      const urls = [];
-      let failure;
-      for (const asset of assets) {
-        const url = await previewUrl(asset).catch((error) => {
-          failure ??= error;
-          return undefined;
-        });
-        if (state !== snapshot) return;
-        urls.push(url);
-      }
-      if (urls.some(Boolean)) show(urls);
-      else if (urls.includes(null)) await openLocalReport(address);
-      else throw failure;
-    } catch (error) {
-      if (state === snapshot) message(error.message, true);
-    } finally {
-      control.disabled = false;
-    }
-  });
-  if (assets.length === 1 && isRecording(assets[0])) {
-    const icon = element("span", "▶", "play-icon");
-    icon.slot = "start";
-    icon.setAttribute("aria-hidden", "true");
-    control.prepend(icon);
-  }
-  return control;
-}
-
-function screenshotButton(url, title, address) {
-  const control = element("button", undefined, address ? "screenshot-preview screenshot-thumbnail" : "screenshot-preview");
+function screenshotButton(url, title) {
+  const control = element("button", undefined, "screenshot-preview");
   control.type = "button";
   const image = element("img");
   image.alt = title;
-  image.loading = inApp ? "eager" : "lazy";
-  image.addEventListener("error", () => {
-    if (address) {
-      control.replaceWith(button(labels.openInBrowser, () => openLocalReport(address)));
-    } else {
-      message(labels.staleEvidence, true);
-    }
-  }, { once: true });
+  image.loading = "lazy";
+  image.addEventListener("error", () => message(labels.staleEvidence, true), { once: true });
   image.src = url;
   control.append(image);
   control.addEventListener("click", () => openImage(url, title));
   return control;
-}
-
-function reportAddress() {
-  const address = element("p", undefined, "meta qa-address");
-  address.hidden = true;
-  return address;
 }
 
 function screenshotFigure(title, view) {
@@ -380,84 +179,34 @@ function screenshotFigure(title, view) {
 
 function screenshotPair(card, assets) {
   const row = element("div", undefined, "evidence");
-  const address = reportAddress();
-  card.append(row);
-  function show(urls, focus = false) {
-    const pair = element("div", undefined, inApp ? "screenshot-pair thumbnail-pair" : "screenshot-pair");
-    for (const [index, url] of urls.entries()) {
-      const title = assets[index].title || labels.screenshot + " " + (index + 1);
-      let view;
-      if (url) {
-        view = screenshotButton(url, title, inApp ? address : undefined);
-      } else if (!focus && app?.getHostCapabilities()?.serverTools) {
-        view = mediaButton(labels.artifact, [assets[index]], address, ([src]) => {
-          const thumbnail = screenshotButton(src, title, address);
-          view.replaceWith(thumbnail);
-          thumbnail.focus();
-        });
-      } else {
-        view = button(labels.openInBrowser, () => openLocalReport(address));
-      }
-      pair.append(screenshotFigure(title, view));
-    }
-    row.replaceChildren(pair);
-    if (inApp) row.append(address);
-    if (focus) pair.querySelector("button, wa-button")?.focus();
+  const pair = element("div", undefined, "screenshot-pair");
+  for (const [index, asset] of assets.entries()) {
+    const title = asset.title || labels.screenshot + " " + (index + 1);
+    pair.append(screenshotFigure(title, screenshotButton(localAssetUrl(asset), title)));
   }
-  const urls = assets.map(inApp ? cachedPreviewUrl : localAssetUrl);
-  if (urls.some(Boolean)) show(urls);
-  else row.append(mediaButton(labels.compareScreenshots, assets, address, (urls) => show(urls, true)), address);
+  row.append(pair);
+  card.append(row);
 }
 
-function artifact(card, asset, thumbnail) {
+function artifact(card, asset) {
   const row = element("div", undefined, "evidence");
   const title = asset.title || labels.artifact;
-  const isImage = isScreenshot(asset);
-  const isVideo = isRecording(asset);
-  if (inApp) {
-    if (!isImage && !isVideo) return false;
-    const address = reportAddress();
-    const cached = thumbnail ? cachedPreviewUrl(asset) : null;
-    const view = cached
-      ? screenshotFigure(title, screenshotButton(cached, title, address))
-      : mediaButton(isVideo ? labels.play + " · " + title : title, [asset], address, ([url]) => {
-        if (isImage) {
-          openImage(url, title);
-          return;
-        }
-        const player = addVideo(row, asset, url, title, () => {
-          if (!row.isConnected) return;
-          const fallback = button(labels.openInBrowser, () => openLocalReport(address));
-          row.replaceChildren(element("strong", title), fallback, address);
-          message(labels.videoFallback, true);
-          fallback.focus();
-        });
-        player.focus();
-        player.play().catch(() => {});
-      });
-    row.append(view, address);
-  } else if (isVideo) {
-    addVideo(row, asset, localAssetUrl(asset), title, () => message(labels.staleEvidence, true));
-  } else if (isImage) {
-    row.append(screenshotButton(localAssetUrl(asset), title));
+  const url = localAssetUrl(asset);
+  if (isRecording(asset)) {
+    addVideo(row, asset, url, title, () => message(labels.staleEvidence, true));
+  } else if (isScreenshot(asset)) {
+    row.append(screenshotButton(url, title));
   } else {
     const link = element("a", title);
-    link.href = localAssetUrl(asset);
+    link.href = url;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
     row.append(link);
   }
   card.append(row);
-  return true;
 }
 
-function qaResults(header, rows, data) {
-  if (inApp) {
-    const address = reportAddress();
-    const report = button(labels.localReport, () => openLocalReport(address));
-    report.className = "qa-report";
-    header.append(report, address);
-  }
+function qaResults(rows, data) {
   const scenarios = [...data.scenarios].sort((first, second) => Number(second.status === "FAIL") - Number(first.status === "FAIL"));
   for (const result of scenarios) {
     const card = element("wa-card", undefined, "card");
@@ -484,34 +233,23 @@ function qaResults(header, rows, data) {
     const assets = result.artifacts || [];
     const screenshots = assets.filter(isScreenshot);
     const hasPair = screenshots.length === 2;
-    const thumbnails = screenshots.slice(0, 2);
     if (hasPair) screenshotPair(card, screenshots);
-    let hasMedia = hasPair;
     for (const asset of hasPair ? assets.filter((asset) => !isScreenshot(asset)) : assets) {
-      if (artifact(card, asset, thumbnails.includes(asset))) hasMedia = true;
+      artifact(card, asset);
     }
-    if (!hasMedia) card.append(element("small", labels.noMedia));
+    if (!assets.length) card.append(element("small", labels.noMedia));
     rows.append(card);
   }
 }
 
-function closePreviews() {
-  document.querySelectorAll("wa-dialog.preview").forEach((dialog) => dialog.remove());
-  restoreInline();
-}
-
 function showError(text) {
-  closePreviews();
-  revokeObjectUrls();
   state = undefined;
   main.replaceChildren(element("p", text || labels.unavailable, "status error"));
   main.setAttribute("aria-busy", "false");
 }
 
-function render(value, previews = {}) {
-  closePreviews();
-  revokeObjectUrls();
-  state ={ ...value, previews: previews ?? {} };
+function render(value) {
+  state = value;
   const locale = displayLocale(value.data.locale || navigator.language);
   document.documentElement.lang = locale;
   labels = strings[locale];
@@ -530,7 +268,7 @@ function render(value, previews = {}) {
   const rows = element("div", undefined, "rows");
   pane.append(header, rows);
   if (reflect) renderDashboard(pane, data);
-  else qaResults(header, rows, data);
+  else qaResults(rows, data);
   status = element("p", "", "status");
   status.setAttribute("role", "status");
   pane.append(status);
@@ -545,50 +283,15 @@ async function openLocal() {
   render(result);
 }
 
-function applyTheme({ theme, styles } = {}) {
-  hostTheme = theme ?? hostTheme;
-  const dark = hostTheme ? hostTheme === "dark" : systemColor.matches;
+function applyTheme() {
+  const dark = systemColor.matches;
   const root = document.documentElement;
-  if (dark !== appliedDark) {
-    for (const key of hostColors) root.style.removeProperty(key);
-    hostColors.clear();
-    appliedDark = dark;
-  }
   root.classList.toggle("wa-dark", dark);
   root.classList.toggle("wa-light", !dark);
-  if (styles?.variables) {
-    applyHostStyleVariables(styles.variables, root);
-    for (const key of Object.keys(styles.variables)) {
-      if (key.startsWith("--color-")) hostColors.add(key);
-    }
-  }
-}
-
-async function openApp() {
-  app.ontoolresult = ({ structuredContent, isError, content, _meta }) => {
-    if (isError || structuredContent?.view !== "qa-results") {
-      showError(content?.find((block) => block.type === "text")?.text);
-      return;
-    }
-    render(structuredContent, _meta?.readyCheckPreviews);
-  };
-  app.onhostcontextchanged = (context) => {
-    applyTheme(context);
-    syncDisplayMode(context?.displayMode);
-  };
-  app.onteardown = async () => {
-    expandedForPreview = false;
-    closePreviews();
-    revokeObjectUrls();
-    main.replaceChildren();
-    return {};
-  };
-  await app.connect();
-  applyTheme(app.getHostContext());
 }
 
 document.documentElement.lang = displayLocale(navigator.language);
 applyTheme();
 systemColor.addEventListener("change", () => applyTheme());
 main.append(element("p", labels.loading, "status"));
-(inApp ? openApp() : openLocal()).catch((error) => showError(error.message));
+openLocal().catch((error) => showError(error.message));

@@ -1,5 +1,4 @@
 import importlib.util
-import io
 import json
 import os
 import shutil
@@ -172,43 +171,6 @@ class SetupTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("ready:setup", result.stderr)
         self.assertFalse((self.root / "data").exists())
-
-    def test_live_dashboard_binds_loopback_and_uses_a_private_registry_and_socket(self):
-        sys.path.insert(0, str(PLUGIN / "scripts"))
-        self.addCleanup(sys.path.pop, 0)
-        spec = importlib.util.spec_from_file_location("ready_check_playwright", PLUGIN / "scripts/playwright.py")
-        wrapper = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(wrapper)
-        live = self.root / "live"
-        live.mkdir(mode=0o700)
-        runner = self.root / "cli.js"
-        args = ["playwright", "--qa-live-dir", str(live), "show"]
-        command = ["/usr/bin/node", str(runner), "show", "--host=127.0.0.1", "--port=0"]
-        resolve = lambda argv, env: ["/usr/bin/node", *map(str, argv[1:])]
-        with patch.object(wrapper, "installed", return_value=True), patch.object(wrapper, "node_entry", return_value=runner), \
-                patch.object(wrapper, "launch_argv", side_effect=resolve), patch.object(sys, "argv", args):
-            if os.name == "nt":
-                with patch.object(wrapper.subprocess, "run", return_value=subprocess.CompletedProcess(command, 0)) as run:
-                    self.assertEqual(wrapper.main(), 0)
-                self.assertEqual(run.call_args.args[0], command)
-                env = run.call_args.kwargs["env"]
-            else:
-                with patch.object(wrapper.os, "execve", return_value=0) as run:
-                    self.assertEqual(wrapper.main(), 0)
-                self.assertEqual(run.call_args.args[:2], (command[0], command))
-                env = run.call_args.args[2]
-        self.assertEqual(env["PWTEST_DAEMON_SESSION_DIR"], str(live.resolve()))
-        self.assertEqual(env["PWTEST_SOCKETS_DIR"], str(live.resolve()))
-        self.assertEqual(env["PWTEST_SERVER_REGISTRY"], str(live.resolve() / "registered-browsers"))
-
-        if os.name != "nt":
-            live.chmod(0o755)
-            with patch.object(wrapper, "installed", return_value=True), patch.object(wrapper, "node_entry", return_value=runner), \
-                    patch.object(wrapper.os, "execve") as run, patch.object(sys, "argv", args), \
-                    patch("sys.stderr", new_callable=io.StringIO) as stderr:
-                self.assertEqual(wrapper.main(), 2)
-            run.assert_not_called()
-            self.assertIn("closed to other users", stderr.getvalue())
 
     def test_container_runners_forward_manifest_stdin(self):
         sys.path.insert(0, str(PLUGIN / "profiles/_shared/core"))

@@ -187,6 +187,7 @@ Confirmed gaps and regressions block QA; ambiguity requires a human answer. A cl
 runtime observation gets a concrete QA scenario rather than a fabricated pass or a speculative blocker.
 
 Update the same TODO and report with findings, evidence, open questions, stage status, and the review gate.
+Use the [review results template](../../templates/review-results.md) for the review's chat message.
 On a fix, repeat selected statics before reviewing the updated implementation. In full mode QA remains
 NOT_RUN until both gates pass; partial runs follow the explicit selection gates.
 
@@ -196,8 +197,8 @@ When QA is selected and all selected preceding gates pass, follow the packaged [
 Pass the report, current requirements revision, complete RC list, any selected review matrix, affected
 profile and application pairs, and their static JSON or partial scope evidence. Build requirements and scenarios from the session's
 task history and human answers, distinguishing feature acceptance from bug reproduction and regression
-coverage. Follow the QA skill and show the plan in standalone Markdown before opening the
-[native approval question](references/decision-questions.md). Wait for explicit approval or clarification.
+coverage. Follow the QA skill and show the [QA plan template](../../templates/qa-plan.md) in a standalone
+Markdown message before opening the [native approval question](references/decision-questions.md). Wait for explicit approval or clarification.
 General validation consent does not approve an unseen QA plan. Persist plan revision,
 approved scenario IDs and the human decision; a material plan change needs renewed approval before its cases run.
 The skill reads applicable QA guidance per scenario and checks the relevant runtime. When tests are a
@@ -250,8 +251,9 @@ using [the decision command below](#record-a-round-and-its-decisions). Immediate
 still current. Refresh findings and seek a new decision if either changed.
 
 When a stage ends with confirmed blocking findings (static `FAIL`, review `FAIL`, or QA `FAIL`), save the
-report and post those findings before making the offer. In the next step, call the native question tool
-with the finding IDs and ask once in the user's language how to proceed:
+report and post those findings before making the offer. The current review or QA results message already
+provides this context when it contains all findings covered by the offer. In the next step, call the native
+question tool with the finding IDs and ask once in the user's language how to proceed:
 
 1. **Fix in this session:** the agent fixes them here.
 2. **Fix with a subagent:** offered only when the client can start subagents (for example Claude Code's agent

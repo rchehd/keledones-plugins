@@ -5,21 +5,9 @@ This applies to test-only changes too. Read the existing project's scripts, conf
 discover the runner, suite type, spec selection, environment and version. Use the project's command and
 already provisioned tools and fixtures. Plan the exact selection before executing it.
 
-For Visible Playwright with an existing spec, use the project's Playwright Test command and keep its
-selected tests, projects and setup dependencies. If the project's version supports
-[`PLAYWRIGHT_DASHBOARD=1`](https://playwright.dev/docs/release-notes), set it for the invocation and
-set `PWTEST_SERVER_REGISTRY` to `<dir>/registered-browsers`, using the same private directory as
-`ready-check.py playwright --qa-live-dir <dir> show`. For CLI debugging or attach, also scope
-`PWTEST_SOCKETS_DIR` and `PWTEST_DAEMON_SESSION_DIR` to `<dir>`. Open the Dashboard in the client's
-browser and verify that the running spec's tab appears. Follow the
-[Dashboard setup and cleanup](playwright.md#visible-playwright-in-the-browser) for that directory.
-For manual authentication, the test needs a checkpoint that waits for the signed-in state or a supported
-[debug pause](https://playwright.dev/agent-cli/commands/test-debugging) at login. Apply the capture checks
-below before launching the runner. Then use the Dashboard handoff in the same test session and let the
-project runner finish its assertions. If the test cannot pause safely, use a project-approved authentication
-fixture. When live streaming
-is unavailable, offer the normal test run with its allowed evidence, or
-[UI Mode](https://playwright.dev/docs/test-ui-mode) on loopback if supported and approved.
+Run the suite through the project's normal command. Use its supported headed option when visible mode
+is requested, such as Playwright Test's `--headed`. For manual sign-in, use an existing project-supported
+pause in a headed run and apply the capture checks below before running.
 
 - For browser end-to-end or component tests, use browser cases with the **project test runner** as the
   execution method. Playwright Test runs its project config and selected spec files (and `--project` if
@@ -42,9 +30,9 @@ is unavailable, offer the normal test run with its allowed evidence, or
   `--record` mode.
 - For Playwright Test, check the effective `use.trace`, command-line flags and any custom tracing in tests,
   fixtures or hooks before approving the plan. Trace archives can contain submitted credentials in request
-  bodies even when video is off. For runs that enter credentials, including manual Dashboard login and
-  login on retries, disable Playwright Test tracing with `--trace off` or a verified run-local equivalent,
-  and verify that no custom trace covers authentication. Preserve the selected tests, their setup and
+  bodies even when video is off. For runs that enter credentials, including login on retries, disable
+  Playwright Test tracing with `--trace off` or a verified run-local equivalent. Verify that no custom
+  trace covers authentication. Preserve the selected tests, their setup and
   environment. If tracing cannot exclude credential entry, use a project-approved preauthenticated fixture
   with no later sign-in during capture, or mark the affected required case `INCOMPLETE`.
 - Before launching a runner that clears or overwrites its artifacts, give each invocation a fresh, empty

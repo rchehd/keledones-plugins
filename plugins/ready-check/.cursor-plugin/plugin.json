@@ -10,10 +10,6 @@
   "skills": "./skills/",
   "hooks": "./hooks/cursor-hooks.json",
   "mcpServers": {
-    "ready-ui": {
-      "command": "node",
-      "args": ["${CURSOR_PLUGIN_ROOT}/scripts/mcp.mjs", "--ui"]
-    },
     "ready-playwright": {
       "command": "node",
       "args": [
