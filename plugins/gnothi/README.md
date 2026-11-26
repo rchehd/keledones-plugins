@@ -62,6 +62,7 @@ interpret the findings. For a project-level overview of review rounds, QA gaps a
 | Reading workflow events | Ordered event logs from the [Process Mining Manifesto](https://www.vdaalst.com/publications/p658.pdf). Each agent session is a case. Gnothi uses the order of edit and check calls to measure verification attempts. |
 | Interpreting the portrait | Gnothi uses several dimensions and compares periods for the same person. [The SPACE of AI](https://www.microsoft.com/en-us/research/publication/the-space-of-ai-real-world-lessons-on-ais-impact-on-developers/) gives research context for multidimensional analysis of AI-assisted work. |
 | Describing work styles | The optional archetypes use Gnothi's fixed, descriptive rules. [Anthropic Economic Index](https://www.anthropic.com/research/anthropic-economic-index-september-2025-report#chapter-1) is related research on how people interact with AI across sessions. |
+| Portrait report structure | The [Markdown portrait](templates/portrait.md) and [local HTML report](report/portrait.html) adapt the sequence of observations, evaluation and follow-up actions to AI work sessions. Findings rely on recorded evidence, and personal reflections come from the user when available. [WHO After Action Review](https://www.who.int/emergencies/operations/emergency-response-reviews/after-action-review) · [Gibbs’ Reflective Cycle](https://reflection.ed.ac.uk/reflectors-toolkit/reflecting-on-experience/gibbs-reflective-cycle) |
 
 ## Privacy
 

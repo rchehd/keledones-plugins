@@ -21,7 +21,7 @@ claude plugin validate --strict .
 
 Scripts use the Python standard library only and must not import network modules; a test enforces it.
 
-Build the shared dashboard for Gnothi from the monorepo's `plugins/ready-check/ui` directory using
+Build the offline metrics dashboard for Gnothi from the monorepo's `plugins/ready-check/ui` directory using
 `npm ci --ignore-scripts` and `npm run build:portrait`. Include the generated files under
 `plugins/gnothi/report/widget` when the portrait entry or shared dashboard changes.
 

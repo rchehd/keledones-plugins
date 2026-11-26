@@ -1,4 +1,3 @@
-import { App } from "@modelcontextprotocol/ext-apps";
 import { renderDashboard } from "./dashboard.js";
 import "./portrait.css";
 
@@ -18,23 +17,5 @@ function render(data) {
   main.setAttribute("aria-busy", "false");
 }
 
-async function connect() {
-  const app = new App({ name: "Gnothi", version: "1.0.0" });
-  const theme = (context) => {
-    document.documentElement.style.colorScheme = context?.theme || "";
-  };
-  app.onhostcontextchanged = theme;
-  app.ontoolresult = ({ structuredContent }) => {
-    if (structuredContent?.metrics) render(structuredContent);
-  };
-  await app.connect();
-  theme(app.getHostContext());
-}
-
 if (local) render(local);
-else if (window.parent !== window) {
-  connect().catch(() => {
-    main.textContent = "The Gnothi widget could not be opened. Use the local HTML report.";
-    main.setAttribute("aria-busy", "false");
-  });
-}
+else main.removeAttribute("aria-busy");

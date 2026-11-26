@@ -68,7 +68,7 @@ def prepare(digest, language):
     data = model(digest, language)
     asset = ASSET.read_text(encoding="utf-8")
     if asset.count(PLACEHOLDER) != 1:
-        raise ValueError("Gnothi's packaged widget could not be loaded")
+        raise ValueError("Gnothi's packaged metrics report could not be loaded")
     encoded = json.dumps(data, ensure_ascii=False, allow_nan=False).replace("<", "\\u003c")
     identifier = uuid4().hex
     root = storage.guard(storage.data_root())
