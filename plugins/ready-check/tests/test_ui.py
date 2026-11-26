@@ -197,7 +197,7 @@ class InteractiveViewTest(unittest.TestCase):
         data = state["data"]
         self.assertEqual(data["title"], "Статистика Ready Check")
         self.assertEqual(data["metrics"][0]["value"], 1)
-        self.assertEqual(data["sections"][0]["rows"][0], [self.task, self.task[-10:], 2, "BLOCKED", None])
+        self.assertEqual(data["sections"][0]["rows"][0], [self.task, self.task[-10:], 2, "Є блокери", None])
         self.assertIsNone(view.decision(state))
         with self.assertRaisesRegex(ValueError, "read-only"):
             view.submit(dict(action="approve", revision=state["revision"]))
@@ -393,6 +393,18 @@ class InteractiveViewTest(unittest.TestCase):
                 self.assertEqual(registration["status"], "REGISTERED")
                 config = json.loads((project / ".cursor/mcp.json").read_text(encoding="utf-8"))
                 self.assertEqual(config["mcpServers"][registration["server"]], {"url": endpoint})
+
+    def test_qa_results_render_custom_labels_and_read_hidden_round_metadata(self):
+        self.report_file.write_text("# Результати\n\n<!--\nRound: 1\n-->\n", encoding="utf-8")
+        data = dict(locale="pl-PL", round=1, scenarios=[dict(id="QA-001", status="FAIL")])
+        with self.assertRaisesRegex(ValueError, "complete translation"):
+            self.prepare("qa-results", data)
+        labels = json.loads((PLUGIN / "ui/qa-labels.json").read_text(encoding="utf-8"))["en"]
+        labels["qaResults"] = "Wyniki testów"
+        labels["statuses"]["FAIL"] = "Niepowodzenie"
+        view, snapshot = self.prepare("qa-results", dict(data, labels=labels))
+        self.assertEqual(view.current(require_current_round=True), snapshot)
+        self.assertEqual(snapshot["data"]["labels"]["statuses"]["FAIL"], "Niepowodzenie")
 
     def test_loopback_requires_token_identity_and_serves_a_media_range(self):
         evidence = self.directory / "evidence"

@@ -8,7 +8,7 @@ Commands (run them yourself; show them to the user only if you cannot run comman
 - accept: {yes}
 - decline: {no}
 
-{language}Each `--selection PROFILE:RUNNER:APPLICATION` is independent. Keep every confirmed selection, including
+Each `--selection PROFILE:RUNNER:APPLICATION` is independent. Keep every confirmed selection, including
 different profiles in the same directory. If the user corrects a profile, root, or runner, edit that selection.
 Resolve conflicting candidates before running either command.
 Installation output appears in the chat; finish with its final "Ready Check is ready" or failure line.

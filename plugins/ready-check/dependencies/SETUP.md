@@ -66,7 +66,7 @@ User settings live in `<data root>/settings.json`, project overrides in `.ai/rea
 | `install` | `ask` (default), `auto`, `never` | user |
 | `captureTasks` | `true` (default), `false` | user, project |
 | `remind` | `true` (default), `false` | user, project |
-| `artifactLanguage` | `chat` (default) or a fixed language name such as `English` or `Ukrainian`. Applies to reports, QA plans and handoffs. PR drafts and machine-readable report keys stay English. | user, project |
+| `artifactLanguage` | Retained for compatibility with older configurations. Current report skills choose the language in chat. | user, project |
 | `commitTemplate` | Path to a UTF-8 commit message template | user, project |
 | `pullRequestTemplate` | Path to a UTF-8 PR body template | user, project |
 | `taskCommentTemplate` | Path to a UTF-8 Markdown template for task-comment drafts | user, project |

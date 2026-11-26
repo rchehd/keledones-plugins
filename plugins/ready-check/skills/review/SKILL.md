@@ -242,7 +242,8 @@ Set the review-stage status and gate as follows:
 
 Post the [review results template](../../templates/review-results.md) as a standalone chat message after
 recording the current stage status. Fill the placeholders from the current report, keep the section order,
-and write the display text in the chat language. Keep IDs, Conventional Comments labels and status codes.
+and follow the [report language rules](../check/references/report-language.md). Localize displayed
+labels and statuses. Keep IDs and canonical Conventional Comments labels in machine-readable inputs.
 Use the finding block shown after the separator inside the appropriate section. Repeat it for confirmed
 blockers. For nonblocking observations and open questions, use the ID and label, a file and line where
 available, and the relevant evidence or missing information. Keep questions that require an answer visible

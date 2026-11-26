@@ -12,6 +12,7 @@ from uuid import uuid4
 sys.dont_write_bytecode = True
 from dependency_support import PLUGIN, bundle_path, data_root, installed
 from feedback import recent as feedback_records
+from ui_state import validate_label_map
 from project import BASE, ensure_excluded, redirected, toplevel, write_json
 from reports import all_tasks
 from summary import COUNTED_DISPOSITIONS, DISPOSITIONS, disposition_key, saved_dispositions, read as read_summary
@@ -202,7 +203,8 @@ def dashboard(digest, locale):
     ):
         value = summary_value(totals, key, empty, coverage) if key in summary_keys else totals[key]
         metrics.append(dict(label=caption, value=value))
-    task_rows = [[row["task_id"], row["date"], row["rounds"], row["verdict"],
+    words = reflect_labels(locale, None)
+    task_rows = [[row["task_id"], row["date"], row["rounds"], words.get(row["verdict"], row["verdict"]),
                   ", ".join(value for value in row["return_reasons"] if value) or None] for row in digest["tasks"]]
     metrics.extend(dict(label=caption, value=value) for caption, value in disposition_metrics(digest, locale))
     return dict(locale=locale, title=label("Ready Check overview", "Статистика Ready Check"),
@@ -264,14 +266,33 @@ def short(label, size=22):
     return label if len(label) <= size else label[:size - 1].rstrip(" -,.") + "…"
 
 
-def render_html(digest):
+def reflect_labels(locale, translations):
+    if not isinstance(locale, str) or not re.fullmatch(r"[a-zA-Z]{2,8}(?:-[a-zA-Z0-9]{1,8})*", locale):
+        raise ValueError("Reflect needs a valid report language tag")
+    path = Path(__file__).resolve().parent.parent / "ui/reflect-labels.json"
+    locales = json.loads(path.read_text(encoding="utf-8"))
+    base = locale.split("-")[0].lower()
+    if translations is None and base in locales:
+        return locales[base]
+    validate_label_map(locales["en"], translations)
+    key = "Generated {date} from {count} tasks."
+    template = translations[key]
+    remaining = template.replace("{count}", "").replace("{date}", "")
+    if re.search(r"[{}]", remaining) or any(template.count(field) != 1 for field in ("{count}", "{date}")):
+        raise ValueError("Keep the date and count placeholders in the translated report generation note")
+    return translations
+
+
+def render_html(digest, locale="en", translations=None):
+    words = reflect_labels(locale, translations)
+    label = words.__getitem__
     totals, tasks = digest["totals"], digest["tasks"]
     library = chart_source()
-    first = summary_value(totals, "passed_first_round")
-    defects = summary_value(totals, "with_defects")
+    first = summary_value(totals, "passed_first_round", label("No data"))
+    defects = summary_value(totals, "with_defects", label("No data"))
     charts = dict(
         rounds=dict(type="bar", labels=[short(task["task_id"]) for task in tasks], values=[task["rounds"] for task in tasks]),
-        outcomes=dict(type="doughnut", labels=[f"Passed in round 1 ({first})", f"Confirmed defects ({defects})", "Returned after review"],
+        outcomes=dict(type="doughnut", labels=[f'{label("Passed in round 1")} ({first})', f'{label("Confirmed defects")} ({defects})', label("Returned after review")],
                       values=[totals["passed_first_round"] if totals["with_summary"] else None,
                               totals["with_defects"] if totals["with_summary"] else None, totals["returned"]]),
         areas=dict(type="bar", labels=[short(area) for area, _ in digest["areas"][:8]], values=[count for _, count in digest["areas"][:8]]),
@@ -279,16 +300,17 @@ def render_html(digest):
                    values=[count for _, count in digest["returns_per_week"]]),
     )
     titles = dict(rounds="Rounds per task", outcomes="Task outcomes", areas="Top error areas", weeks="Returns per week")
-    cards = "".join(f'<section class="card"><h2>{titles[name]}</h2><div class="chart"><canvas id="{name}"></canvas></div></section>'
+    cards = "".join(f'<section class="card"><h2>{html.escape(label(titles[name]))}</h2><div class="chart"><canvas id="{name}"></canvas></div></section>'
                     for name in charts)
     totals_rows = [("Tasks", totals["tasks"]), ("Passed in round 1", first),
                    ("With confirmed defects", defects), ("Returned after review", totals["returned"]),
                    ("Returned and missed by Ready Check", totals["returned_missed"]),
-                   ("QA cases that failed because of the test", summary_value(totals, "qa_test_problems")),
+                   ("QA cases that failed because of the test", summary_value(totals, "qa_test_problems", label("No data"), label("tasks with summaries"))),
                    ("Tasks without round summaries", totals["without_summary"])]
     totals_rows.extend(disposition_metrics(digest))
-    task_rows = [(task["task_id"], re.sub(r"-[0-9a-f]{12}$", "", task["branch"] or ""), task["date"] or "unknown", task["rounds"] or "unknown", task["verdict"],
-                  "yes" if task["returned"] else "no", "; ".join(r for r in task["return_reasons"] if r) or "") for task in tasks]
+    totals_rows = [(label(name), number) for name, number in totals_rows]
+    task_rows = [(task["task_id"], re.sub(r"-[0-9a-f]{12}$", "", task["branch"] or ""), task["date"] or label("unknown"), task["rounds"] or label("unknown"),
+                  words.get(task["verdict"], task["verdict"]), label("yes" if task["returned"] else "no"), "; ".join(r for r in task["return_reasons"] if r) or "") for task in tasks]
     script = ""
 
     if library:
@@ -315,19 +337,19 @@ for (const [id, c] of Object.entries(DATA)) {
 }
 </script>"""
     else:
-        cards = "".join(f'<section class="card"><h2>{titles[name]}</h2>' +
-                        table(["Label", "Value"], [(label, "No data" if value is None else value)
-                                                   for label, value in zip(chart["labels"], chart["values"])]) + "</section>"
+        cards = "".join(f'<section class="card"><h2>{html.escape(label(titles[name]))}</h2>' +
+                        table([label("Label"), label("Value")], [(name, label("No data") if value is None else value)
+                                                   for name, value in zip(chart["labels"], chart["values"])]) + "</section>"
                         for name, chart in charts.items())
 
-    tiles = "".join(f'<div class="tile"><span>{html.escape(label)}</span><strong>{number}</strong></div>' for label, number in (
+    tiles = "".join(f'<div class="tile"><span>{html.escape(label(caption))}</span><strong>{number}</strong></div>' for caption, number in (
         ("Tasks", totals["tasks"]), ("Passed in round 1", first),
         ("Returned after review", totals["returned"]), ("Missed by Ready Check", totals["returned_missed"])))
 
     return f"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="{html.escape(locale)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:">
-<title>Ready Check overview</title>
+<title>{html.escape(label("Ready Check overview"))}</title>
 <style>
 :root {{ --bg: #EFEBE1; --card: #FBF9F3; --text: #071218; --muted: #575450; --line: #E0DDD8; --accent: #1F5673;
          --gold: #D99A43; --danger: #B3423A; --soft: #E3EDF0; }}
@@ -356,13 +378,13 @@ tbody tr:last-child td {{ border-bottom: 0; }} tbody tr:hover td {{ background: 
 td:first-child {{ font-weight: 500; }}
 footer {{ margin-top: 24px; color: var(--muted); font-size: 13px; }}
 </style></head><body><main>
-<header><div class="eyebrow">Ready Check</div><h1>Task overview</h1>
-<p class="muted">Generated {date.today().isoformat()} from {totals["tasks"]} tasks.</p></header>
+<header><div class="eyebrow">Ready Check</div><h1>{html.escape(label("Task overview"))}</h1>
+<p class="muted">{html.escape(label("Generated {date} from {count} tasks.").format(date=date.today().isoformat(), count=totals["tasks"]))}</p></header>
 <div class="tiles">{tiles}</div>
-<section class="card" style="margin-bottom:16px"><h2>Totals</h2>{table(["Metric", "Value"], totals_rows, "totals")}</section>
+<section class="card" style="margin-bottom:16px"><h2>{html.escape(label("Totals"))}</h2>{table([label("Metric"), label("Value")], totals_rows, "totals")}</section>
 <div class="grid">{cards}</div>
-<section class="card"><h2>Tasks</h2>{table(["Task", "Branch", "Date", "Rounds", "Verdict", "Returned", "Reason"], task_rows, "tasks")}</section>
-<footer>Local, confidential report generated on this machine. It loads nothing from the network; do not publish or share it.</footer>
+<section class="card"><h2>{html.escape(label("Tasks"))}</h2>{table([label(name) for name in ("Task", "Branch", "Date", "Rounds", "Verdict", "Returned", "Reason")], task_rows, "tasks")}</section>
+<footer>{html.escape(label("Local, confidential report generated on this machine. It loads nothing from the network; do not publish or share it."))}</footer>
 </main>{script}</body></html>
 """
 
@@ -375,6 +397,8 @@ def main():
     parser.add_argument("--project", type=Path, required=True)
     parser.add_argument("--tasks", type=int, default=10)
     parser.add_argument("--html", action="store_true")
+    parser.add_argument("--locale", default="en")
+    parser.add_argument("--labels", type=Path, help="JSON object of translated HTML report labels")
     args = parser.parse_args()
     result = dict(schema_version=1, action="reflect-collect", status="FAIL")
 
@@ -392,7 +416,8 @@ def main():
             path = snapshot.with_name(f"overview-{date.today().isoformat()}-{identifier}.html")
             ensure_excluded(top)
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(render_html(digest), encoding="utf-8")
+            translations = json.loads(args.labels.read_text(encoding="utf-8")) if args.labels else None
+            path.write_text(render_html(digest, args.locale, translations), encoding="utf-8")
             write_json(snapshot, snapshot_data(digest), top)
             digest.update(html=str(path), snapshot_id=identifier)
 

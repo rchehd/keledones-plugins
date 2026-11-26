@@ -51,6 +51,18 @@ class ReflectTest(RepoTest):
         with patch.object(reflect_collect, "chart_source", return_value=None):
             self.assertIn("<td>Passed in round 1</td><td>No data</td>", reflect_collect.render_html(digest))
 
+    def test_offline_html_uses_localized_headings_and_verdicts(self):
+        self.task("Localized", [("BLOCKED", [])])
+        digest = reflect_collect.collect(self.repo, 10)
+        with patch.object(reflect_collect, "chart_source", return_value=""):
+            page = reflect_collect.render_html(digest, "uk")
+        self.assertIn('<html lang="uk">', page)
+        self.assertIn("<h1>Огляд задач</h1>", page)
+        self.assertIn("<td>Є блокери</td>", page)
+        self.assertNotIn("<td>BLOCKED</td>", page)
+        with self.assertRaisesRegex(ValueError, "complete translation"):
+            reflect_collect.render_html(digest, "pl-PL")
+
     def test_html_combines_historical_widget_and_confirmed_chat_decisions(self):
         task = self.task("Decisions", [("BLOCKED", []), ("READY TO PUSH", [])])
         directory = Path(self.entry_json("reports", "--project", str(self.repo), "--task", task)["directory"])

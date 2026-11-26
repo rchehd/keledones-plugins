@@ -5,9 +5,8 @@ description: Check whether a task is ready to push through profile-based static 
 
 # Ready Check
 
-Verify a task in the current harness. Respond in the user's language. Use the language requested for this
-task, otherwise the configured `artifactLanguage` for the report. The default `chat` follows the current
-conversation. Write the commit message and PR/MR title and body in English. One invocation continues through
+Verify a task in the current harness. Resolve and use the [report language](references/report-language.md).
+Write the commit message and PR/MR title and body in English. One invocation continues through
 preparation, statics, review, QA, and the final result, pausing
 for missing answers, QA-plan approval or fixes when needed. Never edit, copy or patch the Ready Check plugin,
 its scripts or its installed copy, not even in a temporary folder, to work around an error. When a Ready Check
@@ -294,9 +293,9 @@ Use [the report template](references/report-template.md). Every task has one fol
 For a new task run `scripts/ready-check.py reports --project <repo> --task "<short task title>"`; to continue, run it without `--task`
 (the newest task on the branch) or with the title or `task_id`. The JSON gives `task_id`, `directory`, `report` and
 `summary`; the command git-excludes `/.ai/ready-check/`. Write to the returned `report` path
-and report its absolute path as a clickable link. Start the
-report with three English key lines regardless of the report language: `task_id: <id>`, `Round: <n>`,
-`Verdict: <verdict>`, and keep them current.
+and report its absolute path as a clickable link. Use the template's hidden metadata comment for
+the task ID, round, verdict and revisions. Keep those keys current and show localized values and
+labels in the visible report.
 
 ### Record a round and its decisions
 

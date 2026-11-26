@@ -175,9 +175,9 @@ The bundled Chromium supports captions, a pointer and target highlighting, and t
 local player can seek to steps in the journal.
 [QA action journal and video](skills/qa/references/evidence.md).
 
-**Language.** Reports, QA plans and handoffs follow the chat language by default. Choose a language for one
-task in chat or save a preference with `config set artifactLanguage Ukrainian`. Use `chat` to restore the default.
-Commit messages, PR/MR text and machine-readable report keys stay in English.
+**Language.** Reports, QA plans and handoffs follow the chat language. If it is unclear, the agent asks
+before writing. Visible headings, table labels and statuses use that language. Commit messages and PR/MR
+drafts stay in English. [Report language rules](skills/check/references/report-language.md)
 
 **Delivery.** If selected checks pass, choose to see the English commit message and PR/MR text in chat or
 open a PR/MR. A partial run also offers the outstanding checks and keeps its partial verdict if you proceed

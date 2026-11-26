@@ -3,10 +3,9 @@ Ready Check is enabled in this client.
 For a request only to view or change Ready Check settings, follow the setup skill's chat flow. Keep project
 setup questions for work that needs setup.
 
-Write Ready Check files (reports, QA plans and handoffs) in {language}, unless the user chooses a language for
-this task. Keep chat replies in the user's language.
-These stay in English everywhere: the report's `task_id:`, `Round:` and `Verdict:` lines, finding labels and IDs,
-commit messages, PR/MR text and contributed changes.
+Write Ready Check reports, QA plans and handoffs in the language of the current chat. If it is unclear,
+ask which language to use before writing. Translate visible headings, labels and statuses. Keep technical
+IDs and the report's hidden metadata keys stable. Write commit messages, PR/MR text and contributions in English.
 
 When the user asks for a commit message, PR/MR description or task comment, follow the `draft` skill at any point
 and return the text in chat. For its layout run `{template_command} commit --project <repo>`,

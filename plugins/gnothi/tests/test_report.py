@@ -278,6 +278,30 @@ class RenderCliTest(unittest.TestCase):
         if sys.platform != "win32":
             self.assertEqual(stat.S_IMODE(widget.stat().st_mode), 0o600)
 
+    def test_non_english_reports_require_labels_and_use_them_in_both_views(self):
+        data = portrait(self.digest, language="fr")
+        data["ui"] = {"title": "Portrait de travail"}
+        self.write(data)
+        code, result = run("render")
+        self.assertEqual((code, result["status"]), (2, "FAIL"))
+        self.assertIn("translate all report labels", result["reason"])
+        self.assertFalse((self.home.root / "data/history.jsonl").exists())
+
+        from report_strings import REPORT_LABELS, placeholders
+        data["ui"] = {key: "Libellé " + " ".join("{" + name + "}" for name in sorted(placeholders(value)))
+                      for key, value in REPORT_LABELS.items()}
+        data["ui"]["title"] = "Portrait de travail"
+        data["ui"]["metrics_title"] = "Portrait en chiffres"
+        self.write(data)
+        code, result = run("render", "--widget-metrics", self.digest["digest_id"])
+        self.assertEqual((code, result["status"]), (0, "PASS"), result)
+        full = Path(result["html"]).read_text(encoding="utf-8")
+        metrics = Path(result["widget_html"]).read_text(encoding="utf-8")
+        self.assertIn('lang="fr"', full)
+        self.assertIn("<title>Portrait de travail</title>", full)
+        self.assertIn("Portrait en chiffres", metrics)
+        self.assertNotIn("Aggregate metrics from the selected period.", metrics)
+
     def test_metrics_opt_in_rejects_a_digest_replaced_after_collection(self):
         self.write(portrait(self.digest))
         code, newer = run("collect", "--period", "all")
