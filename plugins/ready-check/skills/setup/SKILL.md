@@ -71,7 +71,13 @@ the session rule or first-run question never appears there, tell the user to tru
 
 Report the profiles with their application roots and runners, the components, versions and remaining prerequisites. Setup results are
 not a task-readiness verdict. After a successful full installation, follow the Yes/No offer in the
-[PhpStorm connection flow](references/phpstorm.md). If the user also asked to check a task, continue with the packaged
+[PhpStorm connection flow](references/phpstorm.md).
+
+In Codex, when `request_user_input` is not exposed in this session, offer once to enable native question forms
+outside Plan mode. Explain that the experimental `default_mode_request_user_input` feature lets Ready Check ask
+through forms instead of chat. On yes, add `default_mode_request_user_input = true` to the `[features]` table of
+`~/.codex/config.toml`, keeping its other content, and say it applies to new sessions. For one session the
+user can start `codex --enable default_mode_request_user_input` instead. On no, keep chat questions. If the user also asked to check a task, continue with the packaged
 [check skill](../check/SKILL.md) in this chat; otherwise show the `check` command as the next step.
 
 Do not commit, push, publish, install another plugin, or modify global skills.

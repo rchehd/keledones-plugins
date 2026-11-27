@@ -11,7 +11,7 @@ to reproduce and decisive evidence. For a case that did not run, say why in the 
 Report gaps in RC coverage, deviations from the plan, unresolved defects and remaining risks. Mark
 empty sections explicitly. Localize titles, labels and evidence captions to the chat language.
 
-Use the [client's supported preview format](evidence.md#create-a-replay-and-hand-off-from-qa) for selected
+Use the [client's supported preview format](evidence.md#share-files-with-the-user) for selected
 screenshots. Put a regular file or replay link beside each selected recording. Add an inline player when
 the active client supports it. Keep the task report link in the message even when a preview opens. Use the
 same observed results to prepare the local HTML report when the round has screenshots or recordings.
@@ -71,8 +71,9 @@ Prepare the HTML report and start the loopback server in a background command:
 <python> <plugin>/scripts/ready-check.py ui serve --project <repo> --task <task-id> --view qa-results
 ```
 
-Add the printed URL as a regular Markdown link. The URL is local and time limited. Include the task report
-path so the evidence remains findable after expiry. For a user on another machine or a remote client,
+Add the printed URL as a regular Markdown link and [share the report](evidence.md#share-files-with-the-user)
+where the client supports it. The URL is local and time limited. Include the task report path so the
+evidence remains findable after expiry. For a user on another machine or a remote client,
 explain where the report is stored. When asked to open the report and the client's visible browser can
 reach it, open the printed URL there. This opens saved evidence without rerunning QA. Prepare the latest
 round before creating a new link and report any preparation or server error in chat.
