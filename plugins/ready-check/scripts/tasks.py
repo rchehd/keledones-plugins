@@ -106,7 +106,7 @@ def record(top, client, session, prompt, now=None):
     migrate(top)
     now = now or datetime.now()
     branch = branch_name(top) or "no-branch"
-    line = dict(ts=now.isoformat(timespec="seconds"), client=client, session=session, branch=branch,
+    line = dict(ts=now.astimezone().isoformat(timespec="seconds"), client=client, session=session, branch=branch,
                 head=git(top, "rev-parse", "HEAD"), prompt=truncate(prompt))
     with migration_lock(top / BASE):
         folder = directory(top, branch)

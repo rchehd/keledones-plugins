@@ -219,13 +219,13 @@ Changed code, scope, runner, profile, requirements or runtime preparation make a
 Mark the run `INCOMPLETE`. Close run-owned sessions and post the QA results template with the affected
 cases and reason before returning to the earliest affected stage. Identify stale evidence as historical.
 
-For an approved plan, use the [QA gate command](references/gate.md) to check the recorded scenario outcomes
-and requirement coverage. Read the reported stage status and save the output with the round. Exit `1` with
-a valid `FAIL` result records a failed required case.
+For an approved plan, use the [QA gate command](references/gate.md) to check the recorded outcomes, evidence
+files, plan approval and requirement coverage. Read the reported stage status and save the output with the
+round. Exit `1` with a valid `FAIL` result records a failed required case.
 
 - `FAIL`, `can_proceed: false`: a confirmed blocking defect or a failed required scenario remains.
-- `INCOMPLETE`, `can_proceed: false`: a required case is unexecuted, evidence or access is missing, a question is
-  open, or an earlier gate or the environment is stale.
+- `INCOMPLETE`, `can_proceed: false`: a required case is unexecuted, evidence, approval or access is missing, a
+  question is open, or an earlier gate or the environment is stale.
 - `PASS`, `can_proceed: true`: the current plan is approved, every required scenario passed in this or a carried-over
   round with evidence, every RC is covered, and nothing blocking or unresolved remains.
 - `N/A`, `can_proceed: true`: no QA scenario applies and other current verification covers every acceptance condition.

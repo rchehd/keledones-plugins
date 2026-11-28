@@ -2,13 +2,19 @@ import argparse
 import json
 import re
 import sys
+from datetime import datetime
 from pathlib import Path
 
+import project
+import reports
+import settings
+import tasks
 from qa_evidence import RECORDING, capture_attempt, recording_digest
 
 KINDS = {"browser", "mobile", "desktop", "api", "cli", "ci"}
 STATUSES = {"PASS", "FAIL", "INCOMPLETE", "NOT_RUN", "N/A"}
 EXIT_CODES = {"PASS": 0, "FAIL": 1, "INCOMPLETE": 2}
+PLAN = re.compile(r"qa-plan-round-(\d+)-rev-(\d+)\.md")
 
 
 def has_text(value):
@@ -60,6 +66,123 @@ def matching_recording(report, case, round_number, result):
         return False
 
 
+def evidence_list(value):
+    items = value if isinstance(value, list) else [value]
+
+    return items if items and all(map(has_text, items)) else None
+
+
+def file_stat(report, name):
+    try:
+        if Path(name).is_absolute():
+            return None
+
+        path = (report / name).resolve()
+        stat = path.stat()
+
+        if not path.is_relative_to(report.resolve()) or not path.is_file() or stat.st_size <= 0:
+            return None
+
+        return stat
+    except (OSError, RuntimeError, ValueError):
+        return None
+
+
+def answers(record, answer):
+    prompt = record.get("prompt")
+
+    if not isinstance(prompt, str):
+        return False
+
+    return prompt.strip() == answer or any(line.strip() == f"A: {answer}" for line in prompt.splitlines())
+
+
+def newer_revision(plan):
+    match = PLAN.fullmatch(plan.name)
+
+    if not match:
+        return "The approved plan needs the qa-plan-round-<N>-rev-<R>.md name"
+
+    try:
+        for path in plan.parent.glob(f"qa-plan-round-{match[1]}-rev-*.md"):
+            other = PLAN.fullmatch(path.name)
+
+            if other and int(other[2]) > int(match[2]):
+                return f"A newer plan revision exists: {path.name}"
+    except OSError:
+        return "Plan revisions are unreadable"
+
+    return None
+
+
+def task_records(report):
+    try:
+        top = project.toplevel(report)
+
+        if not top:
+            return "Not inside a Git project"
+
+        if not settings.load(top)["captureTasks"]:
+            return "Task capture is off"
+
+        found = tasks.recent(top, reports.branch_name(top) or "no-branch", limit=1000)
+
+        return found or "No task records for the branch"
+    except (OSError, RuntimeError, ValueError, KeyError):
+        return "Task records are unreadable"
+
+
+def approval_check(report, approval):
+    found = task_records(report)
+
+    if isinstance(found, str):
+        return "SKIPPED", found, None
+
+    if not isinstance(approval, dict) or not has_text(approval.get("plan")) or not has_text(approval.get("answer")):
+        return "UNVERIFIED", "The approval needs a plan file and the user's answer", None
+
+    stat = file_stat(report, approval["plan"])
+
+    if not stat:
+        return "UNVERIFIED", "The approved plan is not a non-empty file inside the report folder", None
+
+    newer = newer_revision(report / approval["plan"])
+
+    if newer:
+        return "UNVERIFIED", newer, None
+
+    answer, planned, times = approval["answer"].strip(), int(stat.st_mtime), []
+
+    for record in found:
+        try:
+            # Records without an offset predate the offset format and are local time.
+            moment = datetime.fromisoformat(record["ts"]).timestamp()
+
+            if answers(record, answer) and moment >= planned:
+                times.append(moment)
+        except (KeyError, TypeError, ValueError, OverflowError, OSError):
+            continue
+
+    if not times:
+        return "UNVERIFIED", "No recorded answer matches the approval after the plan was written", None
+
+    return "VERIFIED", None, min(times)
+
+
+def evidence_problems(report, items, approved, carried):
+    missing, early = False, False
+
+    for name in items:
+        stat = file_stat(report, name)
+
+        if not stat:
+            missing = True
+        elif approved and not carried and int(stat.st_mtime) < approved:
+            early = True
+
+    return missing, early
+
+
 def gate(data, report):
     if not isinstance(data, dict) or type(data.get("schema_version")) is not int or data["schema_version"] != 1:
         raise ValueError("Expected a QA gate object with schema_version 1")
@@ -78,6 +201,9 @@ def gate(data, report):
     covered = set(verified)
     round_number = data.get("round")
     failures, pending, missing_recordings, cases = [], [], [], []
+    missing_evidence, early_evidence = [], []
+    approval, approval_reason, approved = approval_check(report, data.get("approval"))
+
     for case_id, scenario in scenarios.items():
         kind, required = scenario.get("kind"), scenario.get("required")
         if not isinstance(kind, str) or kind not in KINDS or type(required) is not bool:
@@ -93,10 +219,26 @@ def gate(data, report):
         status = result.get("status")
         if not isinstance(status, str) or status not in STATUSES:
             raise ValueError(f"{case_id} has an invalid result status")
-        if status in {"PASS", "FAIL"} and not has_text(result.get("evidence")):
+        items = evidence_list(result.get("evidence"))
+
+        if status in {"PASS", "FAIL"} and not items:
             raise ValueError(f"{case_id} needs an evidence reference for {status}")
         if status in {"INCOMPLETE", "N/A"} and not has_text(result.get("reason")):
             raise ValueError(f"{case_id} needs a reason for {status}")
+
+        if status in {"PASS", "FAIL"}:
+            recorded = result.get("recorded_round")
+            carried = type(recorded) is int and type(round_number) is int and recorded < round_number
+            missing, early = evidence_problems(report, items, approved, carried)
+
+            if missing:
+                missing_evidence.append(case_id)
+
+            if early:
+                early_evidence.append(case_id)
+
+            if (missing or early) and status == "PASS":
+                status = "INCOMPLETE"
 
         if recording_required and not matching_recording(report, case_id, round_number, result):
             missing_recordings.append(case_id)
@@ -118,8 +260,19 @@ def gate(data, report):
         status = "INCOMPLETE"
     else:
         status = "PASS"
-    return dict(status=status, can_proceed=status == "PASS", failed_required=failures, pending_required=pending,
-                uncovered_requirements=uncovered, missing_required_recordings=missing_recordings, scenarios=cases)
+
+    if approval == "UNVERIFIED" and status == "PASS":
+        status = "INCOMPLETE"
+
+    output = dict(status=status, can_proceed=status == "PASS", failed_required=failures, pending_required=pending,
+                  uncovered_requirements=uncovered, missing_required_recordings=missing_recordings,
+                  missing_evidence=missing_evidence, evidence_before_approval=early_evidence,
+                  approval_check=approval, scenarios=cases)
+
+    if approval_reason:
+        output["approval_reason"] = approval_reason
+
+    return output
 
 
 def main():
