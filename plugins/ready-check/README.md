@@ -143,15 +143,22 @@ boundary values, state transitions, decision tables), shows the plan for approva
 use Playwright, axe-core and manual keyboard and focus checks. API and CLI cases use project tools or direct
 tests, and CI cases inspect the matching run, job and artifact. Native mobile cases use existing device tests
 or Maestro on the provisioned target. When a task has an agreed Figma reference, QA compares the matching
-viewport, variant and state against that reference. All results go into the same report. The agent posts the
-plan or the relevant findings before asking you to approve the plan or choose how to fix an issue. It uses the
-client's native question tool when available. You can fix the issue yourself, ask the agent to fix it here,
+viewport, variant and state against that reference. All results go into the same report. The agent saves the
+plan or the relevant findings and shows them before asking you to approve the plan or choose how to fix an issue.
+Some clients hide text written right before a question form, so long context goes where the form cannot cover it:
+the Claude Code desktop app opens the file in its side panel next to the form, while Claude Code in the terminal,
+Codex and Cursor show the full text and ask in the same final message. Short decisions use the client's native
+question tool when available. Codex offers that tool outside Plan mode only with the experimental
+`default_mode_request_user_input` feature, which setup offers to enable. Cursor does not offer it to every model,
+and Auto can route to a model without it. You can fix the issue yourself, ask the agent to fix it here,
 or delegate the fix to a subagent where supported. After a fix or a "retest", Ready Check reruns affected
 static checks, reviews changed code and its callers, and reruns failed or related QA cases and each RC's main
 flow. Shared-code changes or a request for a full recheck rerun the whole plan.
 
 **QA evidence.** The agent posts a Markdown summary with failures first and links to the screenshots and
-recordings that support each result. Clients with media previews can display selected evidence inline.
+recordings that support each result. Clients with media previews can display selected evidence inline:
+the Claude Code desktop app receives the report and screenshots as files, Codex Desktop shows images by absolute
+path, and Cursor shows PNG and JPEG files from the open workspace.
 The local HTML report keeps the color-coded cards, full-size screenshot comparisons and video players
 with chapter controls. [QA evidence and HTML report](skills/qa/references/interactive-ui.md)
 

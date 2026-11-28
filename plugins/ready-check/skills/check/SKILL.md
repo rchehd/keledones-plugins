@@ -196,8 +196,8 @@ When QA is selected and all selected preceding gates pass, follow the packaged [
 Pass the report, current requirements revision, complete RC list, any selected review matrix, affected
 profile and application pairs, and their static JSON or partial scope evidence. Build requirements and scenarios from the session's
 task history and human answers, distinguishing feature acceptance from bug reproduction and regression
-coverage. Follow the QA skill and show the [QA plan template](../../templates/qa-plan.md) in a standalone
-Markdown message before opening the [native approval question](references/decision-questions.md). Wait for explicit approval or clarification.
+coverage. Follow the QA skill: save the filled [QA plan template](../../templates/qa-plan.md) and show it
+with the [long-context flow](references/decision-questions.md#long-context) before asking for approval. Wait for explicit approval or clarification.
 General validation consent does not approve an unseen QA plan. Persist plan revision,
 approved scenario IDs and the human decision; a material plan change needs renewed approval before its cases run.
 The skill reads applicable QA guidance per scenario and checks the relevant runtime. When tests are a
@@ -251,8 +251,9 @@ still current. Refresh findings and seek a new decision if either changed.
 
 When a stage ends with confirmed blocking findings (static `FAIL`, review `FAIL`, or QA `FAIL`), save the
 report and post those findings before making the offer. The current review or QA results message already
-provides this context when it contains all findings covered by the offer. In the next step, call the native
-question tool with the finding IDs and ask once in the user's language how to proceed:
+provides this context when it contains all findings covered by the offer. When the findings do not fit in a
+few lines, use the [long-context flow](references/decision-questions.md#long-context); otherwise call the
+native question tool. Name the finding IDs and ask once in the user's language how to proceed:
 
 1. **Fix in this session:** the agent fixes them here.
 2. **Fix with a subagent:** offered only when the client can start subagents (for example Claude Code's agent
@@ -293,7 +294,8 @@ Use [the report template](references/report-template.md). Every task has one fol
 For a new task run `scripts/ready-check.py reports --project <repo> --task "<short task title>"`; to continue, run it without `--task`
 (the newest task on the branch) or with the title or `task_id`. The JSON gives `task_id`, `directory`, `report` and
 `summary`; the command git-excludes `/.ai/ready-check/`. Write to the returned `report` path
-and report its absolute path as a clickable link. Use the template's hidden metadata comment for
+and report its absolute path as a clickable link, [sharing the file](../qa/references/evidence.md#share-files-with-the-user)
+where the client supports it. Use the template's hidden metadata comment for
 the task ID, round, verdict and revisions. Keep those keys current and show localized values and
 labels in the visible report.
 

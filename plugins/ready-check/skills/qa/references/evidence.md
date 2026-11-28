@@ -164,19 +164,29 @@ python3 <plugin>/scripts/ready-check.py qa-replay --project <app> --task <task-i
 ```
 
 Use the user's language. Put the evidence under the matching scenario ID and verdict, followed by links
-to the journal or replay. Use the path format supported by the current client:
+to the journal or replay. Deliver files as described in [Share files with the user](#share-files-with-the-user).
 
+## Share files with the user
+
+Use the richest delivery the current client offers, and always keep a regular link to each file:
+
+- **Claude Code with `SendUserFile`** (desktop app, Remote Control): send the task report, a saved QA plan
+  or fix offer, and decisive screenshots with `SendUserFile`. Use `display: render` for Markdown, images
+  and the HTML report, and `attach` for raw logs and traces. Send each file once per round, not on every
+  update. When a recording does not play in the rendered HTML report, open the report's local URL in the
+  built-in browser.
 - **Codex Desktop:** For a file the session can access, write `![Saved state]` immediately followed by
-  `(/absolute/path/QA-001.png)` for an inline image. Use the same syntax for a WebM or MP4 when the session supports inline playback.
-  Include a regular link to the clip or replay for playback in the browser.
-- **Cursor:** When the agent can preview a screenshot from the workspace, use its preview or a
-  workspace-relative Markdown image. Include a regular link to each selected video or replay.
-- **Claude Code Desktop:** In a local session, link to the video or HTML replay for preview in the Browser
-  pane. Use a screenshot preview where supported and include a link to its file.
+  `(/absolute/path/QA-001.png)` for an inline image. Use the same syntax for a WebM or MP4 when the session
+  supports inline playback. Include a regular link to the clip or replay for playback in the browser.
+  When the agent runs in WSL behind a Windows app, inline images can fail to load; give the regular link
+  and the report path.
+- **Cursor:** Write `![Saved state]` immediately followed by the absolute path of a PNG or JPEG inside the
+  open workspace. Images outside the workspace do not render. Link each video, replay and HTML report.
+- **Claude Code without `SendUserFile`** (terminal): use regular links.
 
-In terminal, remote and mobile sessions, use links or attachments the client can access. Give the
-persistent report path when the report host and the client do not share files. Keep evidence on
-the machine that ran QA unless the user approves another destination.
+In remote and mobile sessions, use links or attachments the client can access. Give the persistent report
+path when the report host and the client do not share files. Keep evidence on the machine that ran QA
+unless the user approves another destination.
 
 [Playwright CLI video](https://github.com/microsoft/playwright-cli/blob/v0.1.23/skills/playwright-cli/references/video-recording.md) ·
 [Playwright MCP](https://github.com/microsoft/playwright-mcp/blob/v0.0.84/README.md) ·

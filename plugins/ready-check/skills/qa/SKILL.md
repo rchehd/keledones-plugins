@@ -116,18 +116,20 @@ before asking for plan approval; axe runs in the selected Playwright mode. Recor
 accessibility coverage as `INCOMPLETE` when no authorized execution method is available.
 
 Save the current values as `QA plan revision: <number>` and `Requirements revision: <number>` in the
-report's metadata comment. Record scenario IDs and the pending approval in the plan. Post the
-[QA plan template](../../templates/qa-plan.md) as a standalone Markdown message in the chat language.
-Fill it from the saved plan. Keep its section order and repeat the test case block for every `QA-ID` in risk order. Include the effective
+report's metadata comment. Record scenario IDs and the pending approval in the plan. Fill the
+[QA plan template](../../templates/qa-plan.md) from the saved plan in the chat language and save it as
+`qa-plan-round-<N>-rev-<R>.md` in the task directory.
+Keep its section order and repeat the test case block for every `QA-ID` in risk order. Include the effective
 browser mode for interactive web cases and show which cases will be recorded, with capture method and
 retention. Say when no recording is proposed. In later rounds mark cases to rerun and cite the prior
 round for carried-over evidence. Mark empty sections explicitly.
 
-After posting the plan, call the [native question tool](../check/references/decision-questions.md) in a
-separate step. Ask “Approve the QA plan for round N, revision R?” with “Approve” and “Suggest changes.”
+Show the plan and ask for approval with the [long-context flow](../check/references/decision-questions.md#long-context),
+so the whole plan stays readable while the user answers. Never ask for approval of a plan the user cannot
+see. Ask “Approve the QA plan for round N, revision R?” with “Approve” and “Suggest changes.”
 When video is proposed, get an explicit yes or no for the listed recordings in the same approval step.
 Approving the plan alone approves execution. Wait for approval of every required scenario. If the plan changes, update affected RCs, increment
-the revision, show the revised plan in Markdown and obtain approval before running it. A code-only fix can
+the revision, save and show the revised plan the same way and obtain approval before running it. A code-only fix can
 reuse approval of an unchanged plan. Read-only environment discovery may precede approval. For whole-stage
 `N/A`, document why no scenario applies and cite current evidence covering every acceptance condition.
 
@@ -217,13 +219,13 @@ Changed code, scope, runner, profile, requirements or runtime preparation make a
 Mark the run `INCOMPLETE`. Close run-owned sessions and post the QA results template with the affected
 cases and reason before returning to the earliest affected stage. Identify stale evidence as historical.
 
-For an approved plan, use the [QA gate command](references/gate.md) to check the recorded scenario outcomes
-and requirement coverage. Read the reported stage status and save the output with the round. Exit `1` with
-a valid `FAIL` result records a failed required case.
+For an approved plan, use the [QA gate command](references/gate.md) to check the recorded outcomes, evidence
+files, plan approval and requirement coverage. Read the reported stage status and save the output with the
+round. Exit `1` with a valid `FAIL` result records a failed required case.
 
 - `FAIL`, `can_proceed: false`: a confirmed blocking defect or a failed required scenario remains.
-- `INCOMPLETE`, `can_proceed: false`: a required case is unexecuted, evidence or access is missing, a question is
-  open, or an earlier gate or the environment is stale.
+- `INCOMPLETE`, `can_proceed: false`: a required case is unexecuted, evidence, approval or access is missing, a
+  question is open, or an earlier gate or the environment is stale.
 - `PASS`, `can_proceed: true`: the current plan is approved, every required scenario passed in this or a carried-over
   round with evidence, every RC is covered, and nothing blocking or unresolved remains.
 - `N/A`, `can_proceed: true`: no QA scenario applies and other current verification covers every acceptance condition.

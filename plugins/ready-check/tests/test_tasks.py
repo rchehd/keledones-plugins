@@ -22,6 +22,13 @@ class TaskRecordTest(RepoTest):
         self.assertLessEqual(len(prompt.encode("utf-8")), tasks.MAX_PROMPT)
         self.assertTrue(prompt and set(prompt) == {"ж"})
 
+    def test_record_time_carries_its_utc_offset(self):
+        now = datetime(2026, 3, 29, 2, 30, 0)
+        tasks.record(self.repo, "claude", "s", "task", now=now)
+        moment = datetime.fromisoformat(self.lines()[0]["ts"])
+        self.assertIsNotNone(moment.tzinfo)
+        self.assertEqual(moment.timestamp(), now.timestamp())
+
     def test_commands_and_blank_prompts_are_skipped(self):
         for prompt in ("/ready:check", " $check ", "/qa", "   ", None):
             self.assertIsNone(tasks.record(self.repo, "codex", "s", prompt))

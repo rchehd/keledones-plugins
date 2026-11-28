@@ -10,7 +10,19 @@ Use the approved scenario list for `scenarios` and current recorded observations
 Include every current in-scope requirement. For each acceptance condition that still needs runtime evidence,
 include its verification in a required case. Use an empty requirement list for a regression case without an RC.
 When resuming an older plan, derive the kind from the approved steps and keep the original scenario IDs.
-An absent result is treated as `NOT_RUN`. `PASS` and `FAIL` need evidence. `N/A` and `INCOMPLETE` need a reason.
+An absent result is treated as `NOT_RUN`. `N/A` and `INCOMPLETE` need a reason. `PASS` and `FAIL` need
+`evidence`: one path or a list of paths relative to the report folder, each a non-empty file saved there.
+A missing, empty or outside file is listed in `missing_evidence`.
+
+Set `approval` to the approved plan file and the user's exact reply: the chat message, or the option label
+chosen in the question tool. The plan must be the newest `qa-plan-round-<N>-rev-<R>.md` revision of its
+round. The gate finds that reply in the task records made after the plan file was saved and lists evidence
+older than the approval in `evidence_before_approval`, except for a carried-over result with
+`recorded_round`. Without a matching reply, or with a newer revision of that round, `approval_check` is
+`UNVERIFIED`. With `captureTasks` off or no records for the branch it is `SKIPPED` and does not change the
+verdict. Never edit a plan file after showing it; a changed plan is a new revision file.
+`missing_evidence`, `evidence_before_approval` and an `UNVERIFIED` approval change `PASS` to `INCOMPLETE`;
+an observed `FAIL` stays `FAIL`.
 When the approved plan makes video mandatory, include the current `round` and set `recording_required: true`
 on the required scenario. Use [`qa-record --finish-video`](evidence.md#create-a-replay-and-hand-off-from-qa)
 with the actual outcome of the recorded attempt. Set `attempt` and `recording` on its result from the
@@ -25,6 +37,7 @@ Optional video does not affect the verdict.
 {
   "schema_version": 1,
   "round": 1,
+  "approval": {"plan": "qa-plan-round-1-rev-1.md", "answer": "Approve"},
   "requirements": ["RC-001", "RC-002", "RC-003"],
   "scenarios": [
     {"id": "QA-001", "kind": "api", "required": true, "requirements": ["RC-001"]},
@@ -46,7 +59,6 @@ Optional video does not affect the verdict.
 RC ID to already-current evidence when that evidence covers every acceptance condition for that RC.
 
 Save the command's JSON output with the round. Exit `1` means a required scenario failed. Exit `2` means
-a required result or coverage is incomplete, or the gate input is invalid. Exit `0` means the recorded case
-outcomes and requirement coverage allow the stage to proceed. Check plan approval, evidence freshness and
-confirmed blockers in the report before recording the stage verdict. The gate uses the recorded evidence
-references for artifacts besides the required video.
+a required result, evidence, approval or coverage is incomplete, or the gate input is invalid. Exit `0` means
+the recorded outcomes, evidence files, approval and coverage allow the stage to proceed. With a `SKIPPED`
+approval, confirm the approval in the report. Check confirmed blockers before recording the stage verdict.
